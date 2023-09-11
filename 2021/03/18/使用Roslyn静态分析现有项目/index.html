@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="使用 Visual Studio 提供的 Syntax Visualizer，我们可以实时看到一个代码文件中的语法树。这对我们基于 Roslyn 编写静态分析和修改工具非常有帮助。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="使用Roslyn静态分析现有项目">
+<meta property="og:url" content="http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="使用 Visual Studio 提供的 Syntax Visualizer，我们可以实时看到一个代码文件中的语法树。这对我们基于 Roslyn 编写静态分析和修改工具非常有帮助。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/image-20230907163724401.png">
+<meta property="og:image" content="http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/image-20230907163810748.png">
+<meta property="article:published_time" content="2021-03-18T07:23:28.000Z">
+<meta property="article:modified_time" content="2023-09-07T11:54:20.461Z">
+<meta property="article:author" content="汪俊">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/image-20230907163724401.png">
+
+
+<link rel="canonical" href="http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/","path":"2021/03/18/使用Roslyn静态分析现有项目/","title":"使用Roslyn静态分析现有项目"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>使用Roslyn静态分析现有项目 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B7%A5%E5%85%B7%E5%AE%89%E8%A3%85"><span class="nav-number">1.</span> <span class="nav-text">工具安装</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Syntax-Visual"><span class="nav-number">2.</span> <span class="nav-text">Syntax Visual</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E7%94%A8%E8%B5%B7%E6%9D%A5"><span class="nav-number">2.1.</span> <span class="nav-text">用起来</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A0%E8%BD%BD%E4%B8%80%E4%B8%AA%E9%A1%B9%E7%9B%AE"><span class="nav-number">3.</span> <span class="nav-text">加载一个项目</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%87%8D%E6%9E%84%E4%BB%A3%E7%A0%81"><span class="nav-number">3.1.</span> <span class="nav-text">重构代码</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="使用Roslyn静态分析现有项目 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          使用Roslyn静态分析现有项目
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-03-18 15:23:28" itemprop="dateCreated datePublished" datetime="2021-03-18T15:23:28+08:00">2021-03-18</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>使用 Visual Studio 提供的 Syntax Visualizer，我们可以实时看到一个代码文件中的语法树。这对我们基于 Roslyn 编写静态分析和修改工具非常有帮助。</p>
+<span id="more"></span>
+
+
+
+<h2 id="工具安装"><a href="#工具安装" class="headerlink" title="工具安装"></a>工具安装</h2><p>在安装 Visual Studio 时，选择了 Visual Studio 扩展开发的工作负载，勾选了 .NET Compiler Platform SDK，即可。</p>
+<h2 id="Syntax-Visual"><a href="#Syntax-Visual" class="headerlink" title="Syntax Visual"></a>Syntax Visual</h2><p>语法可视化树中有三种不同颜色的节点：</p>
+<ul>
+<li>蓝色：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/microsoft.codeanalysis.syntaxnode?view=roslyn-dotnet">SyntaxNode</a>，表示声明、语句、子句和表达式等语法构造。</li>
+<li>绿色：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/microsoft.codeanalysis.syntaxtoken?view=roslyn-dotnet">SyntaxToken</a>，表示关键字、标识符、运算符等标点。</li>
+<li>红色：<a target="_blank" rel="noopener" href="https://docs.microsoft.com/zh-cn/dotnet/api/microsoft.codeanalysis.syntaxtrivia?view=roslyn-dotnet">SyntaxTrivia</a>，代表语法上不重要的信息，例如标记、预处理指令和注释之间的空格。</li>
+</ul>
+<h3 id="用起来"><a href="#用起来" class="headerlink" title="用起来"></a>用起来</h3><img src="/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/image-20230907163724401.png" class="" title="image-20230907163724401">
+
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.IO;</span><br><span class="line"><span class="keyword">using</span> System.Linq;</span><br><span class="line"><span class="keyword">using</span> System.Text;</span><br><span class="line"><span class="keyword">using</span> System.Threading.Tasks;</span><br><span class="line"><span class="keyword">using</span> Microsoft.Build.Locator;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.CSharp;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.CSharp.Symbols;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.CSharp.Syntax;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.MSBuild;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.Text;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">TestMyRewriter</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">        &#123;   <span class="comment">//原始代码</span></span><br><span class="line">            <span class="built_in">string</span> strCode = <span class="string">@&quot;</span></span><br><span class="line"><span class="string">                  public class Foo</span></span><br><span class="line"><span class="string">                  &#123;</span></span><br><span class="line"><span class="string">                      public string _bar = &quot;&quot;baz&quot;&quot;;  </span></span><br><span class="line"><span class="string">                      public string strHello = &quot;&quot;heloo world&quot;&quot;;</span></span><br><span class="line"><span class="string">                  &#125;&quot;</span>;</span><br><span class="line">            <span class="keyword">var</span> tree = CSharpSyntaxTree.ParseText(strCode);</span><br><span class="line">            <span class="keyword">var</span> Mscorlib = MetadataReference.CreateFromFile(<span class="keyword">typeof</span>(<span class="built_in">object</span>).Assembly.Location);</span><br><span class="line">            <span class="keyword">var</span> compilation = CSharpCompilation.Create(<span class="string">&quot;MyCompilation&quot;</span>,</span><br><span class="line">                syntaxTrees: <span class="keyword">new</span>[] &#123; tree &#125;, references: <span class="keyword">new</span>[] &#123; Mscorlib &#125;);</span><br><span class="line">            <span class="comment">// 获得语义模型</span></span><br><span class="line">            <span class="keyword">var</span> model = compilation.GetSemanticModel(tree);</span><br><span class="line">            <span class="keyword">var</span> root = model.SyntaxTree.GetRoot();</span><br><span class="line">            <span class="comment">// 用Visit重写代码</span></span><br><span class="line">            <span class="keyword">var</span> rw = <span class="keyword">new</span> LiteralRewriter();</span><br><span class="line">            <span class="keyword">var</span> newRoot = rw.Visit(root);</span><br><span class="line">            <span class="comment">// 新生成代码</span></span><br><span class="line">            <span class="built_in">string</span> strNewCode = newRoot.GetText().ToString();</span><br><span class="line">            Console.WriteLine(strNewCode);</span><br><span class="line">            Console.ReadLine();</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title">LiteralRewriter</span> : <span class="title">CSharpSyntaxRewriter</span>      <span class="comment">// 继承CSharpSyntaxRewriter</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> SyntaxNode <span class="title">VisitLiteralExpression</span>(<span class="params">LiteralExpressionSyntax node</span>) <span class="comment">// 重载 VisitLiteralExpression 方法, 输入节点是 文字表达式</span></span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (!node.IsKind(SyntaxKind.StringLiteralExpression))</span><br><span class="line">            &#123; <span class="keyword">return</span> <span class="keyword">base</span>.VisitLiteralExpression(node); &#125;</span><br><span class="line">            <span class="comment">// 重新构造一个字符串表达式</span></span><br><span class="line">            <span class="keyword">var</span> retVal = SyntaxFactory.LiteralExpression(SyntaxKind.StringLiteralExpression,</span><br><span class="line">                                                         SyntaxFactory.Literal(<span class="string">&quot;NotBaz&quot;</span>));</span><br><span class="line">            <span class="keyword">return</span> retVal;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<img src="/2021/03/18/%E4%BD%BF%E7%94%A8Roslyn%E9%9D%99%E6%80%81%E5%88%86%E6%9E%90%E7%8E%B0%E6%9C%89%E9%A1%B9%E7%9B%AE/image-20230907163810748.png" class="" title="image-20230907163810748">
+
+
+
+<h2 id="加载一个项目"><a href="#加载一个项目" class="headerlink" title="加载一个项目"></a>加载一个项目</h2><figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">string</span> solutionPath = <span class="string">@&quot;H:\CSharpProject\MyConsole\MyConsole.sln&quot;</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">if</span> (!MSBuildLocator.IsRegistered) MSBuildLocator.RegisterDefaults();</span><br><span class="line">    <span class="keyword">using</span> (<span class="keyword">var</span> w = MSBuildWorkspace.Create())</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">var</span> solution = <span class="keyword">await</span> w.OpenSolutionAsync(solutionPath);</span><br><span class="line">        <span class="comment">//await SolutionAttributeUpdater.UpdateAttributes(solution);</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<p>官网案例：<a target="_blank" rel="noopener" href="https://github.com/dotnet/samples/tree/main/csharp/roslyn-sdk">https://github.com/dotnet/samples/tree/main/csharp/roslyn-sdk</a></p>
+<h3 id="重构代码"><a href="#重构代码" class="headerlink" title="重构代码"></a>重构代码</h3><ul>
+<li>创建CodeAnalysis 工程，加载要分析的工程项目</li>
+<li>设定要分析的脚本，也可以遍历全部或自定义筛选</li>
+<li>通过脚本可以获取抽象语法树（另外直接用字符串源码也可以生成抽象语法树）</li>
+<li>实现语法重写（Syntax Rewriter）</li>
+<li>将新的语法树结果写入脚本，即可完成自定义重构</li>
+</ul>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.IO;</span><br><span class="line"><span class="keyword">using</span> System.Linq;</span><br><span class="line"><span class="keyword">using</span> System.Text;</span><br><span class="line"><span class="keyword">using</span> System.Threading.Tasks;</span><br><span class="line"><span class="keyword">using</span> Microsoft.Build.Locator;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.CSharp;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.CSharp.Symbols;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.CSharp.Syntax;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.MSBuild;</span><br><span class="line"><span class="keyword">using</span> Microsoft.CodeAnalysis.Text;</span><br><span class="line"></span><br><span class="line"><span class="keyword">namespace</span> <span class="title">TestMyRewriter</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">class</span> <span class="title">Program</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">static</span> <span class="keyword">async</span> Task <span class="title">Main</span>(<span class="params"><span class="built_in">string</span>[] args</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> solutionPath = <span class="string">@&quot;H:\CSharpProject\MyConsole\MyConsole.sln&quot;</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (!MSBuildLocator.IsRegistered) MSBuildLocator.RegisterDefaults();</span><br><span class="line">            <span class="keyword">using</span> (<span class="keyword">var</span> w = MSBuildWorkspace.Create())</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> solution = <span class="keyword">await</span> w.OpenSolutionAsync(solutionPath);</span><br><span class="line">                <span class="comment">//await SolutionAttributeUpdater.UpdateAttributes(solution);</span></span><br><span class="line">                <span class="keyword">var</span> project = solution.Projects.First(x =&gt; x.Name == <span class="string">&quot;MyConsole&quot;</span>);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">var</span> document = project.Documents.First(x =&gt;</span><br><span class="line">                        x.Name.Equals(<span class="string">&quot;Program.cs&quot;</span>, StringComparison.InvariantCultureIgnoreCase));</span><br><span class="line"></span><br><span class="line">                <span class="keyword">var</span> tree = <span class="keyword">await</span> document.GetSyntaxTreeAsync();</span><br><span class="line">                <span class="keyword">var</span> syntax = tree.GetCompilationUnitRoot();</span><br><span class="line"></span><br><span class="line">                <span class="keyword">var</span> visitor = <span class="keyword">new</span> TypeParameterVisitor();</span><br><span class="line">                <span class="keyword">var</span> node = visitor.Visit(syntax);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">var</span> text = node.GetText();</span><br><span class="line">                File.WriteAllText(document.FilePath, text.ToString());</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">class</span> <span class="title">SolutionAttributeUpdater</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">async</span> Task&lt;Solution&gt; <span class="title">UpdateAttributes</span>(<span class="params">Solution solution</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">foreach</span> (<span class="keyword">var</span> project <span class="keyword">in</span> solution.Projects)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">foreach</span> (<span class="keyword">var</span> document <span class="keyword">in</span> project.Documents)</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="keyword">var</span> syntaxTree = <span class="keyword">await</span> document.GetSyntaxTreeAsync();</span><br><span class="line">                    <span class="keyword">var</span> root = syntaxTree.GetRoot();</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">var</span> descentants = root.DescendantNodes().Where(curr =&gt; curr <span class="keyword">is</span> AttributeListSyntax).ToList();</span><br><span class="line">                    <span class="keyword">if</span> (descentants.Any())</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">var</span> attributeList = SyntaxFactory.AttributeList(</span><br><span class="line">                            SyntaxFactory.SingletonSeparatedList(</span><br><span class="line">                                SyntaxFactory.Attribute(SyntaxFactory.IdentifierName(<span class="string">&quot;CookiesAttribute&quot;</span>), SyntaxFactory.AttributeArgumentList(SyntaxFactory.SeparatedList(<span class="keyword">new</span>[] &#123; SyntaxFactory.AttributeArgument(</span><br><span class="line">                                    SyntaxFactory.LiteralExpression(</span><br><span class="line">                                                                SyntaxKind.StringLiteralExpression, SyntaxFactory.Literal(<span class="string">@&quot;SampleClass&quot;</span>))</span><br><span class="line">                                    )&#125;)))));</span><br><span class="line"></span><br><span class="line">                        root = root.ReplaceNodes(descentants, (node, n2) =&gt; attributeList);</span><br><span class="line">                        solution = solution.WithDocumentSyntaxRoot(document.Id, root);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">return</span> solution;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">class</span> <span class="title">TypeParameterVisitor</span> : <span class="title">CSharpSyntaxRewriter</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> SyntaxNode <span class="title">VisitTypeParameterList</span>(<span class="params">TypeParameterListSyntax node</span>)</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">var</span> parameters = <span class="keyword">new</span> SeparatedSyntaxList&lt;TypeParameterSyntax&gt;();</span><br><span class="line">            parameters = parameters.Add(SyntaxFactory.TypeParameter(<span class="string">&quot;TParameter&quot;</span>));</span><br><span class="line"></span><br><span class="line">         </span><br><span class="line">            <span class="keyword">var</span> lessThanToken = <span class="keyword">this</span>.VisitToken(node.LessThanToken);</span><br><span class="line">            <span class="keyword">var</span> greaterThanToken = <span class="keyword">this</span>.VisitToken(node.GreaterThanToken);</span><br><span class="line">            <span class="keyword">return</span> node.Update(lessThanToken, parameters, greaterThanToken);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/11/05/ILRuntime%E4%BD%BF%E7%94%A8/" rel="prev" title="ILRuntime使用">
+                  <i class="fa fa-angle-left"></i> ILRuntime使用
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/03/31/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E5%86%85%E5%AD%98/" rel="next" title="游戏性能优化——内存管理">
+                  游戏性能优化——内存管理 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

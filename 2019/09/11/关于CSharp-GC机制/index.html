@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="在诸如原生C++这类语言中，程序员需要手动管理内存，这无疑是十分繁琐的，且常常会因为程序员忘记释放掉不再需要的内存而造成内存泄漏，甚至试图访问已经释放了的内存造成程序错误和安全漏洞，而且这种bug比其他大多数的bug都要严重，因为无法预测其发生时间和后果。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于CSharp-GC机制">
+<meta property="og:url" content="http://example.com/2019/09/11/%E5%85%B3%E4%BA%8ECSharp-GC%E6%9C%BA%E5%88%B6/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="在诸如原生C++这类语言中，程序员需要手动管理内存，这无疑是十分繁琐的，且常常会因为程序员忘记释放掉不再需要的内存而造成内存泄漏，甚至试图访问已经释放了的内存造成程序错误和安全漏洞，而且这种bug比其他大多数的bug都要严重，因为无法预测其发生时间和后果。">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2019-09-11T08:02:05.000Z">
+<meta property="article:modified_time" content="2023-09-11T08:14:21.644Z">
+<meta property="article:author" content="汪俊">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://example.com/2019/09/11/%E5%85%B3%E4%BA%8ECSharp-GC%E6%9C%BA%E5%88%B6/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2019/09/11/%E5%85%B3%E4%BA%8ECSharp-GC%E6%9C%BA%E5%88%B6/","path":"2019/09/11/关于CSharp-GC机制/","title":"关于CSharp-GC机制"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>关于CSharp-GC机制 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AFGC"><span class="nav-number">1.</span> <span class="nav-text">什么是GC</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%AE%97%E6%B3%95"><span class="nav-number">1.1.</span> <span class="nav-text">垃圾回收算法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%A0%87%E8%AE%B0"><span class="nav-number">1.2.</span> <span class="nav-text">标记</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%8B%E7%BC%A9"><span class="nav-number">1.3.</span> <span class="nav-text">压缩</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%A3%EF%BC%88Generation%EF%BC%89"><span class="nav-number">2.</span> <span class="nav-text">代（Generation）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E4%BB%A3%E7%9A%84%E5%81%87%E8%AE%BE"><span class="nav-number">2.1.</span> <span class="nav-text">分代的假设</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%88%86%E4%BB%A3%E5%9B%9E%E6%94%B6"><span class="nav-number">2.2.</span> <span class="nav-text">分代回收</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BB%A3%E9%A2%84%E7%AE%97%E7%9A%84%E5%8A%A8%E6%80%81%E8%B0%83%E8%8A%82"><span class="nav-number">2.3.</span> <span class="nav-text">代预算的动态调节</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9E%83%E5%9C%BE%E5%9B%9E%E6%94%B6%E7%9A%84%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6"><span class="nav-number">3.</span> <span class="nav-text">垃圾回收的触发条件</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BB%A3%E7%A0%81%E6%98%BE%E5%BC%8F%E8%B0%83%E7%94%A8System-GC%E7%9A%84%E9%9D%99%E6%80%81Collect%E6%96%B9%E6%B3%95"><span class="nav-number">3.0.1.</span> <span class="nav-text">代码显式调用System.GC的静态Collect方法</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#Windows%E6%8A%A5%E5%91%8A%E4%BD%8E%E5%86%85%E5%AD%98%E6%83%85%E5%86%B5"><span class="nav-number">3.0.2.</span> <span class="nav-text">Windows报告低内存情况</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CLR%E6%AD%A3%E5%9C%A8%E5%8D%B8%E8%BD%BDAppDomain"><span class="nav-number">3.0.3.</span> <span class="nav-text">CLR正在卸载AppDomain</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#CLR%E6%AD%A3%E5%9C%A8%E5%85%B3%E9%97%AD"><span class="nav-number">3.0.4.</span> <span class="nav-text">CLR正在关闭</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%A4%A7%E5%AF%B9%E8%B1%A1"><span class="nav-number">4.</span> <span class="nav-text">大对象</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%9C%80%E8%A6%81%E7%89%B9%E6%AE%8A%E6%B8%85%E7%90%86%E7%9A%84%E7%B1%BB%E5%9E%8B"><span class="nav-number">5.</span> <span class="nav-text">需要特殊清理的类型</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#Finalize%E6%96%B9%E6%B3%95"><span class="nav-number">5.1.</span> <span class="nav-text">Finalize方法</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AF%B9%E4%BA%8E%E7%B1%BB%E5%9E%8B%E5%AE%9A%E4%B9%89%E4%BA%86Finalize%E6%96%B9%E6%B3%95%E7%9A%84%E5%AF%B9%E8%B1%A1%E7%9A%84%E5%9B%9E%E6%94%B6%E6%9C%BA%E5%88%B6"><span class="nav-number">5.2.</span> <span class="nav-text">对于类型定义了Finalize方法的对象的回收机制</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/09/11/%E5%85%B3%E4%BA%8ECSharp-GC%E6%9C%BA%E5%88%B6/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="关于CSharp-GC机制 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          关于CSharp-GC机制
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-09-11 16:02:05" itemprop="dateCreated datePublished" datetime="2019-09-11T16:02:05+08:00">2019-09-11</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在诸如原生C++这类语言中，程序员需要手动管理内存，这无疑是十分繁琐的，且常常会因为程序员忘记释放掉不再需要的内存而造成内存泄漏，甚至试图访问已经释放了的内存造成程序错误和安全漏洞，而且这种bug比其他大多数的bug都要严重，因为无法预测其发生时间和后果。</p>
+<span id="more"></span>
+
+<h2 id="什么是GC"><a href="#什么是GC" class="headerlink" title="什么是GC"></a>什么是GC</h2><p>GC，即Garbage Collection，意为垃圾回收，区别于诸如原生C++这种需要程序员手动管理内存的机制，垃圾回收机制可以让程序员不再过于关心内存管理问题，垃圾回收器会自行在合适的时刻收集需要释放掉的对象，进行内存释放。</p>
+<h3 id="垃圾回收算法"><a href="#垃圾回收算法" class="headerlink" title="垃圾回收算法"></a>垃圾回收算法</h3><p>既然GC可以自行回收对象，那么面临的一个问题是，需要计算出哪些对象是需要被回收的。<br>.Net中采用的GC算法可以简单地看作标记压缩法（Mark Compact）。除此之外，常见的GC算法有很多种，包括引用计数法（Reference Counting）、标记清除法（Mark Sweep）、复制法（Copy Collection）等。<br>标记压缩算法可以分为两个阶段</p>
+<p>:one: 标记<br>:two: 压缩</p>
+<h3 id="标记"><a href="#标记" class="headerlink" title="标记"></a>标记</h3><p>因为引用计数法无法解决循环依赖的问题，CLR改为使用一种引用跟踪算法。引用跟踪算法只关心引用类型的变量，因为只有这种变量才能引用堆上的对象。引用类型变量可在许多场合使用，包括类的静态和实例字段，或者方法的参数和局部变量。我们称所有引用类型的变量为根。</p>
+<p>CLR开始GC时，首先暂停进程中所有的线程，这样可以防止线程在CLR检查期间访问底线并更改其状态。然后正式进入标记状态。</p>
+<p>在这个阶段，CLR会先遍历堆中的所有对象，并全部设置为可回收状态的，然后检查所有活动根，查看他们引用了哪些对象，如果一个根包含null，CLR会忽略这个根并检查下一个根。任何根如果引用了堆上的对象，CLR都会标记那个对象，并检查这个对象中的根，继续标记它们引用的对象，如果过程中发现对象已标记，则不重新检查，避免了循环引用而造成的死循环。</p>
+<p>检查完毕后，堆中的对象要么已标记，要么未标记。已标记的对象不能被垃圾回收，因为至少有一个根在引用它。我们说这种对象是可达的，因为应用程序代码可通过仍在引用它的变量访问它，是不能回收的。未标记的对象是不可达的，因为应用程序中不存在使对象能被再次访问的根，是可以回收的。</p>
+<h3 id="压缩"><a href="#压缩" class="headerlink" title="压缩"></a>压缩</h3><p>删除掉可回收对象后，便进入压缩阶段。首先要搞清楚的是，这里的压缩并不是指把对象的内存空间压缩变小了，而是把存活下来的对象进行移位，使他们占用连续的内存空间，紧挨在一起，实际上相比起“压缩”，用“碎片整理”这一词应该跟贴近这一阶段的行为。这一行为可以使得引用恢复“局部化”，减少应用程序工作集，并提升了访问这些对象时的性能，并且对于压缩后的可使用空间，也会变成连续的，可容纳更大的对象，解决了空间碎片化问题。</p>
+<p>在内存中移动了对象位置后，引用幸存对象的根仍然引用着对象压缩前的位置，压缩阶段最后一步还会把每个根减去所引用的对象在内存中偏移的字节数，来保证每个根引用的还是和之前一样的对象。</p>
+<p>压缩好内存后，托管堆的NextObjPtr指针指向最后一个幸存对象之后的位置。下一个分配的对象将放到这个位置。压缩阶段完成后，CLR恢复应用程序的所有线程。这些线程继续访问对象，就好象GC没有发过一样。</p>
+<p>如果CLR在一次GC之后回收不了内存，而且进程中没有空间来分配新的GC区域，就说明该进程的内存已耗尽。此时，试图分配更多内存的new操作符会抛出OutOfMemoryException。应用程序可捕捉该异常并从中恢复。但大多数应用程序都不会这么做;相反，异常会成为未处理异常，Windows 将终止进程并回收进程使用的全部内存。</p>
+<h2 id="代（Generation）"><a href="#代（Generation）" class="headerlink" title="代（Generation）"></a>代（Generation）</h2><p>通过上文，我们可以得到一个观点，就是当堆中没有足够的空间来分配新对象时，CLR便会执行垃圾回收，以释放空间。但实际上为了优化垃圾回收时的性能，情况会更复杂一些。</p>
+<h3 id="分代的假设"><a href="#分代的假设" class="headerlink" title="分代的假设"></a>分代的假设</h3><p>为了进一步优化垃圾回收的性能，CLR使用了分代算法，而基于代的垃圾回收器，会对代码做出以下假设:</p>
+<p>对象越新，生存期越短。<br>对象越老，生存期越长。<br>回收堆的一部分，速度快于回收整个堆。<br>大量研究证明，这些假设对于现今大多数应用程序都是成立的。</p>
+<h3 id="分代回收"><a href="#分代回收" class="headerlink" title="分代回收"></a>分代回收</h3><p>程序在初始化时，托管堆不包含任何对象，这个时候新添加到堆中的对象，我们成为第0代对象。简单地说，第0代对象就是那些新构造的对象，垃圾回收器从来未检查过这些对象。CLR初始化时会为第0代对象选一个预算容量，当分配一个新的对象超出这个预算时，就会启动一次垃圾回收。在一次垃圾回收之后，没被回收的对象会成为第1代对象，此时第0代空间中已经不包含任何对象，原来的对象可能已被回收，可能已被放置到第1代中。</p>
+<p>新分配的对象会继续第0代空间中，直到第0代空间不足分配新对象，会再次触发垃圾回收，开始垃圾回收时，垃圾回收器必须决定需要检查哪些代，前文提到，CLR初始化时会为第0代对象选择预算，实际上，CLR还必须为第1代选择预算。这时，垃圾回收器会检查第1代的空间，若远小于预算，则这次回收只会检查第0代，基于“对象越新，生存期越短”的假设，第0代包含更多垃圾的可能性很大，能回收更多的内存。因为忽略了第1代中的对象，尽管第1代中可能存在不可达的垃圾对象，但这加快了垃圾回收的速度。对性能的有效提升，主要是在于，现在不需要遍历堆中的每一个对象，因为如果根或对象引用了老一代的某一个对象， 垃圾回收器会忽略老一代对象内部的所有引用。</p>
+<p>当然，也存在老对象会引用了新对象的可能性，为了避免老一代对象引用了新一代对象，垃圾回收时却没检查到这一引用，而把新一代对象回收了的情况发生，垃圾回收器利用了JIT编译器内部的一个机制，这个机制在对象的引用字段发生变化时，会设置一个对应的标记位，这样一来垃圾回收器就会知道自上一次垃圾回收以来，哪些老对象的引用字段发生了变化，这样就算这次回收只回收新生代，也会去检测引用字段发生了变化的老对象，是否引用了新生代对象。</p>
+<p>当下一次第0代分配空间超出预算，开始执行垃圾回收，并发现第一代空间也超出预算时，垃圾回收器就会对第0代和第1代都进行回收，垃圾回收后，第0代的存活对象会被提升到第1代，而第1代的对象会被提升到第二代，而第0代空间再次空了出来。</p>
+<h3 id="代预算的动态调节"><a href="#代预算的动态调节" class="headerlink" title="代预算的动态调节"></a>代预算的动态调节</h3><p>托管堆只支持三代：第0代、第1代、第2代，没有第3代。CLR初始化的时候会为每一代选择预算。而且，CLR的垃圾回收器是会根据实际运行情况动态调节预算的，例如在回收第0代后发现存活下来的对象很少，就可能减少第0代的预算，这意味着会更加频繁地执行垃圾回收，但每次回收需要做的事情少了（若第0代所有对象都是垃圾，垃圾回收就不需要压缩内存，直接让NextObjPtr指针指回第0代的起始处即可，速度上会快很多）。相反，如果回收了第0代后发现还有很多存活的对象，没有多少内存可以回收，就会增大第0代的预算，这样垃圾回收的次数就会减少，但每次进行垃圾回收时，能会收到的内存就会变多。如果没有会收到足够的内存，垃圾回收器会执行一次完整的回收，如果还是不够，就会抛出OutOfMemoryException异常。上述仅对第0代进行垃圾回收后动态调整预算的讨论，但垃圾回收器还会用类似的方法来调整第1代和第2代的预算，最终结果就是，垃圾回收器会根据应用程序要求的内存负载来进行自我优化。</p>
+<h2 id="垃圾回收的触发条件"><a href="#垃圾回收的触发条件" class="headerlink" title="垃圾回收的触发条件"></a>垃圾回收的触发条件</h2><p>上文说到的检测到第0代超出预算的时候会触发垃圾回收，这是最常见的一种触发条件，除此之外还有以下条件可以触发垃圾回收：</p>
+<h4 id="代码显式调用System-GC的静态Collect方法"><a href="#代码显式调用System-GC的静态Collect方法" class="headerlink" title="代码显式调用System.GC的静态Collect方法"></a>代码显式调用System.GC的静态Collect方法</h4><p>代码可显式请求CLR进行垃圾回收，但微软强烈反对这种请求，托管语言应该信任它本身的垃圾回收机制。</p>
+<h4 id="Windows报告低内存情况"><a href="#Windows报告低内存情况" class="headerlink" title="Windows报告低内存情况"></a>Windows报告低内存情况</h4><p>如果Windows报告低内存，CLR会强制执行垃圾回收。</p>
+<h4 id="CLR正在卸载AppDomain"><a href="#CLR正在卸载AppDomain" class="headerlink" title="CLR正在卸载AppDomain"></a>CLR正在卸载AppDomain</h4><p>当一个AppDomain卸载时，CLR认为其中一切都不是根，会执行涵盖所有代的垃圾回收。</p>
+<h4 id="CLR正在关闭"><a href="#CLR正在关闭" class="headerlink" title="CLR正在关闭"></a>CLR正在关闭</h4><p>CLR在进程正常终止时关闭，CLR认为其中一切都不是根，对象有机会进行资源清理，但CLR不会试图压缩或释放内存。进程终止时，Windows会回收进程的全部内存。</p>
+<h2 id="大对象"><a href="#大对象" class="headerlink" title="大对象"></a>大对象</h2><p>CLR把对象分为大对象和小对象，上文都是对小对象的讨论，目前认为85000字节以上的对象为大对象，CLR会以不同的方式对待大小对象。</p>
+<p>大对象不在小对象的地址空间中分配，而是在进程地址空间的其他地方分配<br>目前版本GC不压缩大对象，因为在内存中移动大对象的代价太高，这可能会导致空间碎片化。（CLR有可能在未来版本压缩大对象）<br>大对象总是第2代，不会在其他代，所以为了性能考虑，只能为需要长时间存活的资源创建大对象，分配短时间存活的大对象会导致第2代被更频繁地回收，损害性能。大对象一般是大字符串或用于IO操作的直接数组。<br>一般情况下可以忽视大对象的存在，仅出现如空间碎片化等情况时才对大对象进行特殊处理。</p>
+<h2 id="需要特殊清理的类型"><a href="#需要特殊清理的类型" class="headerlink" title="需要特殊清理的类型"></a>需要特殊清理的类型</h2><h3 id="Finalize方法"><a href="#Finalize方法" class="headerlink" title="Finalize方法"></a>Finalize方法</h3><p>有些类型除了内存外，还需要一些本机资源（也就是非托管资源）才能正常工作，例如System.IO.FileStream类型需要打开一个文件并保存文件的句柄。在包含非托管资源的类型被GC时，GC会回收对象在托管堆中的内存，如果直接进行回收，本机资源未释放，会导致本机资源的泄漏，为了解决这一问题CLR提供了终结机制，允许对象在被判定为垃圾后，在被回收之前执行一些代码，之后再从托管堆中回收对象。我们称这种对象为可终结的。</p>
+<p>System.Object定义了受保护的虚方法Finalize，如果类型重写了这个方法，垃圾回收器会在判定对象是垃圾后调用对象的Finalize方法。C#要求要用特殊的语法来定义Finalize方法，如下所示：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">class</span> <span class="title">SomeType</span></span><br><span class="line">&#123;</span><br><span class="line">    ~SomeType()</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//....</span></span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>虽然System.Object定义了Finalize方法，但CLR会忽略它，只有类型重写了这个方法，才会被认为是“可终结的”</p>
+<p>C#的Finalize方法在语法上与C++的析构函数非常相似，但实际上工作方式完全不同，与C++中类型实例会被确定性析构不一样，面向CLR的语言，C#无法提供确定性析构这种机制</p>
+<h3 id="对于类型定义了Finalize方法的对象的回收机制"><a href="#对于类型定义了Finalize方法的对象的回收机制" class="headerlink" title="对于类型定义了Finalize方法的对象的回收机制"></a>对于类型定义了Finalize方法的对象的回收机制</h3><p>应用程序在创建新的对象时，new操作符会在堆中分配内存，如果对象的类型定义了Finalize方法，那么这个实例在被构造之前，会将一个指向该对象的指针放到一个终结列表中（finalization list），终结列表是由垃圾回收器控制的一个内部数据结构，列表中的每一个项都指向一个类型定义了Finalize方法的对象。</p>
+<p>垃圾回收器在标记完垃圾对象后，会在终结列表中查找是否有包含垃圾对象的引用，即检查这些垃圾对象是否定义了Finalize方法，若检测到有，则会把这个引用从终结列表中移除，并加到freachable队列中。freachable队列也是垃圾回收器的一种内部数据结构，队列中每一个引用都代表准备要调用Finalize方法的对象。垃圾回收完毕后，没有定义Finalize方法的对象已被回收，但定义了Finalize方法的对象（即此时在freachable队列中的对象）会存活下来，因为此时他们的Finalize方法还没被调用。</p>
+<p>简单地说，当一个对象不可达时，垃圾回收器就把它视为垃圾。但是，当垃圾回收器把对象的引用从终结列表移到freachable队列时，对象不再被认为是垃圾，我们可以说对象被“复活了”，相应的，标记freachable队列中的对象时，还会递归对象中的引用字段所引用的对象，这些对象都会“复活”，最后在回收过程中存活下来。然后垃圾回收器会压缩内存，并把“复活”的对象提升到老一代，之后CLR会用特殊的终结线程去调用freachable队列中每个对象的Finalize方法，并清空队列。</p>
+<p>也就是说，这些定义了Finalize方法的“可终结”的对象，由于在第一次回收时，会被“复活”以执行Finalize方法，并可能会被提升到老一代，所以至少需要执行两次垃圾回收才能释放掉它们占用的托管堆内存，更需要注意到的是，这些对象中的引用字段所引用的对象也会存活下来并提升到老一代，会造成更大的性能负担。所以，要尽量避免为引用类型的字段定义为“可终结”对象。</p>
+<p>最后要注意，Finalize方法的执行时间和执行顺序是无法保证的，所以在Finalize方法中不要访问定义了Finalize方法的其他类型的对象，那些对象可能已经终结了，但是访问值类型实例或者没有定义Finalize方法类型的对象是安全的</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/09/10/Lua%E4%BA%8B%E4%BB%B6%E6%B4%BE%E5%8F%91%E5%99%A8/" rel="prev" title="Lua事件派发器">
+                  <i class="fa fa-angle-left"></i> Lua事件派发器
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/09/27/Asset%E5%8A%A0%E8%BD%BD%E6%A1%86%E6%9E%B6/" rel="next" title="Asset加载框架">
+                  Asset加载框架 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

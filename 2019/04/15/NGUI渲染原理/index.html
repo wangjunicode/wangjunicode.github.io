@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="NGUI的核心架构，主要是：UIPanel、UIWidget、UIDrawcall。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="NGUI渲染原理">
+<meta property="og:url" content="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="NGUI的核心架构，主要是：UIPanel、UIWidget、UIDrawcall。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/v2-4fece7d7e81b2d77cc0249073dfd363c_b.png">
+<meta property="og:image" content="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/v2-2b7b55ed71778cac3d76038b858f8951_b.png">
+<meta property="og:image" content="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/image-20230905165859556.png">
+<meta property="article:published_time" content="2019-04-15T08:44:57.000Z">
+<meta property="article:modified_time" content="2023-09-05T09:38:33.658Z">
+<meta property="article:author" content="汪俊">
+<meta property="article:tag" content="NGUI">
+<meta property="article:tag" content="渲染">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/v2-4fece7d7e81b2d77cc0249073dfd363c_b.png">
+
+
+<link rel="canonical" href="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/","path":"2019/04/15/NGUI渲染原理/","title":"NGUI渲染原理"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>NGUI渲染原理 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#UIWidget%E3%80%81UIPanel"><span class="nav-number">1.</span> <span class="nav-text">UIWidget、UIPanel</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9F%BA%E7%A1%80%E7%BB%93%E6%9E%84"><span class="nav-number">2.</span> <span class="nav-text">基础结构</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#DrawCall"><span class="nav-number">3.</span> <span class="nav-text">DrawCall</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#NGUI%E7%9A%84Drawcall%E5%A4%84%E7%90%86"><span class="nav-number">4.</span> <span class="nav-text">NGUI的Drawcall处理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%B2%E6%9F%93%E5%BA%8F%E5%88%97"><span class="nav-number">5.</span> <span class="nav-text">渲染序列</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#UIDrawCall%E5%AE%9E%E7%8E%B0"><span class="nav-number">6.</span> <span class="nav-text">UIDrawCall实现</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="NGUI渲染原理 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          NGUI渲染原理
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-04-15 16:44:57" itemprop="dateCreated datePublished" datetime="2019-04-15T16:44:57+08:00">2019-04-15</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/NGUI/" itemprop="url" rel="index"><span itemprop="name">NGUI</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>NGUI的核心架构，主要是：UIPanel、UIWidget、UIDrawcall。</p>
+<span id="more"></span>
+
+<h3 id="UIWidget、UIPanel"><a href="#UIWidget、UIPanel" class="headerlink" title="UIWidget、UIPanel"></a>UIWidget、UIPanel</h3><p><strong>Widget是NGUI中负责界面显示的基础单位。</strong></p>
+<p>所有需要在屏幕上显示出来的2D UI本质上都是一个Widget——包括Label、Sprite、Texture。</p>
+<p><strong>而Panel，就是一个用来管理Widget的控件。</strong></p>
+<p>每一个Widget都必定从属于一个Panel，不可例外——NGUI的根节点Root本身也包含一个Panel，而你不可能在Root之外创建Widget。</p>
+<p>需要注意的是，Hierarchy中的UI层级关系，与NGUI自己内部的层级关系，并不一致。</p>
+<img src="/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/v2-4fece7d7e81b2d77cc0249073dfd363c_b.png" class="" title="img">
+
+<p>比如这样一个结构。<br>Panel_D是Widget_2的儿子，是Panel_A的孙子。<br>但是对于NGUI内部来说：<br>Panel_A和Panel_D是平级的，Widget_2和Panel_D并没有父子关系。</p>
+<h3 id="基础结构"><a href="#基础结构" class="headerlink" title="基础结构"></a>基础结构</h3><p>在NGUI的架构中，首先存在一个静态的static List<UIPanel>，这个List包含所有的Panel<br>而每个Panel有两个属于自己的List：一个List<UIWidget>，一个List&lt; UIDrawcall &gt;<br>每个Panel都会在自己的子节点中向下寻找，把找到的Widget丢进自己的List中。<br>这个行为在每一次走到叶节点，或者遇到Panel的时候就会中断当前分支，跳到下一个分支。</p>
+<p>比如说上图中Panel_A在找孩子的时候，走到Panel_D的时候就会中断当前分支，然后继续到Widget_3中去寻找。如此循环直到所有可获取的Widget都被装进List。</p>
+<p>而对于Panel_D，也是如此。</p>
+<img src="/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/v2-2b7b55ed71778cac3d76038b858f8951_b.png" class="" title="img">
+
+<p>static List<UIPanel>内部包含一个Sort排序方法，会基于Panel的Depth进行一次排序。<br>而Panel内部也包含一个Sort排序方法，会基于Widget的Depth进行一次排序。<br>所以，虽然Panel和Widget都有Depth这个参数，但是这两个参数的地位是不一样的。</p>
+<p>只要一个Panel的depth比另一个Panel小，这个Panel内部的所有Widget都会被先处理。</p>
+<h3 id="DrawCall"><a href="#DrawCall" class="headerlink" title="DrawCall"></a>DrawCall</h3><p>一次Drawcall，就是CPU对GPU的一次调用</p>
+<p>Drawcall是衡量渲染负担的一个重要指标。而且通常情况下，主要就是衡量CPU的负担。</p>
+<p>所以，优化Drawcall主要就是尽可能的合并指令，让一个指令包含尽可能多的内容，以此降低CPU的负担。</p>
+<h3 id="NGUI的Drawcall处理"><a href="#NGUI的Drawcall处理" class="headerlink" title="NGUI的Drawcall处理"></a>NGUI的Drawcall处理</h3><p>当一个Panel的List<Widget>排序完成后，Panel就会根据List<Widget>来生成List<Drawcall><br>List<Widget>中的第一个Widget必定会创建一个新的Drawcall<br>之后的每一个Widget都会拿出来和前一个进行对比<br>如果两者的material、texture、shader（下简称M&#x2F;T&#x2F;S）一致，则把后面这个Widget也丢给同一个Drawcall处理</p>
+<p>如果两者的M&#x2F;T&#x2F;S有不一样的地方，就创建一个新的Drawcall<br>也就是说，相同M&#x2F;T&#x2F;S且下标连续的Widget会共用一个Drawcall<br>而如果相同M&#x2F;T&#x2F;S的Widget中间隔着一个或多个不同M&#x2F;T&#x2F;S的Widget，就会拆分出许多额外的Drawcall。</p>
+<img src="/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/image-20230905165859556.png" class="" title="image-20230905165859556">
+
+<p>如图，在Widget相同但深度排序不同的情况下，各自所产生的List<Drawcall></p>
+<p>各个Panel的List<Drawcall>最终会合并汇总一个静态的ActiveDrawcallList，最终供渲染时调用，不过这个不重要，反正也没有人会去动这里。</p>
+<p>通常情况下，做好depth深度管理，尽可能的减少Drawcall就可以有效提高渲染效率。</p>
+<p>但有一点需要特别注意的就是。对于CPU来说，调用Drawcall需要耗费时间，而构建Drawcall同样需要耗费时间。</p>
+<p>NGUI在运行的过程中，如果某一个Panel下面有任意一个Widget进行了一点非常微小的变动：比如移动了一点点距离。那么这个Panel就会清空自己的List<Drawcall>，从头再遍历所有Widget，重新构建所有Drawcall。而这个过程显然是非常耗费性能的。</p>
+<p><strong>所以，有时候可以根据Widget的用途，将动态Widget和静态Widget拆分到不同Panel，如此一来虽然增加了Drawcall的数量，但最终结果却反而能提升渲染效率。</strong></p>
+<h3 id="渲染序列"><a href="#渲染序列" class="headerlink" title="渲染序列"></a>渲染序列</h3><p>NGUI里的每一个Panel都有一个Render Q的设置选项。</p>
+<p>RenderQ有两种主要模式：<br>Automatic —— 无参数<br>StartAt —— 需要设置一个整数参数</p>
+<p>大多数时候我们不需要动这个东西。如果全部都默认的Automatic的话，NGUI会自己帮我们按照Panel的depth为第一优先级，Widget的depth为第二优先级来处理好渲染序列。</p>
+<h3 id="UIDrawCall实现"><a href="#UIDrawCall实现" class="headerlink" title="UIDrawCall实现"></a>UIDrawCall实现</h3><p>UIDrawCall负责把顶点,UV,颜色等数据输入到网格和构建材质，最终绘制出我们看到的UI图形.</p>
+<ul>
+<li>UpdateGeometry() 最核心最重要的方法, 通过顶点,UV,颜色,贴图等信息绘制UI图形</li>
+<li>UpdateMaterials() 更新Material</li>
+<li>RebuildMaterial() 重新生成材质</li>
+<li>CreateMaterial() 创建新的材质</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/NGUI/" rel="tag"># NGUI</a>
+              <a href="/tags/%E6%B8%B2%E6%9F%93/" rel="tag"># 渲染</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/04/06/Unity%E9%80%9A%E4%BF%A1%E6%96%B9%E6%A1%88Protobuf/" rel="prev" title="Unity通信方案Protobuf">
+                  <i class="fa fa-angle-left"></i> Unity通信方案Protobuf
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/05/06/%E5%85%B3%E4%BA%8ECSharp-String%E7%A9%B6%E7%AB%9F%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E7%B1%BB%E5%9E%8B/" rel="next" title="关于CSharp-String究竟是个什么类型">
+                  关于CSharp-String究竟是个什么类型 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

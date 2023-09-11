@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="六边形地图系列的第一部分。许多游戏，尤其是战略游戏，都常使用六边形的网格地图。包括《奇迹时代3》，《文明5》和《无尽传奇》等等">
+<meta property="og:type" content="article">
+<meta property="og:title" content="六边形地图的生成算法">
+<meta property="og:url" content="http://example.com/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="六边形地图系列的第一部分。许多游戏，尤其是战略游戏，都常使用六边形的网格地图。包括《奇迹时代3》，《文明5》和《无尽传奇》等等">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/image-20230905122300643.png">
+<meta property="article:published_time" content="2019-04-05T04:09:27.000Z">
+<meta property="article:modified_time" content="2023-09-08T03:44:28.633Z">
+<meta property="article:author" content="汪俊">
+<meta property="article:tag" content="HexMap">
+<meta property="article:tag" content="A星寻路">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/image-20230905122300643.png">
+
+
+<link rel="canonical" href="http://example.com/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/","path":"2019/04/05/六边形地图的生成算法/","title":"六边形地图的生成算法"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>六边形地图的生成算法 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%AD%E8%BE%B9%E5%BD%A2%E7%BD%91%E6%A0%BC"><span class="nav-number">1.</span> <span class="nav-text">六边形网格</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E7%94%A8%E5%85%AD%E8%BE%B9%E5%BD%A2"><span class="nav-number">1.0.1.</span> <span class="nav-text">为什么用六边形</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E7%BD%91%E6%A0%BC%E6%9E%84%E5%BB%BA"><span class="nav-number">1.0.2.</span> <span class="nav-text">网格构建</span></a></li></ol></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#A%E6%98%9F%E5%AF%BB%E8%B7%AF"><span class="nav-number">2.</span> <span class="nav-text">A星寻路</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E9%9C%80%E6%B1%82"><span class="nav-number">2.1.</span> <span class="nav-text">需求</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0"><span class="nav-number">2.2.</span> <span class="nav-text">实现</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="六边形地图的生成算法 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          六边形地图的生成算法
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-04-05 12:09:27" itemprop="dateCreated datePublished" datetime="2019-04-05T12:09:27+08:00">2019-04-05</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E6%B8%B8%E6%88%8F%E7%AE%97%E6%B3%95/" itemprop="url" rel="index"><span itemprop="name">游戏算法</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>六边形地图系列的第一部分。许多游戏，尤其是战略游戏，都常使用六边形的网格地图。包括《奇迹时代3》，《文明5》和《无尽传奇》等等</p>
+<span id="more"></span>
+
+
+
+<h2 id="六边形网格"><a href="#六边形网格" class="headerlink" title="六边形网格"></a>六边形网格</h2><h4 id="为什么用六边形"><a href="#为什么用六边形" class="headerlink" title="为什么用六边形"></a>为什么用六边形</h4><p>相比于正方形网格，六边形网格的相邻格由八个变成了六个，并且都是在边上相邻。也就是说每个相邻格对于中间的单元格距离是一致的，这无疑简化了很多事情。</p>
+<p>在开始之间，我们先定义六边形的大小。如下图，以边长10作为基准，所以圆心到每个角的距离也是10，因为六边形是由六个等边三角形组成的。我们把圆心到角的距离称作六边形的外径。</p>
+<img src="/2019/04/05/%E5%85%AD%E8%BE%B9%E5%BD%A2%E5%9C%B0%E5%9B%BE%E7%9A%84%E7%94%9F%E6%88%90%E7%AE%97%E6%B3%95/image-20230905122300643.png" class="" title="image-20230905122300643">
+
+
+
+<h4 id="网格构建"><a href="#网格构建" class="headerlink" title="网格构建"></a>网格构建</h4><ul>
+<li><p>六边形坐标</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"></span><br><span class="line"><span class="keyword">using</span> UnityEngine;</span><br><span class="line"></span><br><span class="line">[<span class="meta">System.Serializable</span>]</span><br><span class="line"><span class="keyword">public</span> <span class="keyword">struct</span> HexCoordinates</span><br><span class="line">&#123;</span><br><span class="line">    [<span class="meta">SerializeField</span>]</span><br><span class="line">    <span class="keyword">private</span> <span class="built_in">int</span> x, z;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> X</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> x; &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Z</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123; <span class="keyword">return</span> z; &#125;</span><br><span class="line">    &#125;</span><br><span class="line">   </span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> Y</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">return</span> -X - Z;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">  </span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="title">HexCoordinates</span>(<span class="params"><span class="built_in">int</span> x, <span class="built_in">int</span> z</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">this</span>.x = x;</span><br><span class="line">        <span class="keyword">this</span>.z= z;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HexCoordinates <span class="title">FromOffsetCoordinates</span>(<span class="params"><span class="built_in">int</span> x, <span class="built_in">int</span> z</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> HexCoordinates(x - z / <span class="number">2</span>, z);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">override</span> <span class="built_in">string</span> <span class="title">ToString</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> <span class="string">&quot;(&quot;</span> + X.ToString() + <span class="string">&quot;,&quot;</span> + Y.ToString()+<span class="string">&quot;,&quot;</span>+ Z.ToString() + <span class="string">&quot;)&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="built_in">string</span> <span class="title">ToStringOnSpearateLines</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">return</span> X.ToString() + <span class="string">&quot;\n&quot;</span>+ Y.ToString() +<span class="string">&quot;\n&quot;</span> + Z.ToString();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">static</span> HexCoordinates <span class="title">FromPosition</span>(<span class="params">Vector3  position</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">float</span> x = position.x / (HexMetrics.innerRadius * <span class="number">2</span>);</span><br><span class="line">        <span class="built_in">float</span> y = -x;</span><br><span class="line">        <span class="built_in">float</span> offset = position.z / (HexMetrics.outerRadius * <span class="number">3f</span>);</span><br><span class="line">        x -= offset;</span><br><span class="line">        y -= offset;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">int</span> iX = Mathf.RoundToInt(x);</span><br><span class="line">        <span class="built_in">int</span> iY = Mathf.RoundToInt(y);</span><br><span class="line">        <span class="built_in">int</span> iZ = Mathf.RoundToInt(-x - y);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(iX+iY+iZ!=<span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">float</span> dX = Mathf.Abs(x - iX);</span><br><span class="line">            <span class="built_in">float</span> dY = Mathf.Abs(y - iY);</span><br><span class="line">            <span class="built_in">float</span> dZ = Mathf.Abs(-x - y - iZ);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (dX &gt; dY &amp;&amp; dX &gt; dZ)</span><br><span class="line">            &#123;</span><br><span class="line">                iX = -iY - iZ;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span> <span class="keyword">if</span> (dZ &gt; dY)</span><br><span class="line">            &#123;</span><br><span class="line">                iZ = -iX - iY;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> <span class="keyword">new</span> HexCoordinates(iX, iZ);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+
+</li>
+<li><p>六边形单元格</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System.Collections;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> UnityEngine;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">HexCell</span> : <span class="title">MonoBehaviour</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> HexCoordinates coordinates;</span><br><span class="line">    <span class="keyword">public</span> Color color;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+</li>
+<li><p>网格创建</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System.Collections;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> UnityEngine;</span><br><span class="line"><span class="keyword">using</span> UnityEngine.UI;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">HexGrid</span> : <span class="title">MonoBehaviour</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> width = <span class="number">6</span>;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> height = <span class="number">6</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> HexCell cellPrefab;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> Text cellLabelPrefab;</span><br><span class="line"></span><br><span class="line">    Canvas gridCanvas;</span><br><span class="line"></span><br><span class="line">    HexMesh hexMesh;</span><br><span class="line"></span><br><span class="line">   </span><br><span class="line"></span><br><span class="line">    HexCell[] cells;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">Awake</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        gridCanvas = GetComponentInChildren&lt;Canvas&gt;();</span><br><span class="line">        hexMesh = GetComponentInChildren&lt;HexMesh&gt;();</span><br><span class="line"></span><br><span class="line">        cells = <span class="keyword">new</span> HexCell[width*height];</span><br><span class="line"></span><br><span class="line">        </span><br><span class="line">        <span class="keyword">for</span>(<span class="built_in">int</span> z=<span class="number">0</span>,i=<span class="number">0</span>; z&lt;height;z++)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">for</span>(<span class="built_in">int</span> x=<span class="number">0</span>;x&lt;width;x++)</span><br><span class="line">            &#123;</span><br><span class="line">                CreateCell(x, z, i++);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">Start</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        hexMesh.TriangulateAll(cells);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">void</span> <span class="title">CreateCell</span>(<span class="params"><span class="built_in">int</span> x,<span class="built_in">int</span> z,<span class="built_in">int</span> i</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Vector3 position;</span><br><span class="line">        position.x = (x+z*<span class="number">0.5f</span>-z/<span class="number">2</span>) * (HexMetrics.innerRadius * <span class="number">2f</span>);</span><br><span class="line">        position.y = <span class="number">0f</span>;</span><br><span class="line">        position.z = z * (HexMetrics.outerRadius * <span class="number">1.5f</span>);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        HexCell cell = cells[i] = Instantiate(cellPrefab);</span><br><span class="line"></span><br><span class="line">        cell.transform.SetParent(transform, <span class="literal">false</span>);</span><br><span class="line">        cell.transform.localPosition = position;</span><br><span class="line"></span><br><span class="line">        cell.coordinates = HexCoordinates.FromOffsetCoordinates(x, z);</span><br><span class="line">        cell.color = Color.white;</span><br><span class="line"></span><br><span class="line">        Text label = Instantiate(cellLabelPrefab);</span><br><span class="line">        label.rectTransform.SetParent(gridCanvas.transform, <span class="literal">false</span>);</span><br><span class="line">        label.rectTransform.anchoredPosition = <span class="keyword">new</span> Vector2(position.x, position.z);</span><br><span class="line"></span><br><span class="line">        label.text = cell.coordinates.ToStringOnSpearateLines();</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">ColorCell</span>(<span class="params">Vector3 position,Color color</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        position = transform.InverseTransformPoint(position);</span><br><span class="line">        HexCoordinates coordinates = HexCoordinates.FromPosition(position);</span><br><span class="line">        <span class="built_in">int</span> index = coordinates.X + coordinates.Z * width + coordinates.Z / <span class="number">2</span>;</span><br><span class="line">        HexCell cell = cells[index];</span><br><span class="line">        cell.color = color;</span><br><span class="line">        hexMesh.TriangulateAll(cells);</span><br><span class="line"></span><br><span class="line">        Debug.Log(<span class="string">&quot;touched at &quot;</span> + coordinates.ToString());</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure></li>
+</ul>
+<h2 id="A星寻路"><a href="#A星寻路" class="headerlink" title="A星寻路"></a>A星寻路</h2><h3 id="需求"><a href="#需求" class="headerlink" title="需求"></a>需求</h3><p>给定六边形网格的一个起点和一个终点，函数能够返回从起点到终点的通路经过哪些六边形。</p>
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><ul>
+<li><p>开启列表：需要考虑的节点都会被放到开启列表中，刚开始的时候开启列表只有起点一个节点，然后根据节点的相邻节点集，会逐渐把附近的节点都加到开启列表中。</p>
+</li>
+<li><p>关闭列表：所有不在考虑的节点的集合</p>
+</li>
+<li><p>估值：每个节点都做估值，估算值F &#x3D; G + H:</p>
+<p>G： 从起点，沿着产生的路径，移动到网格上指定方格的移动耗费。在这里，我们认为相邻的六边形，移动消耗是1</p>
+<p>H：从网格上那个方格移动到终点B的预估移动耗费。这经常被称为启发式的，可因为它只是个猜测。这个H值的估算方式有很多种，我们暂时使用两个节点的直线距离</p>
+</li>
+</ul>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> List&lt;Hexagon&gt; <span class="title">searchRoute</span>(<span class="params">Hexagon thisHexagon, Hexagon targetHexagon</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        Hexagon nowHexagon = thisHexagon;</span><br><span class="line">        nowHexagon.reset();</span><br><span class="line"></span><br><span class="line">        openList.Add(nowHexagon);</span><br><span class="line">        <span class="built_in">bool</span> finded = <span class="literal">false</span>;</span><br><span class="line">        <span class="keyword">while</span> (!finded)</span><br><span class="line">        &#123;</span><br><span class="line">            openList.Remove(nowHexagon);<span class="comment">//将当前节点从openList中移除  </span></span><br><span class="line">            closeList.Add(nowHexagon);<span class="comment">//将当前节点添加到关闭列表中  </span></span><br><span class="line">            Hexagon[] neighbors = nowHexagon.getNeighborList();<span class="comment">//获取当前六边形的相邻六边形  </span></span><br><span class="line">            <span class="comment">//print(&quot;当前相邻节点数----&quot; + neighbors.size());  </span></span><br><span class="line">            <span class="keyword">foreach</span> (Hexagon neighbor <span class="keyword">in</span> neighbors)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">if</span> (neighbor == <span class="literal">null</span>) <span class="keyword">continue</span>;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (neighbor == targetHexagon)</span><br><span class="line">                &#123;<span class="comment">//找到目标节点  </span></span><br><span class="line">                    <span class="comment">//System.out.println(&quot;找到目标点&quot;);  </span></span><br><span class="line">                    finded = <span class="literal">true</span>;</span><br><span class="line">                    neighbor.setFatherHexagon(nowHexagon);</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">if</span> (closeList.Contains(neighbor) || !neighbor.canPass())</span><br><span class="line">                &#123;<span class="comment">//在关闭列表里  </span></span><br><span class="line">                    <span class="comment">//print(&quot;无法通过或者已在关闭列表&quot;);  </span></span><br><span class="line">                    <span class="keyword">continue</span>;</span><br><span class="line">                &#125;</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (openList.Contains(neighbor))</span><br><span class="line">                &#123;<span class="comment">//该节点已经在开启列表里  </span></span><br><span class="line">                    <span class="comment">//print(&quot;已在开启列表，判断是否更改父节点&quot;);  </span></span><br><span class="line">                    <span class="built_in">float</span> assueGValue = neighbor.computeGValue(nowHexagon) + nowHexagon.getgValue();<span class="comment">//计算假设从当前节点进入，该节点的g估值  </span></span><br><span class="line">                    <span class="keyword">if</span> (assueGValue &lt; neighbor.getgValue())</span><br><span class="line">                    &#123;<span class="comment">//假设的g估值小于于原来的g估值  </span></span><br><span class="line">                        openList.Remove(neighbor);<span class="comment">//重新排序该节点在openList的位置  </span></span><br><span class="line">                        neighbor.setgValue(assueGValue);<span class="comment">//从新设置g估值  </span></span><br><span class="line">                        openList.Add(neighbor);<span class="comment">//从新排序openList。  </span></span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">                <span class="keyword">else</span></span><br><span class="line">                &#123;<span class="comment">//没有在开启列表里  </span></span><br><span class="line">                    <span class="comment">//print(&quot;不在开启列表，添加&quot;);  </span></span><br><span class="line">                    neighbor.sethValue(neighbor.computeHValue(targetHexagon));<span class="comment">//计算好他的h估值  </span></span><br><span class="line">                    neighbor.setgValue(neighbor.computeGValue(nowHexagon) + nowHexagon.getgValue());<span class="comment">//计算该节点的g估值（到当前节点的g估值加上当前节点的g估值）  </span></span><br><span class="line">                    openList.Add(neighbor);<span class="comment">//添加到开启列表里  </span></span><br><span class="line">                    neighbor.setFatherHexagon(nowHexagon);<span class="comment">//将当前节点设置为该节点的父节点  </span></span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (openList.Count &lt;= <span class="number">0</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//print(&quot;无法到达该目标&quot;);  </span></span><br><span class="line">                <span class="keyword">break</span>;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">else</span></span><br><span class="line">            &#123;</span><br><span class="line">                nowHexagon = openList[<span class="number">0</span>];<span class="comment">//得到f估值最低的节点设置为当前节点  </span></span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        openList.Clear();</span><br><span class="line">        closeList.Clear();</span><br><span class="line"></span><br><span class="line">        List&lt;Hexagon&gt; route = <span class="keyword">new</span> List&lt;Hexagon&gt;();</span><br><span class="line">        <span class="keyword">if</span> (finded)</span><br><span class="line">        &#123;<span class="comment">//找到后将路线存入路线集合  </span></span><br><span class="line">            Hexagon hex = targetHexagon;</span><br><span class="line">            <span class="keyword">while</span> (hex != thisHexagon)</span><br><span class="line">            &#123;</span><br><span class="line">                route.Add(hex);<span class="comment">//将节点添加到路径列表里  </span></span><br><span class="line"></span><br><span class="line">                Hexagon fatherHex = hex.getFatherHexagon();<span class="comment">//从目标节点开始搜寻父节点就是所要的路线  </span></span><br><span class="line">                hex = fatherHex;</span><br><span class="line">            &#125;</span><br><span class="line">            route.Add(hex);</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line">        route.Reverse();</span><br><span class="line">        <span class="keyword">return</span> route;</span><br><span class="line">        <span class="comment">//      resetMap();  </span></span><br><span class="line">    &#125;</span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/HexMap/" rel="tag"># HexMap</a>
+              <a href="/tags/A%E6%98%9F%E5%AF%BB%E8%B7%AF/" rel="tag"># A星寻路</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/04/03/Unity%E6%8B%93%E5%B1%95SVN%E5%B7%A5%E5%85%B7/" rel="prev" title="Unity拓展SVN工具">
+                  <i class="fa fa-angle-left"></i> Unity拓展SVN工具
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/04/06/Unity%E9%80%9A%E4%BF%A1%E6%96%B9%E6%A1%88Protobuf/" rel="next" title="Unity通信方案Protobuf">
+                  Unity通信方案Protobuf <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Unity跨平台得益于Mono虚拟机能将IL转成对应平台机器码在该平台执行 Mono选项的脚本后处理方式，对应的是JIT，运行时将IL转成本机机器代码（生成代码），然后执行编译后的代码 IL2CPP选项的脚本后处理方式，对应的是AOT，运行时先将IL转成CPP，再由对应平台编译执行CPP">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Mono和IL2CPP的区别">
+<meta property="og:url" content="http://example.com/2022/05/25/Mono%E5%92%8CIL2CPP%E7%9A%84%E5%8C%BA%E5%88%AB/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="Unity跨平台得益于Mono虚拟机能将IL转成对应平台机器码在该平台执行 Mono选项的脚本后处理方式，对应的是JIT，运行时将IL转成本机机器代码（生成代码），然后执行编译后的代码 IL2CPP选项的脚本后处理方式，对应的是AOT，运行时先将IL转成CPP，再由对应平台编译执行CPP">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2022-05-25T02:44:07.000Z">
+<meta property="article:modified_time" content="2023-09-10T05:36:51.528Z">
+<meta property="article:author" content="汪俊">
+<meta property="article:tag" content="Mono">
+<meta property="article:tag" content="IL2CPP">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://example.com/2022/05/25/Mono%E5%92%8CIL2CPP%E7%9A%84%E5%8C%BA%E5%88%AB/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2022/05/25/Mono%E5%92%8CIL2CPP%E7%9A%84%E5%8C%BA%E5%88%AB/","path":"2022/05/25/Mono和IL2CPP的区别/","title":"Mono和IL2CPP的区别"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Mono和IL2CPP的区别 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%80%E3%80%81Unity%E6%98%AF%E5%A6%82%E4%BD%95%E5%AE%9E%E7%8E%B0%E8%B7%A8%E5%B9%B3%E5%8F%B0%E7%9A%84%EF%BC%9F"><span class="nav-number">1.</span> <span class="nav-text">一、Unity是如何实现跨平台的？</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BA%8C%E3%80%81Mono%E4%BB%8B%E7%BB%8D"><span class="nav-number">2.</span> <span class="nav-text">二、Mono介绍</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#2-1-%E5%B7%A5%E4%BD%9C%E6%B5%81%E7%A8%8B"><span class="nav-number">2.1.</span> <span class="nav-text">2.1 工作流程</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-2-%E7%9F%A5%E8%AF%86%E7%82%B9"><span class="nav-number">2.2.</span> <span class="nav-text">2.2 知识点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#2-3-%E4%BC%98%E7%82%B9"><span class="nav-number">2.3.</span> <span class="nav-text">2.3 优点</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-1-AOT%E7%BC%96%E8%AF%91%E5%99%A8"><span class="nav-number">2.4.</span> <span class="nav-text">3.1 AOT编译器</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-2-%E8%BF%90%E8%A1%8C%E6%97%B6%E5%BA%93"><span class="nav-number">2.5.</span> <span class="nav-text">3.2 运行时库</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#3-3-%E4%B8%BA%E5%95%A5%E8%A6%81%E8%BD%AC%E6%88%90CPP%E5%91%A2%EF%BC%9F"><span class="nav-number">2.6.</span> <span class="nav-text">3.3 为啥要转成CPP呢？</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2022/05/25/Mono%E5%92%8CIL2CPP%E7%9A%84%E5%8C%BA%E5%88%AB/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Mono和IL2CPP的区别 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Mono和IL2CPP的区别
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2022-05-25 10:44:07" itemprop="dateCreated datePublished" datetime="2022-05-25T10:44:07+08:00">2022-05-25</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/Unity/" itemprop="url" rel="index"><span itemprop="name">Unity</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Unity跨平台得益于Mono虚拟机能将IL转成对应平台机器码在该平台执行</p>
+<p>Mono选项的脚本后处理方式，对应的是JIT，运行时将IL转成本机机器代码（生成代码），然后执行编译后的代码</p>
+<p>IL2CPP选项的脚本后处理方式，对应的是AOT，运行时先将IL转成CPP，再由对应平台编译执行CPP</p>
+<span id="more"></span>
+
+<h2 id="一、Unity是如何实现跨平台的？"><a href="#一、Unity是如何实现跨平台的？" class="headerlink" title="一、Unity是如何实现跨平台的？"></a>一、Unity是如何实现跨平台的？</h2><p>首先，什么是跨平台？</p>
+<blockquote>
+<p>跨平台：一次编译，不需要任何代码修改，应用程序就可以运行在任意在平台上跑，即代码不依赖于操作系统，也不依赖硬件环境。</p>
+</blockquote>
+<p>做游戏都知道，游戏肯定需要跨平台，不能只支持一种平台，不然每个对应的平台做出一种对应的编译器，那真的会累死。所以对于跨平台的需求，对于游戏开发而言，很重要。Unity的架构需求设计当然也需要这个特性。</p>
+<p>至于Unity是如何实现跨平台的？这就得提到Unity脚本后处理(Scripting Backend)的两种方式<strong>Mono和IL2CPP</strong>。</p>
+<h2 id="二、Mono介绍"><a href="#二、Mono介绍" class="headerlink" title="二、Mono介绍"></a>二、Mono介绍</h2><blockquote>
+<p><strong>Mono</strong>是一个由<a href="https://link.zhihu.com/?target=https://zh.wikipedia.org/wiki/Xamarin">Xamarin</a>公司所主持的自由开放源码项目。<br>Mono的目标是在尽可能多的平台上使.net标准的东西能正常运行的一套工具，核心在于“跨平台的让.net代码能运行起来“。<br>Mono组成组件：C# 编译器，CLI虚拟机，以及核心类别程序库。<br>Mono的编译器<strong>负责生成符合公共语言规范的映射代码</strong>，即公共中间语言（Common Intermediate Language，<strong>CIL</strong>），我的理解就是工厂方法实现不同解析。<br><strong>IL科普</strong><br>IL的全称是 Intermediate Language，很多时候还会看到<strong>CIL</strong>（特指在.Net平台下的IL标准）。翻译过来就是中间语言。<br>它是一种属于通用语言架构和.NET框架的低阶的人类可读的编程语言。<br>CIL类似一个面向对象的汇编语言，并且它是完全基于堆栈的，它运行在虚拟机上（.Net Framework, Mono VM）的语言。</p>
+</blockquote>
+<h3 id="2-1-工作流程"><a href="#2-1-工作流程" class="headerlink" title="2.1 工作流程"></a><strong>2.1 工作流程</strong></h3><ol>
+<li>通过C#编译器mcs，将C#编译为IL（中间语言，byte code）</li>
+<li>通过Mono运行时中的编译器将IL编译成对应平台的原生码</li>
+</ol>
+<h3 id="2-2-知识点"><a href="#2-2-知识点" class="headerlink" title="2.2 知识点"></a><strong>2.2 知识点</strong></h3><p><strong>2.2.1. 编译器</strong></p>
+<blockquote>
+<p>C#编译器mcs：将C#编译为<strong>IL</strong><br>Mono Runtime编译器：将IL转移为<strong>原生码</strong>。</p>
+</blockquote>
+<p><strong>2.2.2. 三种转译方式</strong></p>
+<blockquote>
+<p><strong>即时编译（Just in time,JIT）</strong>：程序运行过程中，将CIL的byte code转译为目标平台的原生码。<br><strong>提前编译（Ahead of time,AOT）</strong>：程序运行之前，将.exe或.dll文件中的CIL的byte code部分转译为目标平台的原生码并且存储，程序运行中仍有部分CIL的byte code需要JIT编译。<br><strong>完全静态编译（Full ahead of time,Full-AOT）</strong>：程序运行前，将所有源码编译成目标平台的原生码。</p>
+</blockquote>
+<p><strong>2.2.3 Unity跨平台的原理</strong></p>
+<blockquote>
+<p>Mono运行时编译器支持将IL代码转为对应平台原生码<br>IL可以在任何支持CLI,通用语言环境结构)中运行，IL的运行是依托于Mono运行时。</p>
+</blockquote>
+<p><strong>2.2.4 IOS不支持jit编译原因</strong></p>
+<blockquote>
+<p>机器码被禁止映射到内存，即封存了内存的可执行权限，变相的封锁了jit编译方式.<a href="https://link.zhihu.com/?target=https://www.cnblogs.com/murongxiaopifu/p/4278947.html">详情见</a></p>
+</blockquote>
+<p><strong>2.2.5 JIT编译</strong></p>
+<blockquote>
+<p>将IL代码转为对应平台原生码并且将原生码映射到虚拟内存中执行。JIT编译的时候IL是在依托Mono运行时，转为对应的原生码后在依托本地运行。</p>
+</blockquote>
+<h3 id="2-3-优点"><a href="#2-3-优点" class="headerlink" title="2.3 优点"></a>2.3 优点</h3><ol>
+<li>构建应用非常快</li>
+<li>由于Mono的JIT(Just In Time compilation ) 机制, 所以支持更多托管类库</li>
+<li>支持运行时代码执行</li>
+<li>必须将代码发布成托管程序集(.dll 文件 , 由mono或者.net 生成 )</li>
+<li>Mono VM在各个平台移植异常麻烦，有几个平台就得移植几个VM（WebGL和UWP这两个平台只支持 IL2CPP）</li>
+<li>Mono版本授权受限，C#很多新特性无法使用</li>
+<li>iOS仍然支持Mono , 但是不再允许Mono(32位)应用提交到Apple Store</li>
+</ol>
+<p><strong>Unity 2018 mono版本仍然是mono2.0、unity2020的版本更新到了mono 5.11。</strong></p>
+<h3 id="3-1-AOT编译器"><a href="#3-1-AOT编译器" class="headerlink" title="3.1 AOT编译器"></a><strong>3.1 AOT编译器</strong></h3><blockquote>
+<p>IL2CPP AOT编译器名为il2cpp.exe。<br>在Windows上，您可以在<code>Editor \ Data \ il2cpp</code>目录中找到它。<br>在OSX上，它位于Unity安装的<code>Contents / Frameworks / il2cpp / build</code>目录中<br>il2cpp.exe 是由C#编写的受托管的可执行程序，它接受我们在Unity中通过Mono编译器生成的托管程序集，并生成指定平台下的C++代码。</p>
+</blockquote>
+<h3 id="3-2-运行时库"><a href="#3-2-运行时库" class="headerlink" title="3.2 运行时库"></a><strong>3.2 运行时库</strong></h3><blockquote>
+<p>IL2CPP技术的另一部分是运行时库（libil2cpp），用于支持IL2CPP虚拟机的运行。<br>这个简单且可移植的运行时库是IL2CPP技术的主要优势之一！<br>通过查看我们随Unity一起提供的libil2cpp的头文件，您可以找到有关libil2cpp代码组织方式的一些线索<br>您可以在Windows的<code>Editor \ Data \ PlaybackEngines \ webglsupport \ BuildTools \ Libraries \ libil2cpp \ include</code>目录中找到它们<br>或OSX上的<code>Contents / Frameworks / il2cpp / libil2cpp</code>目录。</p>
+</blockquote>
+<h3 id="3-3-为啥要转成CPP呢？"><a href="#3-3-为啥要转成CPP呢？" class="headerlink" title="3.3 为啥要转成CPP呢？"></a><strong>3.3 为啥要转成CPP呢？</strong></h3><ol>
+<li>运行效率快</li>
+</ol>
+<blockquote>
+<p>根据官方的实验数据，换成IL2CPP以后，程序的运行效率有了1.5-2.0倍的提升。</p>
+</blockquote>
+<ol start="2">
+<li>Mono VM在各个平台移植，维护非常耗时，有时甚至不可能完成</li>
+</ol>
+<blockquote>
+<p>Mono的跨平台是通过Mono VM实现的，有几个平台，就要实现几个VM，像Unity这样支持多平台的引擎，Mono官方的VM肯定是不能满足需求的。所以针对不同的新平台，Unity的项目组就要把VM给移植一遍，同时解决VM里面发现的bug。这非常耗时耗力。这些能移植的平台还好说，还有比如WebGL这样基于浏览器的平台。要让WebGL支持Mono的VM几乎是不可能的。</p>
+</blockquote>
+<ol start="3">
+<li><p>可以利用<strong>现成的在各个平台的C++编译器</strong>对代码执行<strong>编译期优化</strong>，这样可以进一步<strong>减小最终游戏的尺寸并提高游戏运行速度</strong>。</p>
+</li>
+<li><p>由于动态语言的特性，他们多半无需程序员太多关心内存管理，所有的内存分配和回收都由一个叫做GC（Garbage Collector）的组件完成。</p>
+</li>
+</ol>
+<p>虽然通过IL2CPP以后代码变成了静态的C++，但是内存管理这块还是遵循C#的方式，这也是为什么最后还要有一个 <strong>IL2CPP VM</strong>的原因：<strong>它负责提供诸如GC管理，线程创建这类的服务性工作。</strong></p>
+<p>但是由于去除了<strong>IL加载和动态解析</strong>的工作，<strong>使得IL2CPP VM可以做的很小</strong>，<strong>并且使得游戏载入时间缩短</strong>。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/Mono/" rel="tag"># Mono</a>
+              <a href="/tags/IL2CPP/" rel="tag"># IL2CPP</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2022/03/21/%E6%A8%AA%E7%89%88%E5%85%B3%E5%8D%A1%E8%AE%BE%E8%AE%A1/" rel="prev" title="横版关卡设计">
+                  <i class="fa fa-angle-left"></i> 横版关卡设计
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2022/05/31/UIBinding/" rel="next" title="UIBinding">
+                  UIBinding <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

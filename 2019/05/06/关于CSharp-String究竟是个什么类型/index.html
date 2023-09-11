@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="String类型对象直接派生自Object，所以String是引用类型">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于CSharp-String究竟是个什么类型">
+<meta property="og:url" content="http://example.com/2019/05/06/%E5%85%B3%E4%BA%8ECSharp-String%E7%A9%B6%E7%AB%9F%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E7%B1%BB%E5%9E%8B/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="String类型对象直接派生自Object，所以String是引用类型">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2019-05-06T06:38:19.000Z">
+<meta property="article:modified_time" content="2023-09-11T08:07:54.331Z">
+<meta property="article:author" content="汪俊">
+<meta property="article:tag" content="CSharp">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://example.com/2019/05/06/%E5%85%B3%E4%BA%8ECSharp-String%E7%A9%B6%E7%AB%9F%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E7%B1%BB%E5%9E%8B/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2019/05/06/%E5%85%B3%E4%BA%8ECSharp-String%E7%A9%B6%E7%AB%9F%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E7%B1%BB%E5%9E%8B/","path":"2019/05/06/关于CSharp-String究竟是个什么类型/","title":"关于CSharp-String究竟是个什么类型"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>关于CSharp-String究竟是个什么类型 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9A%84%E4%B8%8D%E5%8F%98%E6%80%A7"><span class="nav-number">1.</span> <span class="nav-text">字符串的不变性</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%95%99%E7%94%A8"><span class="nav-number">2.</span> <span class="nav-text">字符串留用</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E6%B1%A0"><span class="nav-number">3.</span> <span class="nav-text">字符串池</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AD%97%E7%AC%A6%E4%B8%B2%E7%9A%84%E6%9E%84%E9%80%A0"><span class="nav-number">4.</span> <span class="nav-text">字符串的构造</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%BD%BF%E7%94%A8StringBuilder%E9%AB%98%E6%95%88%E6%9E%84%E5%BB%BA%E5%AD%97%E7%AC%A6%E4%B8%B2"><span class="nav-number">5.</span> <span class="nav-text">使用StringBuilder高效构建字符串</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/05/06/%E5%85%B3%E4%BA%8ECSharp-String%E7%A9%B6%E7%AB%9F%E6%98%AF%E4%B8%AA%E4%BB%80%E4%B9%88%E7%B1%BB%E5%9E%8B/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="关于CSharp-String究竟是个什么类型 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          关于CSharp-String究竟是个什么类型
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-05-06 14:38:19" itemprop="dateCreated datePublished" datetime="2019-05-06T14:38:19+08:00">2019-05-06</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/%E8%AE%A1%E7%AE%97%E6%9C%BA%E5%9F%BA%E7%A1%80/" itemprop="url" rel="index"><span itemprop="name">计算机基础</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>String类型对象直接派生自Object，所以String是引用类型</p>
+<span id="more"></span>
+
+<blockquote>
+<p>面试官：c#中的String是什么类型呢？<br>我：应该是个值类型<br>面试官：感谢您参与本司面试</p>
+</blockquote>
+<blockquote>
+<p>面试官：c#中的String是什么类型呢？<br>我：是个特殊的引用类型！<br>面试官：怎么个特殊法呢？<br>我：。。。</p>
+</blockquote>
+<p>String类型对象直接派生自Object，所以String是引用类型，因此，String对象总是存在于堆上，永远不会跑到线程栈。<br>但String类型却又有值类型的特性，所以问到String究竟是值类型还是引用类型时，我们一般称为特殊的引用类型。<br>具体请看以下例子：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> str1 = <span class="string">&quot;str1&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> str2 = str1;</span><br><span class="line">str1 = <span class="string">&quot;str3&quot;</span>;</span><br><span class="line"></span><br><span class="line">Console.WriteLine(str1);<span class="comment">//str3</span></span><br><span class="line">Console.WriteLine(str2);<span class="comment">//str1</span></span><br></pre></td></tr></table></figure>
+
+<p>按普通引用类型的特性来理解以上代码，str2应该指向str1的同一个内存地址，若此时修改str1的值，str2应该也会发生变化，但修改str1的值为“str3”后，str2的值仍然为“str1”，这就是上文所说的String类型具有值类型的特征。<br>出现上述情况其实是因为字符串是“不变的”这一特性。出于性能考虑，String类型与CLR紧密集成。具体地说，CLR知道String类型中定义的字段如何布局，会直接访问这些字段。但为了获得这种性能和直接访问的好处，String只能为密封类。即不可把String作为自定义类型的基类，以防破坏了CLR对String类型的预设。而String对象的“不可变”特性就是CLR对String对象的预设之一，是String对象最重要的一个特性，也是引起上文所说的“String类型具有值类型特征”的原因。下文来具体说一下String类型的几个重要特性。</p>
+<h3 id="字符串的不变性"><a href="#字符串的不变性" class="headerlink" title="字符串的不变性"></a>字符串的不变性</h3><p>String对象一旦创建，就不能再更改，包括不能变长、变短或修改其中任何字符。<br>上文代码中str1&#x3D;”str3”看似修改了字符串，但实际上是创建了一个新的String对象，并把原引用指向这个新对象，对于旧的“str1”是没有被改动的，所以最后str2仍然是指向这个旧的“str1”对象。<br>字符串的不可变简单地说有以下优点：</p>
+<ul>
+<li><p>可以连续使用ToUpper、Substring等修改字符串的方法，但又不影响原本字符串</p>
+</li>
+<li><p>访问字符串不会发生线程同步问题</p>
+</li>
+<li><p>CLR可优化多个值相同的String变量指向同一个String对象，从而减少内存中String数量（字符串留用）</p>
+</li>
+</ul>
+<p>但需要注意的是，因为字符串的不变性，在进行字符串拼接、修改等操作时，实际上会产生大量的临时字符串对象，造成更频繁的垃圾回收，从而影响应用程序性能。若要高效执行大量字符串拼接操作，建议使用StringBuilder类。</p>
+<h3 id="字符串留用"><a href="#字符串留用" class="headerlink" title="字符串留用"></a>字符串留用</h3><p>因为字符串的“不可变”性，在内存中对同一个字符串复制多个实例是纯属浪费，在内存中只保留字符串的一个实例可以显着降低内存消耗，需要引用该字符串的所有变量都统一指向该字符串对象即可。<br>CLR初始化时，会在内部创建一个哈希表，这个表中，key是字符串，value则是托管堆中String对象的引用。String类型提供了静态方法Intern和IsInterned以便访问这个内部哈希表。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">Intern</span>(<span class="params">String str</span>)</span>;</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> String <span class="title">IsInterned</span>(<span class="params">String str</span>)</span>;</span><br></pre></td></tr></table></figure>
+
+<p>Intern方法，它首先会获取参数String对象的哈希码，并在内部哈希表中检查是否有相匹配的，若存在，则返回对该String对象的引用，若不存在则创建该字符串副本，把副本添加到哈希表中，并返回该副本的引用。<br>IsInterned方法也是获取参数String对象的哈希码，并在内部哈希表中查找他，若存在，则返回该String对象的引用，若不存在则返回null，不会添加到哈希表中。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> str1 = <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> str2 = <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="built_in">bool</span> equal = <span class="built_in">string</span>.ReferenceEquals(str1, str2);<span class="comment">//ReferenceEquals方法比较两者是否同一个引用</span></span><br><span class="line"></span><br><span class="line">Console.WriteLine(equal);<span class="comment">//True (CLR 4.5)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>CLR会默认留用程序集的元数据中描述的所有字面值字符串，所以可能出现上面示例1代码情况，因为str1和str2是引用了堆中同一个字符串对象。但这不是必然的，考虑到性能问题，C#编译器会指定某个特性标记让CLR不对元数据中的字符串进行留用，但CLR可能会忽视这个标记。所以除非是显示调用Intern方法，否则永远不要以“字符串已留用”为前提来写代码。<br>另外要注意，垃圾回收器不能释放内部哈希表引用的字符串，因为哈希表正在容纳对它们的引用。除非卸载AppDomain或进程终止，否则内部哈希表引用的String对象不能被释放。</p>
+<p>下面再抛出3个例子：</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> str1 = <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> str2 = <span class="string">&quot;Hello&quot;</span> + <span class="string">&quot; &quot;</span> + <span class="string">&quot;World&quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="built_in">bool</span> equal = <span class="built_in">string</span>.ReferenceEquals(str1, str2);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(equal);<span class="comment">//True (CLR 4.5)</span></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+<p>示例2结果与示例1相同，在特定CLR版本(4.5)都为True，对于字符串字面值的拼接，实际上都是编译时可确定的，编译时str2会自动拼接成”Hello World”这样的一个完整字符串，并适用了字符串留用，所以str1和str2都是引用同一个String对象。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//示例3</span></span><br><span class="line"><span class="built_in">string</span> str1 = <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> str2 = <span class="built_in">string</span>.Format(<span class="string">&quot;&#123;0&#125; &#123;1&#125;&quot;</span>, <span class="string">&quot;Hello&quot;</span>, <span class="string">&quot;World&quot;</span>);</span><br><span class="line"></span><br><span class="line"><span class="built_in">bool</span> equal = <span class="built_in">string</span>.ReferenceEquals(str1, str2);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(equal);<span class="comment">//False (CLR 4.5)</span></span><br></pre></td></tr></table></figure>
+
+<p>示例3结果与上面两个示例不一样，因为str2并不是字符串字面值的直接拼接，是要在运行时才能确定的，不会作为字面值自动启用字符串留用，与str1引用的是不同且独立的String对象，所以结果为False。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br></pre></td><td class="code"><pre><span class="line"><span class="comment">//示例4</span></span><br><span class="line"><span class="built_in">string</span> str1 = <span class="string">&quot;Hello World&quot;</span>;</span><br><span class="line"><span class="built_in">string</span> str2 = <span class="built_in">string</span>.Intern(<span class="built_in">string</span>.Format(<span class="string">&quot;&#123;0&#125; &#123;1&#125;&quot;</span>, <span class="string">&quot;Hello&quot;</span>, <span class="string">&quot;World&quot;</span>));</span><br><span class="line"></span><br><span class="line"><span class="built_in">bool</span> equal = <span class="built_in">string</span>.ReferenceEquals(str1, str2);</span><br><span class="line"></span><br><span class="line">Console.WriteLine(equal);<span class="comment">//True (CLR 4.5)</span></span><br></pre></td></tr></table></figure>
+
+<p>示例4与示例3大致相同，唯一不同的是str2是调用了string.Intern，str1为字面值字符串”Hello World”，并适用了字符串留用，进入了内部哈希表，而str2调用了string.Intern在内部哈希表中取了”Hello World”字符串对象的引用，所以str1和str2是同一个对象。<br>相信通过以上例子，大家都对字符串留用有了一定的理解，最后再强调一遍，以上结果是基于CLR留用了程序集元数据中所有字面值字符串的情况的，除非是显示调用Intern方法，否则永远不要以“字符串已留用”为前提来写代码。</p>
+<h3 id="字符串池"><a href="#字符串池" class="headerlink" title="字符串池"></a>字符串池</h3><p>编译源代码时，编译器必须处理每个字面值字符串，并在托管模块的元数据中嵌入。同一个字符串在源码中多次出现，把它们都嵌入元数据会使生成的文件无谓地增大。<br>为解决这个问题，编译器会只在模块的元数据中只将字面值字符串写入一次。引用该字符串的所有代码都被修改成引用元数据的同一个字符串。编译器将单个字符串的多个实例合并成一个实例，能显着减少模块的大小。<br>这并不是一项新技术，但仍然是提升字符串性能的有效方式之一，开发者应该注意到这个优化方式的存在。</p>
+<h3 id="字符串的构造"><a href="#字符串的构造" class="headerlink" title="字符串的构造"></a>字符串的构造</h3><p>C#把String视为基元类型，也就是说，编译器允许在源代码中直接使用字面值字符串。编译器会将这些字符串放到模块的元数据中，并在运行时加载和引用它们。</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line"><span class="built_in">string</span> str1 = <span class="keyword">new</span> <span class="built_in">string</span>(<span class="string">&quot;Hello World&quot;</span>);<span class="comment">//error</span></span><br><span class="line"><span class="built_in">string</span> str2 = <span class="string">&quot;Hello World&quot;</span>;<span class="comment">//right</span></span><br></pre></td></tr></table></figure>
+
+<p>C#不允许直接使用new操作符从字面值来构造String对象，相反必须用简化的语法直接赋值字面值。<br>如果用反编译软件查看直接用字面值构造的String对象的的IL代码，会发现IL代码中并没有出现newobj指令，而是使用了特殊的ldstr(load string)指令，它使用从元数据获得的字面值字符串去构造String对象。这证明CLR实际上是用一中特殊的方式去构造字面值String对象。猜测若在留用了字面值字符串情况下，构建过程中会在字符串留用的内部哈希表中查找是否已存在相同的字符串，若有则返回该引用，若没有则创建，并返回地址。</p>
+<h3 id="使用StringBuilder高效构建字符串"><a href="#使用StringBuilder高效构建字符串" class="headerlink" title="使用StringBuilder高效构建字符串"></a>使用StringBuilder高效构建字符串</h3><p>由于String类型代表不可变字符串，所以FCL提供了System.Text.StringBuilder类型对字符串和字符进行高效动态处理，并返回处理好的String对象。<br>可将StringBuilder想像成创建String对象的特殊构造器。方法一般应获取String参数而非StringBuilder参数。<br>StringBuilder 对象包含一个字段，该字段引用了由Char结构构成的数组。可利用StringBuilder的各个成员来操纵该字符数组，高效率地缩短字符串或更改字符串中的字符。如果字符串变大，超过了事先分配的字符数组大小，StringBuilder会自动分配一个新的、更大的数组，复制字符，并开始使用新数组。前一个数组被垃圾回收。<br>用StringBuilder对象构造好字符串后，调用StringBuilder的ToString方法即可将StringBuilder的字符数组“转换”成String。这样会在堆上新建String对象，其中包含调用ToString时存在于StringBuilder中的字符串。之后可继续处理StringBuilder中的字符串。以后可再次调用ToString把它转换成另个String对象。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/CSharp/" rel="tag"># CSharp</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/04/15/NGUI%E6%B8%B2%E6%9F%93%E5%8E%9F%E7%90%86/" rel="prev" title="NGUI渲染原理">
+                  <i class="fa fa-angle-left"></i> NGUI渲染原理
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/05/28/Unity%E5%B8%A7%E5%90%8C%E6%AD%A5/" rel="next" title="Unity帧同步">
+                  Unity帧同步 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="AssetBundle加载技术选型AssetBundle加载有三套接口，WWW，UnityWebRequest和AssetBundle，推荐AssetBundle">
+<meta property="og:type" content="article">
+<meta property="og:title" content="AssetBundle加载技术">
+<meta property="og:url" content="http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="AssetBundle加载技术选型AssetBundle加载有三套接口，WWW，UnityWebRequest和AssetBundle，推荐AssetBundle">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/image-20230905113200042.png">
+<meta property="og:image" content="http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/image-20230905113413606.png">
+<meta property="article:published_time" content="2020-09-05T03:19:45.000Z">
+<meta property="article:modified_time" content="2023-09-08T03:44:40.419Z">
+<meta property="article:author" content="汪俊">
+<meta property="article:tag" content="AssetBundle">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/image-20230905113200042.png">
+
+
+<link rel="canonical" href="http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/","path":"2020/09/05/AssetBundle加载技术/","title":"AssetBundle加载技术"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>AssetBundle加载技术 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-3"><a class="nav-link" href="#AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF%E9%80%89%E5%9E%8B"><span class="nav-number">1.</span> <span class="nav-text">AssetBundle加载技术选型</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E8%AE%BE%E8%AE%A1"><span class="nav-number">2.</span> <span class="nav-text">设计</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%A0%E8%BD%BD%E9%98%9F%E5%88%97"><span class="nav-number">2.1.</span> <span class="nav-text">加载队列</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%A4%96%E9%83%A8%E6%8E%A5%E5%8F%A3"><span class="nav-number">2.2.</span> <span class="nav-text">外部接口</span></a></li></ol></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0"><span class="nav-number">3.</span> <span class="nav-text">实现</span></a><ol class="nav-child"><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%A0%E8%BD%BD%E4%BE%9D%E8%B5%96%E5%85%B3%E7%B3%BB%E9%85%8D%E7%BD%AE"><span class="nav-number">3.1.</span> <span class="nav-text">加载依赖关系配置</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%8A%A0%E8%BD%BD%E8%8A%82%E7%82%B9%E6%95%B0%E6%8D%AE%E7%BB%93%E6%9E%84"><span class="nav-number">3.2.</span> <span class="nav-text">加载节点数据结构</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E4%BE%9D%E8%B5%96%E5%8A%A0%E8%BD%BD%E2%80%94%E2%80%94%E9%80%92%E5%BD%92-%E5%BC%95%E7%94%A8%E8%AE%A1%E6%95%B0-%E9%98%9F%E5%88%97-%E5%9B%9E%E8%B0%83-%E9%87%8D%E9%9A%BE%E7%82%B9"><span class="nav-number">3.3.</span> <span class="nav-text">依赖加载——递归&amp;引用计数&amp;队列&amp;回调(重难点)</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%90%8C%E6%AD%A5%E5%8A%A0%E8%BD%BD"><span class="nav-number">3.4.</span> <span class="nav-text">同步加载</span></a></li><li class="nav-item nav-level-4"><a class="nav-link" href="#%E5%AE%9E%E7%8E%B0Demo"><span class="nav-number">3.5.</span> <span class="nav-text">实现Demo</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="AssetBundle加载技术 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          AssetBundle加载技术
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-09-05 11:19:45" itemprop="dateCreated datePublished" datetime="2020-09-05T11:19:45+08:00">2020-09-05</time>
+    </span>
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-folder"></i>
+      </span>
+      <span class="post-meta-item-text">In</span>
+        <span itemprop="about" itemscope itemtype="http://schema.org/Thing">
+          <a href="/categories/AssetBundle/" itemprop="url" rel="index"><span itemprop="name">AssetBundle</span></a>
+        </span>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><h3 id="AssetBundle加载技术选型"><a href="#AssetBundle加载技术选型" class="headerlink" title="AssetBundle加载技术选型"></a>AssetBundle加载技术选型</h3><p>AssetBundle加载有三套接口，<code>WWW</code>，<code>UnityWebRequest</code>和<code>AssetBundle</code>，推荐<code>AssetBundle</code></p>
+<span id="more"></span>
+
+<p>前两者都要经历将整个文件的二进制流下载或读取到内存中，然后对这段内存文件进行ab资源的读取解析操作，而<code>AssetBundle</code>可以只读取存储于本地的ab文件的头部部分，在需要的情况下，读取ab中的数据段部分（Asset资源）。</p>
+<p>所以AssetBundle相对的优势是</p>
+<ul>
+<li><p>不进行下载(不占用下载缓存区内存)</p>
+</li>
+<li><p>不读取整个文件到内存（不占用原始文件二进制内存）</p>
+</li>
+<li><p>读取非压缩或LZ4的ab，只读取ab的文件头（约5kb&#x2F;个）</p>
+</li>
+<li><p>同步异步加载并行可用</p>
+</li>
+</ul>
+<p>所以，从内存和效率方面，AssetBundle会是目前最优解，而使用非压缩或LZ4读者自己评断（推荐LZ4）</p>
+<p><strong>AssetBundle加载方式最重要的接口</strong></p>
+<ul>
+<li>AssetBundle.LoadFromFile 从本地文件同步加载ab</li>
+<li>AssetBundle.LoadFromFileAsync 从本地文件异步加载ab</li>
+<li>AssetBundle.Unload 卸载，注意true和false区别</li>
+<li>AssetBundle.LoadAsset 从ab同步加载Asset</li>
+<li>AssetBundle.LoadAssetAsync 从ab异步加载Asset</li>
+</ul>
+<p><strong>使用异步<code>AssetBundle</code>加载的时候</strong></p>
+<p>可以考虑用update每帧访问的方式替代协程的方式</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br></pre></td><td class="code"><pre><span class="line">AssetBundleCreateRequest request = AssetBundle.LoadFromFileAsync(path);</span><br><span class="line"></span><br><span class="line"><span class="function">IEnumerator <span class="title">LoadAssetBundle</span>()</span></span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">yield</span> <span class="keyword">return</span> request;</span><br><span class="line">	<span class="comment">//do something</span></span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">转变为</span><br><span class="line"></span><br><span class="line"><span class="keyword">void</span> Update（）</span><br><span class="line">&#123;</span><br><span class="line">	<span class="keyword">if</span>（request.isDone）</span><br><span class="line">	&#123;</span><br><span class="line">		<span class="comment">//do something</span></span><br><span class="line">	&#125;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h3 id="设计"><a href="#设计" class="headerlink" title="设计"></a>设计</h3><h4 id="加载队列"><a href="#加载队列" class="headerlink" title="加载队列"></a>加载队列</h4><figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _readyABList; <span class="comment">//预备加载的列表</span></span><br><span class="line"><span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _loadingABList; <span class="comment">//正在加载的列表</span></span><br><span class="line"><span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _loadedABList; <span class="comment">//加载完成的列表</span></span><br><span class="line"><span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _unloadABList; <span class="comment">//准备卸载的列表</span></span><br></pre></td></tr></table></figure>
+
+<img src="/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/image-20230905113200042.png" class="" title="image-20230905113200042">
+
+<h4 id="外部接口"><a href="#外部接口" class="headerlink" title="外部接口"></a>外部接口</h4><img src="/2020/09/05/AssetBundle%E5%8A%A0%E8%BD%BD%E6%8A%80%E6%9C%AF/image-20230905113413606.png" class="" title="image-20230905113413606">
+
+
+
+<h3 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h3><h4 id="加载依赖关系配置"><a href="#加载依赖关系配置" class="headerlink" title="加载依赖关系配置"></a>加载依赖关系配置</h4><p>一般在热更流程之后，游戏初始化前，进行游戏初始化的时候，加载的配置是unity导出AssetBundle时候生成的主Mainfest文件</p>
+<figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line">_dependsDataList.Clear();</span><br><span class="line">AssetBundle ab = AssetBundle.LoadFromFile(path);</span><br><span class="line">AssetBundleManifest mainfest = ab.LoadAsset(<span class="string">&quot;AssetBundleManifest&quot;</span>) <span class="keyword">as</span> AssetBundleManifest;</span><br><span class="line"></span><br><span class="line"><span class="keyword">foreach</span>(<span class="built_in">string</span> assetName <span class="keyword">in</span> mainfest.GetAllAssetBundles())</span><br><span class="line">&#123;</span><br><span class="line">    <span class="built_in">string</span> hashName = assetName.Replace(<span class="string">&quot;.ab&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">    <span class="built_in">string</span>[] dps = mainfest.GetAllDependencies(assetName);</span><br><span class="line">    <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; dps.Length; i++)</span><br><span class="line">        dps[i] = dps[i].Replace(<span class="string">&quot;.ab&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">    _dependsDataList.Add(hashName, dps);</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line">ab.Unload(<span class="literal">true</span>); <span class="comment">//用完要卸载</span></span><br><span class="line">ab = <span class="literal">null</span>;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="加载节点数据结构"><a href="#加载节点数据结构" class="headerlink" title="加载节点数据结构"></a>加载节点数据结构</h4><figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">AssetBundleLoadCallBack</span>(<span class="params">AssetBundle ab</span>)</span>;</span><br><span class="line"></span><br><span class="line"><span class="keyword">private</span> <span class="keyword">class</span> <span class="title">AssetBundleObject</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">string</span> _hashName; <span class="comment">//hash标识符</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> _refCount; <span class="comment">//引用计数</span></span><br><span class="line">    <span class="keyword">public</span> List&lt;AssetBundleLoadCallBack&gt; _callFunList = <span class="keyword">new</span> List&lt;AssetBundleLoadCallBack&gt;(); <span class="comment">//回调函数</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> AssetBundleCreateRequest _request; <span class="comment">//异步加载请求</span></span><br><span class="line">    <span class="keyword">public</span> AssetBundle _ab; <span class="comment">//加载到的ab</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="built_in">int</span> _dependLoadingCount; <span class="comment">//依赖计数</span></span><br><span class="line">    <span class="keyword">public</span> List&lt;AssetBundleObject&gt; _depends = <span class="keyword">new</span> List&lt;AssetBundleObject&gt;(); <span class="comment">//依赖项</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+
+
+<h4 id="依赖加载——递归-引用计数-队列-回调-重难点"><a href="#依赖加载——递归-引用计数-队列-回调-重难点" class="headerlink" title="依赖加载——递归&amp;引用计数&amp;队列&amp;回调(重难点)"></a>依赖加载——递归&amp;引用计数&amp;队列&amp;回调(重难点)</h4><h4 id="同步加载"><a href="#同步加载" class="headerlink" title="同步加载"></a>同步加载</h4><h4 id="实现Demo"><a href="#实现Demo" class="headerlink" title="实现Demo"></a>实现Demo</h4><figure class="highlight c#"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br><span class="line">28</span><br><span class="line">29</span><br><span class="line">30</span><br><span class="line">31</span><br><span class="line">32</span><br><span class="line">33</span><br><span class="line">34</span><br><span class="line">35</span><br><span class="line">36</span><br><span class="line">37</span><br><span class="line">38</span><br><span class="line">39</span><br><span class="line">40</span><br><span class="line">41</span><br><span class="line">42</span><br><span class="line">43</span><br><span class="line">44</span><br><span class="line">45</span><br><span class="line">46</span><br><span class="line">47</span><br><span class="line">48</span><br><span class="line">49</span><br><span class="line">50</span><br><span class="line">51</span><br><span class="line">52</span><br><span class="line">53</span><br><span class="line">54</span><br><span class="line">55</span><br><span class="line">56</span><br><span class="line">57</span><br><span class="line">58</span><br><span class="line">59</span><br><span class="line">60</span><br><span class="line">61</span><br><span class="line">62</span><br><span class="line">63</span><br><span class="line">64</span><br><span class="line">65</span><br><span class="line">66</span><br><span class="line">67</span><br><span class="line">68</span><br><span class="line">69</span><br><span class="line">70</span><br><span class="line">71</span><br><span class="line">72</span><br><span class="line">73</span><br><span class="line">74</span><br><span class="line">75</span><br><span class="line">76</span><br><span class="line">77</span><br><span class="line">78</span><br><span class="line">79</span><br><span class="line">80</span><br><span class="line">81</span><br><span class="line">82</span><br><span class="line">83</span><br><span class="line">84</span><br><span class="line">85</span><br><span class="line">86</span><br><span class="line">87</span><br><span class="line">88</span><br><span class="line">89</span><br><span class="line">90</span><br><span class="line">91</span><br><span class="line">92</span><br><span class="line">93</span><br><span class="line">94</span><br><span class="line">95</span><br><span class="line">96</span><br><span class="line">97</span><br><span class="line">98</span><br><span class="line">99</span><br><span class="line">100</span><br><span class="line">101</span><br><span class="line">102</span><br><span class="line">103</span><br><span class="line">104</span><br><span class="line">105</span><br><span class="line">106</span><br><span class="line">107</span><br><span class="line">108</span><br><span class="line">109</span><br><span class="line">110</span><br><span class="line">111</span><br><span class="line">112</span><br><span class="line">113</span><br><span class="line">114</span><br><span class="line">115</span><br><span class="line">116</span><br><span class="line">117</span><br><span class="line">118</span><br><span class="line">119</span><br><span class="line">120</span><br><span class="line">121</span><br><span class="line">122</span><br><span class="line">123</span><br><span class="line">124</span><br><span class="line">125</span><br><span class="line">126</span><br><span class="line">127</span><br><span class="line">128</span><br><span class="line">129</span><br><span class="line">130</span><br><span class="line">131</span><br><span class="line">132</span><br><span class="line">133</span><br><span class="line">134</span><br><span class="line">135</span><br><span class="line">136</span><br><span class="line">137</span><br><span class="line">138</span><br><span class="line">139</span><br><span class="line">140</span><br><span class="line">141</span><br><span class="line">142</span><br><span class="line">143</span><br><span class="line">144</span><br><span class="line">145</span><br><span class="line">146</span><br><span class="line">147</span><br><span class="line">148</span><br><span class="line">149</span><br><span class="line">150</span><br><span class="line">151</span><br><span class="line">152</span><br><span class="line">153</span><br><span class="line">154</span><br><span class="line">155</span><br><span class="line">156</span><br><span class="line">157</span><br><span class="line">158</span><br><span class="line">159</span><br><span class="line">160</span><br><span class="line">161</span><br><span class="line">162</span><br><span class="line">163</span><br><span class="line">164</span><br><span class="line">165</span><br><span class="line">166</span><br><span class="line">167</span><br><span class="line">168</span><br><span class="line">169</span><br><span class="line">170</span><br><span class="line">171</span><br><span class="line">172</span><br><span class="line">173</span><br><span class="line">174</span><br><span class="line">175</span><br><span class="line">176</span><br><span class="line">177</span><br><span class="line">178</span><br><span class="line">179</span><br><span class="line">180</span><br><span class="line">181</span><br><span class="line">182</span><br><span class="line">183</span><br><span class="line">184</span><br><span class="line">185</span><br><span class="line">186</span><br><span class="line">187</span><br><span class="line">188</span><br><span class="line">189</span><br><span class="line">190</span><br><span class="line">191</span><br><span class="line">192</span><br><span class="line">193</span><br><span class="line">194</span><br><span class="line">195</span><br><span class="line">196</span><br><span class="line">197</span><br><span class="line">198</span><br><span class="line">199</span><br><span class="line">200</span><br><span class="line">201</span><br><span class="line">202</span><br><span class="line">203</span><br><span class="line">204</span><br><span class="line">205</span><br><span class="line">206</span><br><span class="line">207</span><br><span class="line">208</span><br><span class="line">209</span><br><span class="line">210</span><br><span class="line">211</span><br><span class="line">212</span><br><span class="line">213</span><br><span class="line">214</span><br><span class="line">215</span><br><span class="line">216</span><br><span class="line">217</span><br><span class="line">218</span><br><span class="line">219</span><br><span class="line">220</span><br><span class="line">221</span><br><span class="line">222</span><br><span class="line">223</span><br><span class="line">224</span><br><span class="line">225</span><br><span class="line">226</span><br><span class="line">227</span><br><span class="line">228</span><br><span class="line">229</span><br><span class="line">230</span><br><span class="line">231</span><br><span class="line">232</span><br><span class="line">233</span><br><span class="line">234</span><br><span class="line">235</span><br><span class="line">236</span><br><span class="line">237</span><br><span class="line">238</span><br><span class="line">239</span><br><span class="line">240</span><br><span class="line">241</span><br><span class="line">242</span><br><span class="line">243</span><br><span class="line">244</span><br><span class="line">245</span><br><span class="line">246</span><br><span class="line">247</span><br><span class="line">248</span><br><span class="line">249</span><br><span class="line">250</span><br><span class="line">251</span><br><span class="line">252</span><br><span class="line">253</span><br><span class="line">254</span><br><span class="line">255</span><br><span class="line">256</span><br><span class="line">257</span><br><span class="line">258</span><br><span class="line">259</span><br><span class="line">260</span><br><span class="line">261</span><br><span class="line">262</span><br><span class="line">263</span><br><span class="line">264</span><br><span class="line">265</span><br><span class="line">266</span><br><span class="line">267</span><br><span class="line">268</span><br><span class="line">269</span><br><span class="line">270</span><br><span class="line">271</span><br><span class="line">272</span><br><span class="line">273</span><br><span class="line">274</span><br><span class="line">275</span><br><span class="line">276</span><br><span class="line">277</span><br><span class="line">278</span><br><span class="line">279</span><br><span class="line">280</span><br><span class="line">281</span><br><span class="line">282</span><br><span class="line">283</span><br><span class="line">284</span><br><span class="line">285</span><br><span class="line">286</span><br><span class="line">287</span><br><span class="line">288</span><br><span class="line">289</span><br><span class="line">290</span><br><span class="line">291</span><br><span class="line">292</span><br><span class="line">293</span><br><span class="line">294</span><br><span class="line">295</span><br><span class="line">296</span><br><span class="line">297</span><br><span class="line">298</span><br><span class="line">299</span><br><span class="line">300</span><br><span class="line">301</span><br><span class="line">302</span><br><span class="line">303</span><br><span class="line">304</span><br><span class="line">305</span><br><span class="line">306</span><br><span class="line">307</span><br><span class="line">308</span><br><span class="line">309</span><br><span class="line">310</span><br><span class="line">311</span><br><span class="line">312</span><br><span class="line">313</span><br><span class="line">314</span><br><span class="line">315</span><br><span class="line">316</span><br><span class="line">317</span><br><span class="line">318</span><br><span class="line">319</span><br><span class="line">320</span><br><span class="line">321</span><br><span class="line">322</span><br><span class="line">323</span><br><span class="line">324</span><br><span class="line">325</span><br><span class="line">326</span><br><span class="line">327</span><br><span class="line">328</span><br><span class="line">329</span><br><span class="line">330</span><br><span class="line">331</span><br><span class="line">332</span><br><span class="line">333</span><br><span class="line">334</span><br><span class="line">335</span><br><span class="line">336</span><br><span class="line">337</span><br><span class="line">338</span><br><span class="line">339</span><br><span class="line">340</span><br><span class="line">341</span><br><span class="line">342</span><br><span class="line">343</span><br><span class="line">344</span><br><span class="line">345</span><br><span class="line">346</span><br><span class="line">347</span><br><span class="line">348</span><br><span class="line">349</span><br><span class="line">350</span><br><span class="line">351</span><br><span class="line">352</span><br><span class="line">353</span><br><span class="line">354</span><br><span class="line">355</span><br><span class="line">356</span><br><span class="line">357</span><br><span class="line">358</span><br><span class="line">359</span><br><span class="line">360</span><br><span class="line">361</span><br><span class="line">362</span><br><span class="line">363</span><br><span class="line">364</span><br><span class="line">365</span><br><span class="line">366</span><br><span class="line">367</span><br><span class="line">368</span><br><span class="line">369</span><br><span class="line">370</span><br><span class="line">371</span><br><span class="line">372</span><br><span class="line">373</span><br><span class="line">374</span><br><span class="line">375</span><br><span class="line">376</span><br><span class="line">377</span><br><span class="line">378</span><br><span class="line">379</span><br><span class="line">380</span><br><span class="line">381</span><br><span class="line">382</span><br><span class="line">383</span><br><span class="line">384</span><br><span class="line">385</span><br><span class="line">386</span><br><span class="line">387</span><br><span class="line">388</span><br><span class="line">389</span><br><span class="line">390</span><br><span class="line">391</span><br><span class="line">392</span><br><span class="line">393</span><br><span class="line">394</span><br><span class="line">395</span><br><span class="line">396</span><br><span class="line">397</span><br><span class="line">398</span><br><span class="line">399</span><br><span class="line">400</span><br><span class="line">401</span><br><span class="line">402</span><br><span class="line">403</span><br><span class="line">404</span><br><span class="line">405</span><br><span class="line">406</span><br><span class="line">407</span><br><span class="line">408</span><br><span class="line">409</span><br><span class="line">410</span><br><span class="line">411</span><br><span class="line">412</span><br><span class="line">413</span><br><span class="line">414</span><br><span class="line">415</span><br><span class="line">416</span><br><span class="line">417</span><br><span class="line">418</span><br><span class="line">419</span><br><span class="line">420</span><br><span class="line">421</span><br><span class="line">422</span><br><span class="line">423</span><br><span class="line">424</span><br><span class="line">425</span><br><span class="line">426</span><br><span class="line">427</span><br><span class="line">428</span><br><span class="line">429</span><br><span class="line">430</span><br><span class="line">431</span><br><span class="line">432</span><br><span class="line">433</span><br><span class="line">434</span><br><span class="line">435</span><br><span class="line">436</span><br><span class="line">437</span><br><span class="line">438</span><br><span class="line">439</span><br><span class="line">440</span><br><span class="line">441</span><br><span class="line">442</span><br><span class="line">443</span><br><span class="line">444</span><br><span class="line">445</span><br><span class="line">446</span><br><span class="line">447</span><br><span class="line">448</span><br><span class="line">449</span><br><span class="line">450</span><br><span class="line">451</span><br><span class="line">452</span><br><span class="line">453</span><br><span class="line">454</span><br><span class="line">455</span><br><span class="line">456</span><br><span class="line">457</span><br><span class="line">458</span><br><span class="line">459</span><br><span class="line">460</span><br><span class="line">461</span><br><span class="line">462</span><br><span class="line">463</span><br><span class="line">464</span><br><span class="line">465</span><br><span class="line">466</span><br><span class="line">467</span><br><span class="line">468</span><br><span class="line">469</span><br><span class="line">470</span><br><span class="line">471</span><br><span class="line">472</span><br><span class="line">473</span><br><span class="line">474</span><br><span class="line">475</span><br><span class="line">476</span><br><span class="line">477</span><br><span class="line">478</span><br><span class="line">479</span><br><span class="line">480</span><br><span class="line">481</span><br><span class="line">482</span><br><span class="line">483</span><br><span class="line">484</span><br><span class="line">485</span><br><span class="line">486</span><br><span class="line">487</span><br><span class="line">488</span><br><span class="line">489</span><br><span class="line">490</span><br><span class="line">491</span><br><span class="line">492</span><br><span class="line">493</span><br><span class="line">494</span><br><span class="line">495</span><br><span class="line">496</span><br><span class="line">497</span><br><span class="line">498</span><br><span class="line">499</span><br><span class="line">500</span><br><span class="line">501</span><br><span class="line">502</span><br><span class="line">503</span><br><span class="line">504</span><br><span class="line">505</span><br><span class="line">506</span><br><span class="line">507</span><br><span class="line">508</span><br><span class="line">509</span><br><span class="line">510</span><br><span class="line">511</span><br><span class="line">512</span><br><span class="line">513</span><br><span class="line">514</span><br><span class="line">515</span><br><span class="line">516</span><br><span class="line">517</span><br><span class="line">518</span><br><span class="line">519</span><br><span class="line">520</span><br><span class="line">521</span><br><span class="line">522</span><br><span class="line">523</span><br><span class="line">524</span><br><span class="line">525</span><br><span class="line">526</span><br><span class="line">527</span><br><span class="line">528</span><br><span class="line">529</span><br><span class="line">530</span><br><span class="line">531</span><br><span class="line">532</span><br><span class="line">533</span><br><span class="line">534</span><br><span class="line">535</span><br><span class="line">536</span><br><span class="line">537</span><br><span class="line">538</span><br><span class="line">539</span><br><span class="line">540</span><br><span class="line">541</span><br><span class="line">542</span><br><span class="line">543</span><br><span class="line">544</span><br><span class="line">545</span><br><span class="line">546</span><br><span class="line">547</span><br><span class="line">548</span><br><span class="line">549</span><br><span class="line">550</span><br><span class="line">551</span><br><span class="line">552</span><br><span class="line">553</span><br><span class="line">554</span><br><span class="line">555</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">using</span> System;</span><br><span class="line"><span class="keyword">using</span> System.Collections.Generic;</span><br><span class="line"><span class="keyword">using</span> System.IO;</span><br><span class="line"><span class="keyword">using</span> UnityEngine;</span><br><span class="line"></span><br><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title">AssetBundleLoadMgr</span></span><br><span class="line">&#123;</span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="built_in">delegate</span> <span class="keyword">void</span> <span class="title">AssetBundleLoadCallBack</span>(<span class="params">AssetBundle ab</span>)</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">class</span> <span class="title">AssetBundleObject</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">string</span> _hashName;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> _refCount;</span><br><span class="line">        <span class="keyword">public</span> List&lt;AssetBundleLoadCallBack&gt; _callFunList = <span class="keyword">new</span> List&lt;AssetBundleLoadCallBack&gt;();</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> AssetBundleCreateRequest _request;</span><br><span class="line">        <span class="keyword">public</span> AssetBundle _ab;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">public</span> <span class="built_in">int</span> _dependLoadingCount;</span><br><span class="line">        <span class="keyword">public</span> List&lt;AssetBundleObject&gt; _depends = <span class="keyword">new</span> List&lt;AssetBundleObject&gt;();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">static</span> AssetBundleLoadMgr _Instance = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> AssetBundleLoadMgr I</span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">get</span> &#123;</span><br><span class="line">            <span class="keyword">if</span> (_Instance == <span class="literal">null</span>) _Instance = <span class="keyword">new</span> AssetBundleLoadMgr();</span><br><span class="line">            <span class="keyword">return</span> _Instance;</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> <span class="keyword">const</span> <span class="built_in">int</span> MAX_LOADING_COUNT = <span class="number">10</span>; <span class="comment">//同时加载的最大数量</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> List&lt;AssetBundleObject&gt; tempLoadeds = <span class="keyword">new</span> List&lt;AssetBundleObject&gt;(); <span class="comment">//创建临时存储变量，用于提升性能</span></span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, <span class="built_in">string</span>[]&gt; _dependsDataList;</span><br><span class="line"></span><br><span class="line">    <span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _readyABList; <span class="comment">//预备加载的列表</span></span><br><span class="line">    <span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _loadingABList; <span class="comment">//正在加载的列表</span></span><br><span class="line">    <span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _loadedABList; <span class="comment">//加载完成的列表</span></span><br><span class="line">    <span class="keyword">private</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt; _unloadABList; <span class="comment">//准备卸载的列表</span></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="title">AssetBundleLoadMgr</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        _dependsDataList = <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, <span class="built_in">string</span>[]&gt;();</span><br><span class="line"></span><br><span class="line">        _readyABList = <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt;();</span><br><span class="line">        _loadingABList = <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt;();</span><br><span class="line">        _loadedABList = <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt;();</span><br><span class="line">        _unloadABList = <span class="keyword">new</span> Dictionary&lt;<span class="built_in">string</span>, AssetBundleObject&gt;();</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">LoadMainfest</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">string</span> path = FileVersionMgr.I.GetFilePathByExist(<span class="string">&quot;Assets&quot;</span>);</span><br><span class="line">        <span class="keyword">if</span> (<span class="built_in">string</span>.IsNullOrEmpty(path)) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">        _dependsDataList.Clear();</span><br><span class="line">        AssetBundle ab = AssetBundle.LoadFromFile(path);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(ab == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadMainfest ab NULL error !&quot;</span>);</span><br><span class="line">            Debug.LogError(errormsg);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        AssetBundleManifest mainfest = ab.LoadAsset(<span class="string">&quot;AssetBundleManifest&quot;</span>) <span class="keyword">as</span> AssetBundleManifest;</span><br><span class="line">        <span class="keyword">if</span> (mainfest == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadMainfest NULL error !&quot;</span>);</span><br><span class="line">            Debug.LogError(errormsg);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">foreach</span>(<span class="built_in">string</span> assetName <span class="keyword">in</span> mainfest.GetAllAssetBundles())</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> hashName = assetName.Replace(<span class="string">&quot;.ab&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">            <span class="built_in">string</span>[] dps = mainfest.GetAllDependencies(assetName);</span><br><span class="line">            <span class="keyword">for</span> (<span class="built_in">int</span> i = <span class="number">0</span>; i &lt; dps.Length; i++)</span><br><span class="line">                dps[i] = dps[i].Replace(<span class="string">&quot;.ab&quot;</span>, <span class="string">&quot;&quot;</span>);</span><br><span class="line">            _dependsDataList.Add(hashName, dps);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        ab.Unload(<span class="literal">true</span>);</span><br><span class="line">        ab = <span class="literal">null</span>;</span><br><span class="line"></span><br><span class="line">        Debug.Log(<span class="string">&quot;AssetBundleLoadMgr dependsCount=&quot;</span> + _dependsDataList.Count);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="built_in">string</span> <span class="title">GetHashName</span>(<span class="params"><span class="built_in">string</span> _assetName</span>)</span></span><br><span class="line">    &#123;<span class="comment">//读者可以自己定义hash方式，对内存有要求的话，可以hash成uint（或uint64）节省内存</span></span><br><span class="line">        <span class="keyword">return</span> _assetName.ToLower();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="built_in">string</span> <span class="title">GetFileName</span>(<span class="params"><span class="built_in">string</span> _hashName</span>)</span></span><br><span class="line">    &#123;<span class="comment">//读者可以自己实现自己的对应关系</span></span><br><span class="line">        <span class="keyword">return</span> _hashName + <span class="string">&quot;.ab&quot;</span>;</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// 获取一个资源的路径</span></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="built_in">string</span> <span class="title">GetAssetBundlePath</span>(<span class="params"><span class="built_in">string</span> _hashName</span>)</span></span><br><span class="line">    &#123;<span class="comment">//读者可以自己实现的对应关系，笔者这里有多语言和文件版本的处理</span></span><br><span class="line">        <span class="built_in">string</span> lngHashName = GetHashName(LocalizationMgr.I.GetAssetPrefix() + _hashName);</span><br><span class="line">        <span class="keyword">if</span> (_dependsDataList.ContainsKey(lngHashName))</span><br><span class="line">            _hashName = lngHashName;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> FileVersionMgr.I.GetFilePath(GetFileName(_hashName));</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="built_in">bool</span> <span class="title">IsABExist</span>(<span class="params"><span class="built_in">string</span> _assetName</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">string</span> hashName = GetHashName(_assetName);</span><br><span class="line">        <span class="keyword">return</span> _dependsDataList.ContainsKey(hashName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//同步加载</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> AssetBundle <span class="title">LoadSync</span>(<span class="params"><span class="built_in">string</span> _assetName</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">string</span> hashName = GetHashName(_assetName);</span><br><span class="line">        <span class="keyword">var</span> abObj = LoadAssetBundleSync(hashName);</span><br><span class="line">        <span class="keyword">return</span> abObj._ab;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="comment">//异步加载（已经加载直接回调），每次加载引用计数+1</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">LoadAsync</span>(<span class="params"><span class="built_in">string</span> _assetName, AssetBundleLoadCallBack callFun</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">string</span> hashName = GetHashName(_assetName);</span><br><span class="line">        LoadAssetBundleAsync(hashName, callFun);</span><br><span class="line">    &#125;</span><br><span class="line">    <span class="comment">//卸载（异步），每次卸载引用计数-1</span></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Unload</span>(<span class="params"><span class="built_in">string</span> _assetName</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="built_in">string</span> hashName = GetHashName(_assetName);</span><br><span class="line">        UnloadAssetBundleAsync(hashName);</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> AssetBundleObject <span class="title">LoadAssetBundleSync</span>(<span class="params"><span class="built_in">string</span> _hashName</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        AssetBundleObject abObj = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (_loadedABList.ContainsKey(_hashName)) <span class="comment">//已经加载</span></span><br><span class="line">        &#123;</span><br><span class="line">            abObj = _loadedABList[_hashName];</span><br><span class="line">            abObj._refCount++;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span> (<span class="keyword">var</span> dpObj <span class="keyword">in</span> abObj._depends)</span><br><span class="line">            &#123;</span><br><span class="line">                LoadAssetBundleSync(dpObj._hashName); <span class="comment">//递归依赖项，附加引用计数</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> abObj;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (_loadingABList.ContainsKey(_hashName)) <span class="comment">//在加载中,异步改同步</span></span><br><span class="line">        &#123;</span><br><span class="line">            abObj = _loadingABList[_hashName];</span><br><span class="line">            abObj._refCount++;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span>(<span class="keyword">var</span> dpObj <span class="keyword">in</span> abObj._depends)</span><br><span class="line">            &#123;</span><br><span class="line">                LoadAssetBundleSync(dpObj._hashName); <span class="comment">//递归依赖项，加载完</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            DoLoadedCallFun(abObj, <span class="literal">false</span>); <span class="comment">//强制完成，回调</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> abObj;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (_readyABList.ContainsKey(_hashName)) <span class="comment">//在准备加载中</span></span><br><span class="line">        &#123;</span><br><span class="line">            abObj = _readyABList[_hashName];</span><br><span class="line">            abObj._refCount++;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span> (<span class="keyword">var</span> dpObj <span class="keyword">in</span> abObj._depends)</span><br><span class="line">            &#123;</span><br><span class="line">                LoadAssetBundleSync(dpObj._hashName); <span class="comment">//递归依赖项，加载完</span></span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="built_in">string</span> path1 = GetAssetBundlePath(_hashName);</span><br><span class="line">            abObj._ab = AssetBundle.LoadFromFile(path1);</span><br><span class="line"></span><br><span class="line">            _readyABList.Remove(abObj._hashName);</span><br><span class="line">            _loadedABList.Add(abObj._hashName, abObj);</span><br><span class="line"></span><br><span class="line">            DoLoadedCallFun(abObj, <span class="literal">false</span>); <span class="comment">//强制完成，回调</span></span><br><span class="line"></span><br><span class="line">            <span class="keyword">return</span> abObj;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//创建一个加载</span></span><br><span class="line">        abObj = <span class="keyword">new</span> AssetBundleObject();</span><br><span class="line">        abObj._hashName = _hashName;</span><br><span class="line"></span><br><span class="line">        abObj._refCount = <span class="number">1</span>;</span><br><span class="line"></span><br><span class="line">        <span class="built_in">string</span> path = GetAssetBundlePath(_hashName);</span><br><span class="line">        abObj._ab = AssetBundle.LoadFromFile(path);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span>(abObj._ab == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//同步下载解决</span></span><br><span class="line">                <span class="built_in">byte</span>[] bytes = AssetsDownloadMgr.I.DownloadSync(GetFileName(abObj._hashName));</span><br><span class="line">                <span class="keyword">if</span> (bytes != <span class="literal">null</span> &amp;&amp; bytes.Length != <span class="number">0</span>)</span><br><span class="line">                    abObj._ab = AssetBundle.LoadFromMemory(bytes);</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">catch</span> (Exception ex)</span><br><span class="line">            &#123;</span><br><span class="line">                Debug.LogError(<span class="string">&quot;LoadAssetBundleSync DownloadSync&quot;</span> + ex.Message);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">        <span class="comment">//加载依赖项</span></span><br><span class="line">        <span class="built_in">string</span>[] dependsData = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (_dependsDataList.ContainsKey(_hashName))</span><br><span class="line">        &#123;</span><br><span class="line">            dependsData = _dependsDataList[_hashName];</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (dependsData != <span class="literal">null</span> &amp;&amp; dependsData.Length &gt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            abObj._dependLoadingCount = <span class="number">0</span>;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span> (<span class="keyword">var</span> dpAssetName <span class="keyword">in</span> dependsData)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> dpObj = LoadAssetBundleSync(dpAssetName);</span><br><span class="line"></span><br><span class="line">                abObj._depends.Add(dpObj);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        _loadedABList.Add(abObj._hashName, abObj);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> abObj;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">UnloadAssetBundleAsync</span>(<span class="params"><span class="built_in">string</span> _hashName</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        AssetBundleObject abObj = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (_loadedABList.ContainsKey(_hashName))</span><br><span class="line">            abObj = _loadedABList[_hashName];</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (_loadingABList.ContainsKey(_hashName))</span><br><span class="line">            abObj = _loadingABList[_hashName];</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (_readyABList.ContainsKey(_hashName))</span><br><span class="line">            abObj = _readyABList[_hashName];</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (abObj == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;UnLoadAssetbundle error ! assetName:&#123;0&#125;&quot;</span>,_hashName);</span><br><span class="line">            Debug.LogError(errormsg);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (abObj._refCount == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;UnLoadAssetbundle refCount error ! assetName:&#123;0&#125;&quot;</span>, _hashName);</span><br><span class="line">            Debug.LogError(errormsg);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        abObj._refCount--;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> dpObj <span class="keyword">in</span> abObj._depends)</span><br><span class="line">        &#123;</span><br><span class="line">            UnloadAssetBundleAsync(dpObj._hashName);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (abObj._refCount == <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            _unloadABList.Add(abObj._hashName, abObj);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> AssetBundleObject <span class="title">LoadAssetBundleAsync</span>(<span class="params"><span class="built_in">string</span> _hashName, AssetBundleLoadCallBack _callFun</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        AssetBundleObject abObj = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (_loadedABList.ContainsKey(_hashName)) <span class="comment">//已经加载</span></span><br><span class="line">        &#123;</span><br><span class="line">            abObj = _loadedABList[_hashName];</span><br><span class="line">            DoDependsRef(abObj);</span><br><span class="line">            _callFun(abObj._ab);</span><br><span class="line">            <span class="keyword">return</span> abObj;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span>(_loadingABList.ContainsKey(_hashName)) <span class="comment">//在加载中</span></span><br><span class="line">        &#123;</span><br><span class="line">            abObj = _loadingABList[_hashName];</span><br><span class="line">            DoDependsRef(abObj);</span><br><span class="line">            abObj._callFunList.Add(_callFun);</span><br><span class="line">            <span class="keyword">return</span> abObj;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> <span class="keyword">if</span> (_readyABList.ContainsKey(_hashName)) <span class="comment">//在准备加载中</span></span><br><span class="line">        &#123;</span><br><span class="line">            abObj = _readyABList[_hashName];</span><br><span class="line">            DoDependsRef(abObj);</span><br><span class="line">            abObj._callFunList.Add(_callFun);</span><br><span class="line">            <span class="keyword">return</span> abObj;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//创建一个加载</span></span><br><span class="line">        abObj = <span class="keyword">new</span> AssetBundleObject();</span><br><span class="line">        abObj._hashName = _hashName;</span><br><span class="line"></span><br><span class="line">        abObj._refCount = <span class="number">1</span>;</span><br><span class="line">        abObj._callFunList.Add(_callFun);</span><br><span class="line"></span><br><span class="line">        <span class="comment">//加载依赖项</span></span><br><span class="line">        <span class="built_in">string</span>[] dependsData = <span class="literal">null</span>;</span><br><span class="line">        <span class="keyword">if</span> (_dependsDataList.ContainsKey(_hashName))</span><br><span class="line">        &#123;</span><br><span class="line">            dependsData = _dependsDataList[_hashName];</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (dependsData != <span class="literal">null</span> &amp;&amp; dependsData.Length &gt; <span class="number">0</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            abObj._dependLoadingCount = dependsData.Length;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">foreach</span>(<span class="keyword">var</span> dpAssetName <span class="keyword">in</span> dependsData)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="keyword">var</span> dpObj = LoadAssetBundleAsync(dpAssetName,</span><br><span class="line">                    (AssetBundle _ab) =&gt;</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="keyword">if</span>(abObj._dependLoadingCount &lt;= <span class="number">0</span>)</span><br><span class="line">                        &#123;</span><br><span class="line">                            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadAssetbundle depend error ! assetName:&#123;0&#125;&quot;</span>, _hashName);</span><br><span class="line">                            Debug.LogError(errormsg);</span><br><span class="line">                            <span class="keyword">return</span>;</span><br><span class="line">                        &#125;</span><br><span class="line"></span><br><span class="line">                        abObj._dependLoadingCount--;</span><br><span class="line">                        </span><br><span class="line">                        <span class="comment">//依赖加载完</span></span><br><span class="line">                        <span class="keyword">if</span> (abObj._dependLoadingCount == <span class="number">0</span> &amp;&amp; abObj._request != <span class="literal">null</span> &amp;&amp; abObj._request.isDone)</span><br><span class="line">                        &#123;</span><br><span class="line">                            DoLoadedCallFun(abObj);</span><br><span class="line">                        &#125;</span><br><span class="line">                    &#125;</span><br><span class="line">                );</span><br><span class="line"></span><br><span class="line">                abObj._depends.Add(dpObj);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (_loadingABList.Count &lt; MAX_LOADING_COUNT) <span class="comment">//正在加载的数量不能超过上限</span></span><br><span class="line">        &#123;</span><br><span class="line">            DoLoad(abObj);</span><br><span class="line"></span><br><span class="line">            _loadingABList.Add(_hashName, abObj);</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span> _readyABList.Add(_hashName, abObj);</span><br><span class="line"></span><br><span class="line">        <span class="keyword">return</span> abObj;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoDependsRef</span>(<span class="params">AssetBundleObject abObj</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        abObj._refCount++;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (abObj._depends.Count == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> dpObj <span class="keyword">in</span> abObj._depends)</span><br><span class="line">        &#123;</span><br><span class="line">            DoDependsRef(dpObj); <span class="comment">//递归依赖项，加载完</span></span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoLoad</span>(<span class="params">AssetBundleObject abObj</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (AssetsDownloadMgr.I.IsNeedDownload(GetFileName(abObj._hashName)))</span><br><span class="line">        &#123;<span class="comment">//这里是关联下载逻辑，可以实现异步下载再异步加载</span></span><br><span class="line">            AssetsDownloadMgr.I.DownloadAsync(GetFileName(abObj._hashName), </span><br><span class="line">                () =&gt;</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="built_in">string</span> path = GetAssetBundlePath(abObj._hashName);</span><br><span class="line">                    abObj._request = AssetBundle.LoadFromFileAsync(path);</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (abObj._request == <span class="literal">null</span>)</span><br><span class="line">                    &#123;</span><br><span class="line">                        <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadAssetbundle path error ! assetName:&#123;0&#125;&quot;</span>, abObj._hashName);</span><br><span class="line">                        Debug.LogError(errormsg);</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            );</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="keyword">else</span></span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> path = GetAssetBundlePath(abObj._hashName);</span><br><span class="line">            abObj._request = AssetBundle.LoadFromFileAsync(path);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (abObj._request == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadAssetbundle path error ! assetName:&#123;0&#125;&quot;</span>, abObj._hashName);</span><br><span class="line">                Debug.LogError(errormsg);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoLoadedCallFun</span>(<span class="params">AssetBundleObject abObj, <span class="built_in">bool</span> isAsync = <span class="literal">true</span></span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//提取ab</span></span><br><span class="line">        <span class="keyword">if</span>(abObj._request != <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            abObj._ab = abObj._request.assetBundle; <span class="comment">//如果没加载完，会异步转同步</span></span><br><span class="line">            abObj._request = <span class="literal">null</span>;</span><br><span class="line">            _loadingABList.Remove(abObj._hashName);</span><br><span class="line">            _loadedABList.Add(abObj._hashName, abObj);</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">if</span> (abObj._ab == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadAssetbundle _ab null error ! assetName:&#123;0&#125;&quot;</span>, abObj._hashName);</span><br><span class="line">            <span class="built_in">string</span> path = GetAssetBundlePath(abObj._hashName);</span><br><span class="line">            errormsg += <span class="string">&quot;\n File &quot;</span> + File.Exists(path) + <span class="string">&quot; Exists &quot;</span> + path;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">try</span></span><br><span class="line">            &#123;<span class="comment">//尝试读取二进制解决</span></span><br><span class="line">                <span class="keyword">if</span>(File.Exists(path))</span><br><span class="line">                &#123;</span><br><span class="line">                    <span class="built_in">byte</span>[] bytes = File.ReadAllBytes(path);</span><br><span class="line">                    <span class="keyword">if</span> (bytes != <span class="literal">null</span> &amp;&amp; bytes.Length != <span class="number">0</span>)</span><br><span class="line">                        abObj._ab = AssetBundle.LoadFromMemory(bytes);</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">            <span class="keyword">catch</span> (Exception ex)</span><br><span class="line">            &#123;</span><br><span class="line">                Debug.LogError(<span class="string">&quot;LoadAssetbundle ReadAllBytes Error &quot;</span> + ex.Message);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (abObj._ab == <span class="literal">null</span>)</span><br><span class="line">            &#123;</span><br><span class="line">                <span class="comment">//同步下载解决</span></span><br><span class="line">                <span class="built_in">byte</span>[] bytes = AssetsDownloadMgr.I.DownloadSync(GetFileName(abObj._hashName));</span><br><span class="line">                <span class="keyword">if</span> (bytes != <span class="literal">null</span> &amp;&amp; bytes.Length != <span class="number">0</span>)</span><br><span class="line">                    abObj._ab = AssetBundle.LoadFromMemory(bytes);</span><br><span class="line"></span><br><span class="line">                <span class="keyword">if</span> (abObj._ab == <span class="literal">null</span>)</span><br><span class="line">                &#123;<span class="comment">//同步下载还不能解决，移除</span></span><br><span class="line">                    <span class="keyword">if</span> (_loadedABList.ContainsKey(abObj._hashName)) _loadedABList.Remove(abObj._hashName);</span><br><span class="line">                    <span class="keyword">else</span> <span class="keyword">if</span> (_loadingABList.ContainsKey(abObj._hashName)) _loadingABList.Remove(abObj._hashName);</span><br><span class="line"></span><br><span class="line">                    Debug.LogError(errormsg);</span><br><span class="line"></span><br><span class="line">                    <span class="keyword">if</span> (isAsync)</span><br><span class="line">                    &#123;<span class="comment">//异步下载解决</span></span><br><span class="line">                        AssetsDownloadMgr.I.AddDownloadSetFlag(GetFileName(abObj._hashName));</span><br><span class="line">                    &#125;</span><br><span class="line">                &#125;</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="comment">//运行回调</span></span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> callback <span class="keyword">in</span> abObj._callFunList)</span><br><span class="line">        &#123;</span><br><span class="line">            callback(abObj._ab);</span><br><span class="line">        &#125;</span><br><span class="line">        abObj._callFunList.Clear();</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">UpdateLoad</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_loadingABList.Count == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line">        <span class="comment">//检测加载完的</span></span><br><span class="line">        tempLoadeds.Clear();</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> abObj <span class="keyword">in</span> _loadingABList.Values)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (abObj._dependLoadingCount == <span class="number">0</span> &amp;&amp; abObj._request != <span class="literal">null</span> &amp;&amp; abObj._request.isDone)</span><br><span class="line">            &#123;</span><br><span class="line">                tempLoadeds.Add(abObj);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line">        <span class="comment">//回调中有可能对_loadingABList进行操作，提取后回调</span></span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> abObj <span class="keyword">in</span> tempLoadeds)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="comment">//加载完进行回调</span></span><br><span class="line">            DoLoadedCallFun(abObj);</span><br><span class="line">        &#125;</span><br><span class="line">        </span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">DoUnload</span>(<span class="params">AssetBundleObject abObj</span>)</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="comment">//这里用true，卸载Asset内存，实现指定卸载</span></span><br><span class="line">        <span class="keyword">if</span>(abObj._ab == <span class="literal">null</span>)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="built_in">string</span> errormsg = <span class="built_in">string</span>.Format(<span class="string">&quot;LoadAssetbundle DoUnload error ! assetName:&#123;0&#125;&quot;</span>, abObj._hashName);</span><br><span class="line">            Debug.LogError(errormsg);</span><br><span class="line">            <span class="keyword">return</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        abObj._ab.Unload(<span class="literal">true</span>);</span><br><span class="line">        abObj._ab = <span class="literal">null</span>;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">UpdateUnLoad</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_unloadABList.Count == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line"></span><br><span class="line">        tempLoadeds.Clear();</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> abObj <span class="keyword">in</span> _unloadABList.Values)</span><br><span class="line">        &#123;</span><br><span class="line">            <span class="keyword">if</span> (abObj._refCount == <span class="number">0</span> &amp;&amp; abObj._ab != <span class="literal">null</span>)</span><br><span class="line">            &#123;<span class="comment">//引用计数为0并且已经加载完，没加载完等加载完销毁</span></span><br><span class="line">                DoUnload(abObj);</span><br><span class="line">                _loadedABList.Remove(abObj._hashName);</span><br><span class="line"></span><br><span class="line">                tempLoadeds.Add(abObj);</span><br><span class="line">            &#125;</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (abObj._refCount &gt; <span class="number">0</span>)</span><br><span class="line">            &#123;<span class="comment">//引用计数加回来（销毁又瞬间重新加载，不销毁，从销毁列表移除）</span></span><br><span class="line">                tempLoadeds.Add(abObj);</span><br><span class="line">            &#125;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">foreach</span>(<span class="keyword">var</span> abObj <span class="keyword">in</span> tempLoadeds)</span><br><span class="line">        &#123;</span><br><span class="line">            _unloadABList.Remove(abObj._hashName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">private</span> <span class="keyword">void</span> <span class="title">UpdateReady</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        <span class="keyword">if</span> (_readyABList.Count == <span class="number">0</span>) <span class="keyword">return</span>;</span><br><span class="line">        <span class="keyword">if</span> (_loadingABList.Count &gt;= MAX_LOADING_COUNT) <span class="keyword">return</span>;</span><br><span class="line">        </span><br><span class="line">        tempLoadeds.Clear();</span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> abObj <span class="keyword">in</span> _readyABList.Values)</span><br><span class="line">        &#123;</span><br><span class="line">            DoLoad(abObj);</span><br><span class="line"></span><br><span class="line">            tempLoadeds.Add(abObj);</span><br><span class="line">            _loadingABList.Add(abObj._hashName, abObj);</span><br><span class="line"></span><br><span class="line">            <span class="keyword">if</span> (_loadingABList.Count &gt;= MAX_LOADING_COUNT) <span class="keyword">break</span>;</span><br><span class="line">        &#125;</span><br><span class="line"></span><br><span class="line">        <span class="keyword">foreach</span> (<span class="keyword">var</span> abObj <span class="keyword">in</span> tempLoadeds)</span><br><span class="line">        &#123;</span><br><span class="line">            _readyABList.Remove(abObj._hashName);</span><br><span class="line">        &#125;</span><br><span class="line">    &#125;</span><br><span class="line"></span><br><span class="line">    <span class="function"><span class="keyword">public</span> <span class="keyword">void</span> <span class="title">Update</span>()</span></span><br><span class="line">    &#123;</span><br><span class="line">        UpdateLoad();</span><br><span class="line">        UpdateReady();</span><br><span class="line">        UpdateUnLoad();</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+          <div class="post-tags">
+              <a href="/tags/AssetBundle/" rel="tag"># AssetBundle</a>
+          </div>
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/09/01/%E8%B5%84%E6%BA%90%E5%8A%A0%E8%BD%BD/" rel="prev" title="资源加载">
+                  <i class="fa fa-angle-left"></i> 资源加载
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/09/06/AI%E6%8F%92%E4%BB%B6%E5%AD%A6%E4%B9%A0/" rel="next" title="AI插件学习">
+                  AI插件学习 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

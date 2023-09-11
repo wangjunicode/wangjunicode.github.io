@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Unity技术框架（持续更新…）">
+<meta property="og:type" content="article">
+<meta property="og:title" content="游戏开发-Unity技术框架集合">
+<meta property="og:url" content="http://example.com/2021/05/10/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91-Unity%E6%8A%80%E6%9C%AF%E6%A1%86%E6%9E%B6%E9%9B%86%E5%90%88/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="Unity技术框架（持续更新…）">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2021-05-10T07:54:08.000Z">
+<meta property="article:modified_time" content="2023-09-10T07:58:32.678Z">
+<meta property="article:author" content="汪俊">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://example.com/2021/05/10/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91-Unity%E6%8A%80%E6%9C%AF%E6%A1%86%E6%9E%B6%E9%9B%86%E5%90%88/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2021/05/10/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91-Unity%E6%8A%80%E6%9C%AF%E6%A1%86%E6%9E%B6%E9%9B%86%E5%90%88/","path":"2021/05/10/游戏开发-Unity技术框架集合/","title":"游戏开发-Unity技术框架集合"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>游戏开发-Unity技术框架集合 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BC%95%E6%93%8E%E6%8A%80%E6%9C%AF%E5%B0%9D%E8%AF%95"><span class="nav-number">1.</span> <span class="nav-text">引擎技术尝试</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B5%84%E6%BA%90%E7%AE%A1%E7%90%86%E6%96%B9%E6%A1%88"><span class="nav-number">2.</span> <span class="nav-text">资源管理方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%83%AD%E6%9B%B4%E6%96%B0%E6%96%B9%E6%A1%88"><span class="nav-number">3.</span> <span class="nav-text">热更新方案</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%8A%80%E8%83%BD%E8%BE%85%E5%8A%A9%E5%BC%80%E5%8F%91%E5%B7%A5%E5%85%B7"><span class="nav-number">4.</span> <span class="nav-text">技能辅助开发工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BC%96%E8%BE%91%E5%99%A8%E6%89%A9%E5%B1%95%E5%B7%A5%E5%85%B7"><span class="nav-number">5.</span> <span class="nav-text">编辑器扩展工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%89%8D%E7%AB%AF%E5%BC%80%E5%8F%91%E6%A1%86%E6%9E%B6"><span class="nav-number">6.</span> <span class="nav-text">前端开发框架</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%90%8E%E7%AB%AF%E5%BC%80%E5%8F%91%E6%A1%86%E6%9E%B6"><span class="nav-number">7.</span> <span class="nav-text">后端开发框架</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Actor%E6%A1%86%E6%9E%B6"><span class="nav-number">8.</span> <span class="nav-text">Actor框架</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#DOTS%E9%9D%A2%E5%90%91%E6%95%B0%E6%8D%AE%E6%8A%80%E6%9C%AF%E6%A0%88"><span class="nav-number">9.</span> <span class="nav-text">DOTS面向数据技术栈</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#IOC"><span class="nav-number">10.</span> <span class="nav-text">IOC</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%88%98%E6%96%97%E3%80%81%E6%8A%80%E8%83%BD%E7%B3%BB%E7%BB%9F"><span class="nav-number">11.</span> <span class="nav-text">战斗、技能系统</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%A7%E5%90%8C%E6%AD%A5%E6%A1%86%E6%9E%B6"><span class="nav-number">12.</span> <span class="nav-text">帧同步框架</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%B8%B8%E7%94%A8%E5%B7%A5%E5%85%B7%E6%8F%92%E4%BB%B6"><span class="nav-number">13.</span> <span class="nav-text">常用工具插件</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%BB%91%E5%AE%A2%E5%B7%A5%E5%85%B7%E3%80%81%E7%BD%91%E7%BB%9C%E5%BC%82%E5%B8%B8%E6%A8%A1%E6%8B%9F"><span class="nav-number">14.</span> <span class="nav-text">黑客工具、网络异常模拟</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%B5%84%E6%BA%90%E6%A3%80%E6%9F%A5"><span class="nav-number">15.</span> <span class="nav-text">资源检查</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Unity%E5%B0%8F%E5%B7%A5%E5%85%B7"><span class="nav-number">16.</span> <span class="nav-text">Unity小工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%A8%8B%E5%BA%8F%E5%8C%96%E5%B7%A5%E5%85%B7"><span class="nav-number">17.</span> <span class="nav-text">程序化工具</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%BE%E5%BD%A2%E6%B8%B2%E6%9F%93"><span class="nav-number">18.</span> <span class="nav-text">图形渲染</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%B0%B4%E6%B8%B2%E6%9F%93"><span class="nav-number">19.</span> <span class="nav-text">水渲染</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E9%95%9C%E9%9D%A2%E5%8F%8D%E5%B0%84"><span class="nav-number">20.</span> <span class="nav-text">镜面反射</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8D%A1%E9%80%9A%E6%B8%B2%E6%9F%93"><span class="nav-number">21.</span> <span class="nav-text">卡通渲染</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%8D%89%E6%B8%B2%E6%9F%93"><span class="nav-number">22.</span> <span class="nav-text">草渲染</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#Decals"><span class="nav-number">23.</span> <span class="nav-text">Decals</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%93%E7%B4%A0"><span class="nav-number">24.</span> <span class="nav-text">体素</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BD%93%E7%A7%AF%E9%9B%BE"><span class="nav-number">25.</span> <span class="nav-text">体积雾</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%85%B6%E4%BB%96%E7%9B%B8%E5%85%B3%E5%BA%93"><span class="nav-number">26.</span> <span class="nav-text">其他相关库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%BD%91%E7%BB%9C%E5%BA%93"><span class="nav-number">27.</span> <span class="nav-text">网络库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%BA%8F%E5%88%97%E5%8C%96"><span class="nav-number">28.</span> <span class="nav-text">序列化</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E8%A1%A8%E8%BE%BE%E5%BC%8F%E8%A7%A3%E6%9E%90%E5%BA%93"><span class="nav-number">29.</span> <span class="nav-text">动态表达式解析库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%89%A9%E7%90%86%E7%A2%B0%E6%92%9E"><span class="nav-number">30.</span> <span class="nav-text">物理碰撞</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8A%A8%E6%80%81%E9%AA%A8%E9%AA%BC"><span class="nav-number">31.</span> <span class="nav-text">动态骨骼</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%9B%BE%E8%8A%82%E7%82%B9%E5%BC%8F%E7%BC%96%E8%BE%91%E5%99%A8%EF%BC%88Graph-Editor%EF%BC%89"><span class="nav-number">32.</span> <span class="nav-text">图节点式编辑器（Graph Editor）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E8%A1%8C%E4%B8%BA%E6%A0%91"><span class="nav-number">33.</span> <span class="nav-text">行为树</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AC%94%E5%88%B7%E7%BB%98%E5%9B%BE"><span class="nav-number">34.</span> <span class="nav-text">笔刷绘图</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#ScrollRect"><span class="nav-number">35.</span> <span class="nav-text">ScrollRect</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#SRP%E9%A1%B9%E7%9B%AE"><span class="nav-number">36.</span> <span class="nav-text">SRP项目</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E6%95%8F%E6%84%9F%E8%AF%8D%E5%BA%93"><span class="nav-number">37.</span> <span class="nav-text">敏感词库</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E7%AE%97%E6%B3%95"><span class="nav-number">38.</span> <span class="nav-text">算法</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E5%8E%9F%E7%94%9F%E5%B9%B3%E5%8F%B0%E4%BA%A4%E4%BA%92"><span class="nav-number">39.</span> <span class="nav-text">原生平台交互</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#GPU%E8%92%99%E7%9A%AE%E5%8A%A8%E7%94%BB"><span class="nav-number">40.</span> <span class="nav-text">GPU蒙皮动画</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BC%98%E7%A7%80%E5%BC%95%E7%94%A8%E5%BA%93"><span class="nav-number">41.</span> <span class="nav-text">优秀引用库</span></a></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2021/05/10/%E6%B8%B8%E6%88%8F%E5%BC%80%E5%8F%91-Unity%E6%8A%80%E6%9C%AF%E6%A1%86%E6%9E%B6%E9%9B%86%E5%90%88/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="游戏开发-Unity技术框架集合 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          游戏开发-Unity技术框架集合
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2021-05-10 15:54:08" itemprop="dateCreated datePublished" datetime="2021-05-10T15:54:08+08:00">2021-05-10</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Unity技术框架（持续更新…）</p>
+<span id="more"></span>
+
+<h2 id="引擎技术尝试"><a href="#引擎技术尝试" class="headerlink" title="引擎技术尝试"></a>引擎技术尝试</h2><ul>
+<li>[Animancer-Pro] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/animation/animancer-pro-116514">https://assetstore.unity.com/packages/tools/animation/animancer-pro-116514</a>) （基于Playable的简单强大的动画解决方案）</li>
+<li>[ProBuilder&#x2F;UModeler] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/modeling/umodeler-80868">https://assetstore.unity.com/packages/tools/modeling/umodeler-80868</a>) （快速关卡原型构建解决方案）</li>
+<li>[FGUI] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/fairygui/FairyGUI-unity">https://github.com/fairygui/FairyGUI-unity</a>) （简单强大的UI解决方案）</li>
+<li>[URP] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://docs.unity3d.com/Packages/com.unity.render-pipelines.universal@7.5/manual/index.html">https:&#x2F;&#x2F;docs.unity3d.com&#x2F;Packages&#x2F;com.unity.render-pipelines.universal@7.5/manual/index.html</a>) （Unity官方可编程渲染管线-通用渲染管线）</li>
+<li>[ShaderGraph&#x2F;AmplifyShaderEditor] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/visual-scripting/amplify-shader-editor-68570">https://assetstore.unity.com/packages/tools/visual-scripting/amplify-shader-editor-68570</a>) （自定义Shader编辑器）</li>
+<li>[Bolt] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/visual-scripting/bolt-163802">https://assetstore.unity.com/packages/tools/visual-scripting/bolt-163802</a>) （可视化脚本）</li>
+</ul>
+<hr>
+<h2 id="资源管理方案"><a href="#资源管理方案" class="headerlink" title="资源管理方案"></a>资源管理方案</h2><ul>
+<li>[XAsset] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/xasset/xasset">https://github.com/xasset/xasset</a>) （简单强大的资源管理插件，基于引擎自身的依赖关系实现，建议在项目中采用该方案）</li>
+<li>[GameFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/EllanJiang/GameFramework">https://github.com/EllanJiang/GameFramework</a>) （框架中的Resource模块，提供了一个自己维护引用的高度可定义资源管理框架，非常值得学习研究）</li>
+</ul>
+<hr>
+<h2 id="热更新方案"><a href="#热更新方案" class="headerlink" title="热更新方案"></a>热更新方案</h2><ul>
+<li>[HybridCLR] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/focus-creative-games/hybridclr">https://github.com/focus-creative-games/hybridclr</a>) （基于C#的热更新方案，目前效率最高的热更方案，单程序域运行）</li>
+<li>[tolua] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/topameng/tolua">https://github.com/topameng/tolua</a>) (基于lua实现的嵌入虚拟机热更解决方案)</li>
+<li>[xlua] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Tencent/xLua">https://github.com/Tencent/xLua</a>) (基于lua实现的嵌入虚拟机热更解决方案，新加了动态修复C#函数功能)</li>
+<li>[ILRuntime] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Ourpalm/ILRuntime">https://github.com/Ourpalm/ILRuntime</a>) (自己实现了一个IL运行时的解析器，以此来解决没有JIT环境下运行C#)</li>
+</ul>
+<hr>
+<h2 id="技能辅助开发工具"><a href="#技能辅助开发工具" class="headerlink" title="技能辅助开发工具"></a>技能辅助开发工具</h2><ul>
+<li>[Slate] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/animation/slate-cinematic-sequencer-56558">https://assetstore.unity.com/packages/tools/animation/slate-cinematic-sequencer-56558</a>) (类似Timeline的时间线编辑工具,UI效果较好)</li>
+<li>[Flux] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/animation/flux-18440">https://assetstore.unity.com/packages/tools/animation/flux-18440</a>) (类似Timeline的时间线编辑工具，效果略差)</li>
+<li>[SuperCLine] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/game-toolkits/cline-action-editor-2-163343)(%25E4%25BB%25BF%25E7%2585%25A7Flux%25E5%25AE%259E%25E7%258E%25B0%25E7%259A%2584%25E5%258F%25AF%25E7%259B%25B4%25E6%258E%25A5%25E5%259C%25A8%25E9%25A1%25B9%25E7%259B%25AE%25E4%25BD%25BF%25E7%2594%25A8%25E7%259A%2584%25E6%258A%2580%25E8%2583%25BD%25E7%25BC%2596%25E8%25BE%2591%25E5%2599%25A8">https://assetstore.unity.com/packages/tools/game-toolkits/cline-action-editor-2-163343)(仿照Flux实现的可直接在项目使用的技能编辑器</a>)</li>
+</ul>
+<hr>
+<h2 id="编辑器扩展工具"><a href="#编辑器扩展工具" class="headerlink" title="编辑器扩展工具"></a>编辑器扩展工具</h2><ul>
+<li>[Odin-Inspector] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://assetstore.unity.com/packages/tools/utilities/odin-inspector-and-serializer-89041">https://assetstore.unity.com/packages/tools/utilities/odin-inspector-and-serializer-89041</a>) （编辑器扩展、工作流改善）</li>
+<li>[NaughtyAttributes] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/dbrizov/NaughtyAttributes">https://github.com/dbrizov/NaughtyAttributes</a>) (实现基于属性的常用编辑器效果样式)</li>
+<li>[XiaoCaoTools] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/smartgrass/XiaoCaoTools">https://github.com/smartgrass/XiaoCaoTools</a>) (基于上一个插件扩展的Window常用属性编辑器)</li>
+<li>[XCSkillEditor] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/smartgrass/XCSkillEditor_Unity">https://github.com/smartgrass/XCSkillEditor_Unity</a>) (基于Lux开发的技能编辑器)</li>
+<li>[MDDSkillEngine] (<a href="https://link.zhihu.com/?target=https://gitee.com/mtdmt/MDDSkillEngine">https://gitee.com/mtdmt/MDDSkillEngine</a>) (基于UnityTimeline实现的技能编辑器)</li>
+</ul>
+<hr>
+<h2 id="前端开发框架"><a href="#前端开发框架" class="headerlink" title="前端开发框架"></a>前端开发框架</h2><ul>
+<li>[ET] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/egametang/ET">https://github.com/egametang/ET</a>) (基于C#实现的双端共享的客户端和服务器框架)</li>
+<li>[GameFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/EllanJiang/GameFramework">https://github.com/EllanJiang/GameFramework</a>) （通用涵盖多模块客户端游戏开发框架）</li>
+<li>[KSFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/mr-kelly/KSFramework">https://github.com/mr-kelly/KSFramework</a>) (通用的客户端框架)</li>
+<li>[BDFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/yimengfan/BDFramework.Core">https://github.com/yimengfan/BDFramework.Core</a>) (通用的客户端框架)</li>
+<li>[QFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/liangxiegame/QFramework">https://github.com/liangxiegame/QFramework</a>) (通用的客户端框架)</li>
+<li>[MyUnityFrameWork] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/GaoKaiHaHa/MyUnityFrameWork">https://github.com/GaoKaiHaHa/MyUnityFrameWork</a>) (通用的客户端框架)</li>
+<li>[loxodon-framework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/vovgou/loxodon-framework">https://github.com/vovgou/loxodon-framework</a>) (通用的客户端框架)</li>
+<li>[TinaX] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/yomunsam/TinaX">https://github.com/yomunsam/TinaX</a>) (通用的客户端框架)</li>
+<li>[ColaFrameWork] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/XINCGer/ColaFrameWork">https://github.com/XINCGer/ColaFrameWork</a>) (通用的客户端框架)</li>
+<li>[RPGCore] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Fydar/RPGCore">https://github.com/Fydar/RPGCore</a>) (通用的客户端框架)</li>
+<li>[MotionFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/gmhevinci/MotionFramework">https://github.com/gmhevinci/MotionFramework</a>) (通用的客户端框架)</li>
+<li>[HTFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/SaiTingHu/HTFramework">https://github.com/SaiTingHu/HTFramework</a>) (通用的客户端框架)</li>
+<li>[HTFramework] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/mofr/Diablerie">https://github.com/mofr/Diablerie</a>) (通用的客户端框架)</li>
+</ul>
+<hr>
+<h2 id="后端开发框架"><a href="#后端开发框架" class="headerlink" title="后端开发框架"></a>后端开发框架</h2><ul>
+<li>[ET] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/egametang/ET">https://github.com/egametang/ET</a>) (基于C#实现的双端共享的客户端和服务器框架)</li>
+<li>[nakama] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/heroiclabs/nakama">https://github.com/heroiclabs/nakama</a>) (通用的服务器框架)</li>
+<li>[NoahGameFrame] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ketoo/NoahGameFrame">https://github.com/ketoo/NoahGameFrame</a>) (通用的服务器框架)</li>
+<li>[GeekServer] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/leeveel/GeekServer">https://github.com/leeveel/GeekServer</a>) (通用的服务器框架)</li>
+<li>[kbengine] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/kbengine/kbengine">https://github.com/kbengine/kbengine</a>) (通用的服务器框架)</li>
+<li>[leaf] (<a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/name5566/leaf">https://github.com/name5566/leaf</a>) (通用的服务器框架)</li>
+</ul>
+<hr>
+<h2 id="Actor框架"><a href="#Actor框架" class="headerlink" title="Actor框架"></a>Actor框架</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/akkadotnet/akka.net">https://github.com/akkadotnet/akka.net</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/AsynkronIT/protoactor-dotnet">https://github.com/AsynkronIT/protoactor-dotnet</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/microsoft/service-fabric-services-and-actors-dotnet">https://github.com/microsoft/service-fabric-services-and-actors-dotnet</a></li>
+</ul>
+<hr>
+<h2 id="DOTS面向数据技术栈"><a href="#DOTS面向数据技术栈" class="headerlink" title="DOTS面向数据技术栈"></a>DOTS面向数据技术栈</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Leopotam/ecs">https://github.com/Leopotam/ecs</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/sebas77/Svelto.ECS">https://github.com/sebas77/Svelto.ECS</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/PixeyeHQ/actors.unity">https://github.com/PixeyeHQ/actors.unity</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/EcsRx/ecsrx">https://github.com/EcsRx/ecsrx</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/chromealex/ecs">https://github.com/chromealex/ecs</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/scellecs/Morpeh">https://github.com/scellecs/Morpeh</a></li>
+</ul>
+<hr>
+<h2 id="IOC"><a href="#IOC" class="headerlink" title="IOC"></a>IOC</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/strangeioc/strangeioc">https://github.com/strangeioc/strangeioc</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/modesttree/Zenject">https://github.com/modesttree/Zenject</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/CatLib/CatLib">https://github.com/CatLib/CatLib</a></li>
+</ul>
+<hr>
+<h2 id="战斗、技能系统"><a href="#战斗、技能系统" class="headerlink" title="战斗、技能系统"></a>战斗、技能系统</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/m969/EGamePlay">https://github.com/m969/EGamePlay</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/sjai013/UnityGameplayAbilitySystem">https://github.com/sjai013/UnityGameplayAbilitySystem</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/tranek/GASDocumentation">https://github.com/tranek/GASDocumentation</a> （虚幻引擎的GamePlay Ability System 文档）</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/dongweiPeng/SkillSystem">https://github.com/dongweiPeng/SkillSystem</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/delmarle/RPG-Core">https://github.com/delmarle/RPG-Core</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/KrazyL/SkillSystem-3">https://github.com/KrazyL/SkillSystem-3</a> （Dota2 alike Skill System Implementation for KnightPhone）</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/dx50075/SkillSystem">https://github.com/dx50075/SkillSystem</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/michaelday008/AnyRPGAlphaCode">https://github.com/michaelday008/AnyRPGAlphaCode</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/weichx/AbilitySystem">https://github.com/weichx/AbilitySystem</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/gucheng0712/CombatDesigner">https://github.com/gucheng0712/CombatDesigner</a> （A Frame Based Visual Combat System in Unity Game Engine.）</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/PxGame/XMLib.AM">https://github.com/PxGame/XMLib.AM</a></li>
+</ul>
+<hr>
+<h2 id="帧同步框架"><a href="#帧同步框架" class="headerlink" title="帧同步框架"></a>帧同步框架</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/JiepengTan/LockstepEngine">https://github.com/JiepengTan/LockstepEngine</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/proepkes/UnityLockstep">https://github.com/proepkes/UnityLockstep</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/SnpM/LockstepFramework">https://github.com/SnpM/LockstepFramework</a></li>
+</ul>
+<hr>
+<h2 id="常用工具插件"><a href="#常用工具插件" class="headerlink" title="常用工具插件"></a>常用工具插件</h2><h2 id="黑客工具、网络异常模拟"><a href="#黑客工具、网络异常模拟" class="headerlink" title="黑客工具、网络异常模拟"></a>黑客工具、网络异常模拟</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Z4nzu/hackingtool">https://github.com/Z4nzu/hackingtool</a></li>
+</ul>
+<h2 id="资源检查"><a href="#资源检查" class="headerlink" title="资源检查"></a>资源检查</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ZxIce/AssetCheck">https://github.com/ZxIce/AssetCheck</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/yasirkula/UnityAssetUsageDetector">https://github.com/yasirkula/UnityAssetUsageDetector</a></li>
+</ul>
+<h2 id="Unity小工具"><a href="#Unity小工具" class="headerlink" title="Unity小工具"></a>Unity小工具</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/lujian101/UnityToolDist">https://github.com/lujian101/UnityToolDist</a> （动画压缩、矩阵调试等）</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Unity-Technologies/VFXToolbox">https://github.com/Unity-Technologies/VFXToolbox</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Deadcows/MyBox">https://github.com/Deadcows/MyBox</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Ayfel/PrefabLightmapping">https://github.com/Ayfel/PrefabLightmapping</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/laurenth-personal/lightmap-switching-tool">https://github.com/laurenth-personal/lightmap-switching-tool</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/yasirkula/UnityRuntimeInspector">https://github.com/yasirkula/UnityRuntimeInspector</a></li>
+</ul>
+<h2 id="程序化工具"><a href="#程序化工具" class="headerlink" title="程序化工具"></a>程序化工具</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Syomus/ProceduralToolkit">https://github.com/Syomus/ProceduralToolkit</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/mxgmn/WaveFunctionCollapse">https://github.com/mxgmn/WaveFunctionCollapse</a></li>
+</ul>
+<hr>
+<h2 id="图形渲染"><a href="#图形渲染" class="headerlink" title="图形渲染"></a>图形渲染</h2><h2 id="水渲染"><a href="#水渲染" class="headerlink" title="水渲染"></a>水渲染</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/flamacore/UnityHDRPSimpleWater">https://github.com/flamacore/UnityHDRPSimpleWater</a></li>
+</ul>
+<h2 id="镜面反射"><a href="#镜面反射" class="headerlink" title="镜面反射"></a>镜面反射</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Kink3d/kMirrors">https://github.com/Kink3d/kMirrors</a> （URP）</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ColinLeung-NiloCat/UnityURP-MobileScreenSpacePlanarReflection">https://github.com/ColinLeung-NiloCat/UnityURP-MobileScreenSpacePlanarReflection</a></li>
+</ul>
+<h2 id="卡通渲染"><a href="#卡通渲染" class="headerlink" title="卡通渲染"></a>卡通渲染</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ColinLeung-NiloCat/UnityURPToonLitShaderExample">https://github.com/ColinLeung-NiloCat/UnityURPToonLitShaderExample</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/unity3d-jp/UnityChanToonShaderVer2_Project">https://github.com/unity3d-jp/UnityChanToonShaderVer2_Project</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Kink3d/kShading">https://github.com/Kink3d/kShading</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/SnutiHQ/Toon-Shader">https://github.com/SnutiHQ/Toon-Shader</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/IronWarrior/UnityToonShader">https://github.com/IronWarrior/UnityToonShader</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Jason-Ma-233/JasonMaToonRenderPipeline">https://github.com/Jason-Ma-233/JasonMaToonRenderPipeline</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ronja-tutorials/ShaderTutorials">https://github.com/ronja-tutorials/ShaderTutorials</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/you-ri/LiliumToonGraph">https://github.com/you-ri/LiliumToonGraph</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/madumpa/URP_StylizedLitShader">https://github.com/madumpa/URP_StylizedLitShader</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Sorumi/UnityToonShader">https://github.com/Sorumi/UnityToonShader</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ChiliMilk/URP_Toon">https://github.com/ChiliMilk/URP_Toon</a></li>
+</ul>
+<h2 id="草渲染"><a href="#草渲染" class="headerlink" title="草渲染"></a>草渲染</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ColinLeung-NiloCat/UnityURP-MobileDrawMeshInstancedIndirectExample">https://github.com/ColinLeung-NiloCat/UnityURP-MobileDrawMeshInstancedIndirectExample</a></li>
+</ul>
+<h2 id="Decals"><a href="#Decals" class="headerlink" title="Decals"></a>Decals</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Kink3d/kDecals">https://github.com/Kink3d/kDecals</a></li>
+</ul>
+<h2 id="体素"><a href="#体素" class="headerlink" title="体素"></a>体素</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/mattatz/unity-voxel">https://github.com/mattatz/unity-voxel</a></li>
+</ul>
+<h2 id="体积雾"><a href="#体积雾" class="headerlink" title="体积雾"></a>体积雾</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ArthurBrussee/Vapor">https://github.com/ArthurBrussee/Vapor</a></li>
+</ul>
+<hr>
+<h2 id="其他相关库"><a href="#其他相关库" class="headerlink" title="其他相关库"></a>其他相关库</h2><h2 id="网络库"><a href="#网络库" class="headerlink" title="网络库"></a>网络库</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/RevenantX/LiteNetLib">https://github.com/RevenantX/LiteNetLib</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/BeardedManStudios/ForgeNetworkingRemastered">https://github.com/BeardedManStudios/ForgeNetworkingRemastered</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Yinmany/NetCode-FPS">https://github.com/Yinmany/NetCode-FPS</a></li>
+</ul>
+<h2 id="序列化"><a href="#序列化" class="headerlink" title="序列化"></a>序列化</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/google/flatbuffers">https://github.com/google/flatbuffers</a> (据说序列化快，占内存大，相比于pb，适合游戏开发)</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/jamescourtney/FlatSharp">https://github.com/jamescourtney/FlatSharp</a></li>
+</ul>
+<h2 id="动态表达式解析库"><a href="#动态表达式解析库" class="headerlink" title="动态表达式解析库"></a>动态表达式解析库</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/davideicardi/DynamicExpresso">https://github.com/davideicardi/DynamicExpresso</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/zzzprojects/Eval-Expression.NET">https://github.com/zzzprojects/Eval-Expression.NET</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/mparlak/Flee">https://github.com/mparlak/Flee</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/codingseb/ExpressionEvaluator">https://github.com/codingseb/ExpressionEvaluator</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=http://wiki.unity3d.com/index.php/ExpressionParser">http://wiki.unity3d.com/index.php/ExpressionParser</a></li>
+</ul>
+<h2 id="物理碰撞"><a href="#物理碰撞" class="headerlink" title="物理碰撞"></a>物理碰撞</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/AndresTraks/BulletSharp">https://github.com/AndresTraks/BulletSharp</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Zonciu/Box2DSharp">https://github.com/Zonciu/Box2DSharp</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/JiepengTan/LockstepCollision">https://github.com/JiepengTan/LockstepCollision</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Prince-Ling/LogicPhysics">https://github.com/Prince-Ling/LogicPhysics</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/aaa719717747/TrueSyncExample">https://github.com/aaa719717747/TrueSyncExample</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/dotnet-ad/Humper">https://github.com/dotnet-ad/Humper</a></li>
+</ul>
+<h2 id="动态骨骼"><a href="#动态骨骼" class="headerlink" title="动态骨骼"></a>动态骨骼</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/OneYoungMean/Automatic-DynamicBone">https://github.com/OneYoungMean/Automatic-DynamicBone</a></li>
+</ul>
+<h2 id="图节点式编辑器（Graph-Editor）"><a href="#图节点式编辑器（Graph-Editor）" class="headerlink" title="图节点式编辑器（Graph Editor）"></a>图节点式编辑器（Graph Editor）</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/alelievr/NodeGraphProcessor">https://github.com/alelievr/NodeGraphProcessor</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Siccity/xNode">https://github.com/Siccity/xNode</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/nicloay/Node-Inspector">https://github.com/nicloay/Node-Inspector</a></li>
+</ul>
+<h2 id="行为树"><a href="#行为树" class="headerlink" title="行为树"></a>行为树</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/meniku/NPBehave">https://github.com/meniku/NPBehave</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/ashblue/fluid-behavior-tree">https://github.com/ashblue/fluid-behavior-tree</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/luis-l/BonsaiBehaviourTree">https://github.com/luis-l/BonsaiBehaviourTree</a></li>
+</ul>
+<h2 id="笔刷绘图"><a href="#笔刷绘图" class="headerlink" title="笔刷绘图"></a>笔刷绘图</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/EsProgram/InkPainter">https://github.com/EsProgram/InkPainter</a></li>
+</ul>
+<h2 id="ScrollRect"><a href="#ScrollRect" class="headerlink" title="ScrollRect"></a>ScrollRect</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/qiankanglai/LoopScrollRect">https://github.com/qiankanglai/LoopScrollRect</a></li>
+</ul>
+<h2 id="SRP项目"><a href="#SRP项目" class="headerlink" title="SRP项目"></a>SRP项目</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/keijiro/TestbedHDRP">https://github.com/keijiro/TestbedHDRP</a></li>
+</ul>
+<h2 id="敏感词库"><a href="#敏感词库" class="headerlink" title="敏感词库"></a>敏感词库</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/toolgood/ToolGood.Words">https://github.com/toolgood/ToolGood.Words</a></li>
+</ul>
+<h2 id="算法"><a href="#算法" class="headerlink" title="算法"></a>算法</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/labuladong/fucking-algorithm">https://github.com/labuladong/fucking-algorithm</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/azl397985856/leetcode">https://github.com/azl397985856/leetcode</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/halfrost/LeetCode-Go">https://github.com/halfrost/LeetCode-Go</a></li>
+</ul>
+<h2 id="原生平台交互"><a href="#原生平台交互" class="headerlink" title="原生平台交互"></a>原生平台交互</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/yasirkula/UnityNativeShare">https://github.com/yasirkula/UnityNativeShare</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/hellowod/u3d-plugins-development">https://github.com/hellowod/u3d-plugins-development</a></li>
+</ul>
+<h2 id="GPU蒙皮动画"><a href="#GPU蒙皮动画" class="headerlink" title="GPU蒙皮动画"></a>GPU蒙皮动画</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/chenjd/Render-Crowd-Of-Animated-Characters">https://github.com/chenjd/Render-Crowd-Of-Animated-Characters</a></li>
+</ul>
+<hr>
+<h2 id="优秀引用库"><a href="#优秀引用库" class="headerlink" title="优秀引用库"></a>优秀引用库</h2><ul>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/utilForever/game-developer-roadmap">https://github.com/utilForever/game-developer-roadmap</a> (游戏开发者路线图)</li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/RyanNielson/awesome-unity">https://github.com/RyanNielson/awesome-unity</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/MFatihMAR/Game-Networking-Resources">https://github.com/MFatihMAR/Game-Networking-Resources</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/Gforcex/OpenGraphic">https://github.com/Gforcex/OpenGraphic</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/insthync/awesome-unity3d">https://github.com/insthync/awesome-unity3d</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/killop/anything_about_game">https://github.com/killop/anything_about_game</a></li>
+<li><a href="https://link.zhihu.com/?target=https://gitee.com/link?target=https://github.com/uhub/awesome-c-sharp">https://github.com/uhub/awesome-c-sharp</a></li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2021/03/31/%E6%B8%B8%E6%88%8F%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96CPU/" rel="prev" title="游戏性能优化——CPU">
+                  <i class="fa fa-angle-left"></i> 游戏性能优化——CPU
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2021/07/10/%E6%88%98%E6%96%97%E7%B3%BB%E7%BB%9F/" rel="next" title="战斗系统">
+                  战斗系统 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

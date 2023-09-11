@@ -1,0 +1,763 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="Unity分离贴图alpha通道">
+<meta property="og:type" content="article">
+<meta property="og:title" content="Unity分离贴图alpha通道">
+<meta property="og:url" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="Unity分离贴图alpha通道">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134806f0zggmp17m0mbbcl.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134807g2rtn3reqavaz5rh.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134807dhepv2l2leh2lppv.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134808zma0nonsmywdw702.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134808lbbuzuc54a6bezgb.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134809trerj60bbbbmhjrh.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134812zo7566c1tvavv4jo.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134814pydb77z36ggjc814.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134815f1ozadf0axdg3hd5.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134818q3mf20jj01x2z3jx.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134819qf4fmtf6flsm41qf.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134824k80op0arpyy7rafp.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134828rwhczh91ff9vj1ch.jpg">
+<meta property="og:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134829q616hauaxlyy3a06.jpg">
+<meta property="article:published_time" content="2020-08-14T13:23:34.000Z">
+<meta property="article:modified_time" content="2023-09-08T14:19:16.179Z">
+<meta property="article:author" content="汪俊">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134806f0zggmp17m0mbbcl.jpg">
+
+
+<link rel="canonical" href="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/","path":"2020/08/14/Unity分离贴图alpha通道/","title":"Unity分离贴图alpha通道"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>Unity分离贴图alpha通道 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-overview-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="Unity分离贴图alpha通道 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          Unity分离贴图alpha通道
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-08-14 21:23:34" itemprop="dateCreated datePublished" datetime="2020-08-14T21:23:34+08:00">2020-08-14</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>Unity分离贴图alpha通道</p>
+<span id="more"></span>
+
+<p>UI 同学抱怨 iOS 上一些透明贴图压缩后模糊不堪</p>
+<p>一些古早的 Android 手机上同样的贴图吃内存超过其他手机数倍，游戏经常闪退</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134806f0zggmp17m0mbbcl.jpg" class="" title="img">
+
+
+<p><strong>为什么要分离</strong></p>
+<p><strong>1. 为什么会出现这些问题</strong></p>
+<p>要弄明白这些问题的由来，首先要简单解释一下贴图压缩格式的基础概念。</p>
+<p>为了让贴图在手机中运行时占用尽可能少的内存，需要设置贴图的压缩格式，目前 Unity 支持的主要压缩格式有：android 上的 ETC&#x2F;ETC2，iOS 上的 PVRTC，以及未来可能会使用的 ASTC。这几个压缩格式有自己的特点：</p>
+<ul>
+<li><p>ETC：不支持透明通道，被所有 android 设备支持</p>
+</li>
+<li><p>ETC2：支持透明通道，Android 设备的 GPU 必须支持 OpenGL es 3.0 才可以使用，对于不支持的设备，会以未压缩的形式存在内存中，占用更多内存</p>
+</li>
+<li><p>PVRTC：所有苹果设备都可以使用，要求压缩纹理长宽相等，且是 2 的幂次（POT，Power of 2）</p>
+</li>
+<li><p>ASTC：高质量低内存占用，未来可能普遍使用的压缩格式，现在有一部分机型不支持</p>
+</li>
+</ul>
+<p>一般来说，目前 Unity 的手机游戏 android 上非透明贴图会使用 RGB Compressed ETC 4bits，透明贴图可以使用 RGBA Compressed ETC2 8bit，iOS 非透明贴图使用 RGB Compressed PVRTC 4bits，透明贴图使用 RGBA Compressed PVRTC 4bits。</p>
+<p>这里的 bits 概念的意思为：每个像素占用的比特数，举个例子，RGB Compressed PVRTC 4bits 格式的 1024x1024 的贴图，其在内存中占用的大小 &#x3D; 1024x1024x4 (比特) &#x3D; 4M (比特) &#x3D; 0.5M (字节)。</p>
+<p>我们可以看到，在 iOS 上，非透明贴图和透明贴图都是 4bpp（4bits per pixel）的，多了透明通道还是一样的大小，自然 4bpp 的透明贴图压缩出来效果就会变差，而实机上看确实也是惨不忍睹。这是第一个问题的答案。</p>
+<p>一些古早的 android 机，由于不支持 OpenGL es 3.0，因此 RGBA Compressed ETC2 8bit 的贴图一般会以 RGBA 32bits 的格式存在于内存中，这样内存占用就会达到原来的 4 倍，在老机器低内存的情况下系统杀掉也不足为奇了。这是第二个问题的答案。当然，需要说明的是，现在不支持 OpenGL es 3.0 的机器的市场占有率已经相当低了（低于 1%），大多数情况下可以考虑无视。</p>
+<p>更多的贴图压缩格式相关内容可以参考这里：<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/113366420">https://zhuanlan.zhihu.com/p/113366420</a></p>
+<p><strong>2. 如何解决问题</strong></p>
+<p>要解决上面图片模糊的问题，可以有这些做法：</p>
+<ul>
+<li>透明贴图不压缩，内存占用 32bpp</li>
+<li>分离 alpha 通道，内存占用 4bpp+4bpp（或 4bpp+8bpp）</li>
+</ul>
+<p>不压缩显然是不可能的，毕竟 32bpp 的内存消耗对于手机来说过大了，尤其对于小内存的 iOS 设备更是如此。所以我们考虑分离 alpha 通道，将非透明部分和透明部分拆成两张图（如下所示）。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134807g2rtn3reqavaz5rh.jpg" class="" title="img">
+
+
+
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134807dhepv2l2leh2lppv.jpg" class="" title="img">
+
+
+<p>至于其内存占用，一般来说会把非透明部分拆成 RGB Compressed PVRTC 4bits，而透明通道部分可以使 RGB Compressed PVRTC 4bits，使用了 RGB Compressed PVRTC 4bits 格式来压缩透明通道贴图，效果已经完全可以接受了。</p>
+<p><strong>如何分离</strong></p>
+<p><strong>1. 方案 1</strong></p>
+<p>我们很自然而然的会想到，继承 SpriteRenderer&#x2F;Image 组件去实现运行时替换材质来达到目的。这种方案有一些缺点，对于已经开发到后期的项目来说，要修改所有的组件成本非常高，更不用说在加入版本控制的项目中，修改 prefab 的合并成本也非常高了；另外对于已经使用自定义材质的组件来说也很不方便。</p>
+<p><strong>2. 方案 2</strong></p>
+<p>直接修改 Sprite 的 RenderData，让其关联的 texture，alphaTexture 等信息直接在打包时被正确打入包内。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134808zma0nonsmywdw702.jpg" class="" title="img">
+
+
+<p>这样做的好处就是不需要去修改组件了，只要整个打包流程定制化好以后就能够一劳永逸了。而对于大多数商业项目来说，定制打包流程基本是必须的，所以这个也就不算是什么问题了。</p>
+<p><strong>实现细节</strong></p>
+<p>首先说明一下，本方案在 2017.4 测试通过，其中打图集是采用已经废弃的 Sprite Packer 的方式，至于 Sprite Atlas 的方式，我没有研究过，但我觉得应该都可以实现，只是可能要改变不少流程。</p>
+<p>下面说明一下具体实现，在打包之前大致流程如下：</p>
+<blockquote>
+<p>&#x2F;&#x2F; 刷新图集缓存<br>UpdateAtlases(buildTarget);</p>
+<p>&#x2F;&#x2F; 找到所有要处理的项<br>FindAllEntries(buildTarget, m_spriteEntries, m_atlasEntries);</p>
+<p>&#x2F;&#x2F; 生成 alpha 纹理<br>GenerateAlphaTextures(m_atlasEntries);</p>
+<p>&#x2F;&#x2F; 保存纹理到文件<br>SaveTextureAssets(m_atlasEntries);</p>
+<p>&#x2F;&#x2F; 刷新资源<br>AssetDatabase.Refresh();</p>
+<p>&#x2F;&#x2F; 从文件中加载 alpha 纹理<br>ReloadTextures(m_atlasEntries);</p>
+<p>&#x2F;&#x2F; 修改所有 sprite 的 Render Data<br>WriteSpritesRenderData(m_atlasEntries);</p>
+<p>&#x2F;&#x2F; 禁用 SpritePacker 准备打包<br>EditorSettings.spritePackerMode &#x3D; SpritePackerMode.Disabled;</p>
+</blockquote>
+<p>大致解释一下上面的流程：</p>
+<ul>
+<li>UpdateAtlases：强制刷新图集缓存（需要分离 alpha 通道的图集要修改其压缩格式为去掉 A 通道的）</li>
+<li>FindAllEntries：找到所有的 sprite，检查其 PackingTag，分类整理所有 sprite 和图集的信息</li>
+<li>GenerateAlphaTextures&#x2F;SaveTextureAssets：根据图集的信息绘制 alpha 通道的纹理并保存文件</li>
+<li>AssetDatabase.Refresh()：实践中如果不重新刷新的话，可能导致某个贴图无法找到</li>
+<li>ReloadTextures：从文件加载纹理，作为写入 RenderData 的数据</li>
+<li>WriteSpritesRenderData：最重要的一步，将 texture，alphaTexture 等信息写入 Sprite 的 RenderData</li>
+</ul>
+<p>最后，在打包前，禁用 SpritePacker，避免其在打包时重写打了图集并覆写了 Sprite 的 RenderData</p>
+<p>其中，关于生成 Alpha 通道贴图，需要注意的是使用图集中的散图位置等信息，将压缩前的顶点信息直接渲染到贴图上，这样透明通道贴图就不会受到压缩的影响。</p>
+<blockquote>
+<p>&#x2F;&#x2F; 临时渲染贴图<br>var rt &#x3D; RenderTexture.GetTemporary(texWidth, texHeight,<br>0, RenderTextureFormat.ARGB32);<br>Graphics.SetRenderTarget(rt);<br>GL.Clear(true, true, Color.clear);<br>GL.PushMatrix();<br>GL.LoadOrtho();</p>
+<p>foreach (var spriteEntry in atlasEntry.SpriteEntries)<br>{<br>  var sprite &#x3D; spriteEntry.Sprite;<br>  var uvs &#x3D; spriteEntry.Uvs;<br>  var atlasUvs &#x3D; spriteEntry.AtlasUvs;</p>
+<p>  &#x2F;&#x2F; 将压缩前 sprite 的顶点信息渲染到临时贴图上<br>  mat.mainTexture &#x3D; spriteEntry.Texture;<br>  mat.SetPass(0);<br>  GL.Begin(GL.TRIANGLES);<br>  var triangles &#x3D; sprite.triangles;<br>  foreach (var index in triangles)<br>  {<br>     GL.TexCoord(uvs[index]);<br>     GL.Vertex(atlasUvs[index]);<br>  }</p>
+<p>  GL.End();<br>}</p>
+<p>GL.PopMatrix();</p>
+<p>&#x2F;&#x2F; 最终的 alpha 贴图<br>var finalTex &#x3D; new Texture2D(texWidth, texHeight, TextureFormat.RGBA32, false);<br>finalTex.ReadPixels(new Rect(0, 0, texWidth, texHeight), 0, 0);</p>
+<p>&#x2F;&#x2F; 修改颜色<br>var colors &#x3D; finalTex.GetPixels32();<br>var count &#x3D; colors.Length;<br>var newColors &#x3D; new Color32[count];<br>for (var i &#x3D; 0; i &lt; count; ++i)<br>{<br>  var a &#x3D; colors.a;<br>  newColors &#x3D; new Color32(a, a, a, 255);<br>}</p>
+<p>finalTex.SetPixels32(newColors);<br>finalTex.Apply();</p>
+<p>RenderTexture.ReleaseTemporary(rt);</p>
+</blockquote>
+<p>在将透明通道贴图写文件有一点需要注意的是：由于可能打的图集会产生多个 Page，这些 Page 的贴图名都是相同的，如果直接保存可能造成错误覆盖，所以需要使用一个值来区分不同 Page，这里我们使用了 Texture 的 hash code。</p>
+<blockquote>
+<p>&#x2F;&#x2F; 支持多 page 图集<br>var hashCode &#x3D; atlasEntry.Texture.GetHashCode();</p>
+<p>&#x2F;&#x2F; 导出 alpha 纹理<br>if (atlasEntry.NeedSeparateAlpha)<br>{<br>  var fileName &#x3D; atlasEntry.Name + “_” + hashCode + “_alpha.png”;<br>  var filePath &#x3D; Path.Combine(path, fileName);<br>  File.WriteAllBytes(filePath, atlasEntry.AlphaTexture.EncodeToPNG());<br>  atlasEntry.AlphaTextureAssetPath &#x3D; Path.Combine(assetPath, fileName);<br>}</p>
+</blockquote>
+<p>接下来再说明一下最重要的写 SpriteRenderData 部分。</p>
+<blockquote>
+<p>var spr &#x3D; spriteEntry.Sprite;<br>var so &#x3D; new SerializedObject(spr);</p>
+<p>&#x2F;&#x2F; 获取散图属性<br>var rect &#x3D; so.FindProperty(“m_Rect”).rectValue;<br>var pivot &#x3D; so.FindProperty(“m_Pivot”).vector2Value;<br>var pixelsToUnits &#x3D; so.FindProperty(“m_PixelsToUnits”).floatValue;<br>var tightRect &#x3D; so.FindProperty(“m_RD.textureRect”).rectValue;<br>var originSettingsRaw &#x3D; so.FindProperty(“m_RD.settingsRaw”).intValue;</p>
+<p>&#x2F;&#x2F; 散图(tight)在散图(full rect)中的位置和宽高<br>var tightOffset &#x3D; new Vector2(tightRect.x, tightRect.y);<br>var tightWidth &#x3D; tightRect.width;<br>var tightHeight &#x3D; tightRect.height;</p>
+<p>&#x2F;&#x2F; 计算散图(full rect)在图集中的 rect 和 offset<br>var fullRectInAtlas &#x3D; GetTextureFullRectInAtlas(atlasTexture,<br>  spriteEntry.Uvs, spriteEntry.AtlasUvs);<br>var fullRectOffsetInAtlas &#x3D; new Vector2(fullRectInAtlas.x, fullRectInAtlas.y);</p>
+<p>&#x2F;&#x2F; 计算散图(tight)在图集中的 rect<br>var tightRectInAtlas &#x3D; new Rect(fullRectInAtlas.x + tightOffset.x,<br>  fullRectInAtlas.y + tightOffset.y, tightWidth, tightHeight);</p>
+<p>&#x2F;&#x2F; 计算 uvTransform<br>&#x2F;&#x2F; x: Pixels To Unit X<br>&#x2F;&#x2F; y: 中心点在图集中的位置 X<br>&#x2F;&#x2F; z: Pixels To Unit Y<br>&#x2F;&#x2F; w: 中心点在图集中的位置 Y<br>var uvTransform &#x3D; new Vector4(<br>  pixelsToUnits,<br>  rect.width * pivot.x + fullRectOffsetInAtlas.x,<br>  pixelsToUnits,<br>  rect.height * pivot.y + fullRectOffsetInAtlas.y);</p>
+<p>&#x2F;&#x2F; 计算 settings<br>&#x2F;&#x2F; 0 位：packed。1 表示 packed，0 表示不 packed<br>&#x2F;&#x2F; 1 位：SpritePackingMode。0 表示 tight，1 表示 rectangle<br>&#x2F;&#x2F; 2-5 位：SpritePackingRotation。0 表示不旋转，1 表示水平翻转，2 表示竖直翻转，3 表示 180 度旋转，4 表示 90 度旋转<br>&#x2F;&#x2F; 6 位：SpriteMeshType。0 表示 full rect，1 表示 tight<br>&#x2F;&#x2F; 67 &#x3D; SpriteMeshType(tight) + SpritePackingMode(rectangle) + packed<br>var settingsRaw &#x3D; 67;</p>
+<p>&#x2F;&#x2F; 写入 RenderData<br>so.FindProperty(“m_RD.texture”).objectReferenceValue &#x3D; atlasTexture;<br>so.FindProperty(“m_RD.alphaTexture”).objectReferenceValue &#x3D; alphaTexture;<br>so.FindProperty(“m_RD.textureRect”).rectValue &#x3D; tightRectInAtlas;<br>so.FindProperty(“m_RD.textureRectOffset”).vector2Value &#x3D; tightOffset;<br>so.FindProperty(“m_RD.atlasRectOffset”).vector2Value &#x3D; fullRectOffsetInAtlas;<br>so.FindProperty(“m_RD.settingsRaw”).intValue &#x3D; settingsRaw;<br>so.FindProperty(“m_RD.uvTransform”).vector4Value &#x3D; uvTransform;<br>so.ApplyModifiedProperties();</p>
+<p>&#x2F;&#x2F; 备份原数据，用于恢复<br>spriteEntry.OriginTextureRect &#x3D; tightRect;<br>spriteEntry.OriginSettingsRaw &#x3D; originSettingsRaw;</p>
+</blockquote>
+<p>需要修改的部分的含义，这里面的注释已经写的很清楚了，简单看一下能够大致理解。其中还有几个概念需要说明一下：</p>
+<p>在 Sprite 的导入设置中，会被要求设置 MeshType，默认的是 Tight，其效果会基于 alpha 尽可能多的裁剪像素，而 Full Rect 则表示会使用和图片纹理大小一样的矩形。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134808lbbuzuc54a6bezgb.jpg" class="" title="img">
+
+
+<p>这两个选项在达成图集时，如果你的散图周围的 alpha 部分比较多，使用 full rect 时就会看到图片分的很开，而使用 tight，表现出来的样子就会很紧凑，效果为下面几张图：</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134809trerj60bbbbmhjrh.jpg" class="" title="img">
+
+
+<p>上面这个散图原图，可以看到周围透明部分较多</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134812zo7566c1tvavv4jo.jpg" class="" title="img">
+
+
+<p>上面这个是使用 Tight 的 mesh type 打成的图集，可以看到中间的间隔较少</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134814pydb77z36ggjc814.jpg" class="" title="img">
+
+
+<p>上面这个是使用 full rect 的 mesh type 打成的图集，可以看到中间的间隔较大。</p>
+<p>一般我们会使用 Tight，那么我在上面代码中就需要对 tight 相关的一些数值做计算，具体如何计算直接看代码吗，应该不难理解。</p>
+<p>其中还有一个获取计算散图（full rect）在图集中的 rect 的方法 GetTextureFullRectInAtlas，代码如下：</p>
+<blockquote>
+<p>private static Rect GetTextureFullRectInAtlas(Texture2D atlasTexture, Vector2[] uvs, Vector2[] atlasUvs)<br>{<br>  var textureRect &#x3D; new Rect();</p>
+<p>  &#x2F;&#x2F; 找到某一个 x&#x2F;y 都不相等的点<br>  var index &#x3D; 0;<br>  var count &#x3D; uvs.Length;<br>  for (var i &#x3D; 1; i &lt; count; i++)<br>  {<br>     if (Math.Abs(uvs.x - uvs[0].x) &gt; 1E-06 &amp;&amp;<br>        Math.Abs(uvs.y - uvs[0].y) &gt; 1E-06)<br>     {<br>        index &#x3D; i;<br>        break;<br>     }<br>  }</p>
+<p>  &#x2F;&#x2F; 计算散图在大图中的 texture rect<br>  var atlasWidth &#x3D; atlasTexture.width;<br>  var atlasHeight &#x3D; atlasTexture.height;<br>  textureRect.width &#x3D; (atlasUvs[0].x - atlasUvs[index].x) &#x2F; (uvs[0].x - uvs[index].x) * atlasWidth;<br>  textureRect.height &#x3D; (atlasUvs[0].y - atlasUvs[index].y) &#x2F; (uvs[0].y - uvs[index].y) * atlasHeight;<br>  textureRect.x &#x3D; atlasUvs[0].x * atlasWidth - textureRect.width * uvs[0].x;<br>  textureRect.y &#x3D; atlasUvs[0].y * atlasHeight - textureRect.height * uvs[0].y;</p>
+<p>  return textureRect;<br>}</p>
+</blockquote>
+<p>最后，需要在自定义打图集规则，并在判断需要分离 alpha 通道的贴图，修改其对应压缩格式，如 RGBA ETC2 改 RGB ETC，RGBA PVRTC 改 RGB PVRTC。这样做是为了打图集生成一份不透明贴图的原图。大致代码如下：</p>
+<blockquote>
+<p>&#x2F;&#x2F; 需要分离 alpha 通道的情况<br>if (TextureUtility.IsTransparent(settings.format))<br>{<br>  settings.format &#x3D; TextureUtility.TransparentToNoTransparentFormat(settings.format);<br>}</p>
+</blockquote>
+<p>至于如何自定义打图集的规则，可以参考官方文档：<a target="_blank" rel="noopener" href="https://docs.unity3d.com/Manual/SpritePacker.html">https://docs.unity3d.com/Manual/SpritePacker.html</a></p>
+<p><strong>一些补充</strong></p>
+<p><strong>1. 在手机上 UI.Image 显示的贴图为丢失材质的样子</strong></p>
+<p>原因在于 Image 组件使用这套方案时，使用了一个内置的 shader：DefaultETC1，需要在 Editor -&gt; Project Settings -&gt; Graphics 中将其加入到 Always Included Shaders 中去。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134815f1ozadf0axdg3hd5.jpg" class="" title="img">
+
+
+<p><strong>2. 分离 alpha 通道的贴图的 sprite 资源打入包内的形式</strong></p>
+<p>通过 AssetStudio 工具看到，下图是没有分离 alpha 通道的散图的情况，可以看到每一个 Sprite 引用了一张 Texture2D</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134818q3mf20jj01x2z3jx.jpg" class="" title="img">
+
+
+<p>下图是分离了 Alpha 通道的图集的情况，可以看到，这个 AssetBundle 包中只有数个 Sprite，以及 2 张 Texture2D（非透明贴图和透明通道贴图）。</p>
+<p><em><img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134819qf4fmtf6flsm41qf.jpg" class="" title="img"></em></p>
+<p><strong>3. 如何知道需要修改 Sprite 的哪些 Render Data</strong></p>
+<p>在实践尝试的过程中，通过 UABE 工具来比较不分离 alpha 通道和分离 alpha 通道的两种情况下 Sprite 内的 Render Data 的不同，来确定需要修改哪些数据来达到目的。</p>
+<p>从下图可以看出（左边是正常图集的数据，右边是我尝试模拟写入 RenderData 的错误数据），m_RD 中的 texture，alphaTexture，textureRect，textureRectOffset，settingsRaw，uvTransform 这些字段都需要修改。因为我无法接触到源码，所以其中一些值的算法则是通过分析猜测验证得出的。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134824k80op0arpyy7rafp.jpg" class="" title="img">
+
+
+<p><strong>4. m_RD.settingsRaw 的值的意义是什么</strong></p>
+<p>从 AssetStudio 源码中可以找到 settingsRaw 的一部分定义：</p>
+<ul>
+<li>0 位：packed。1 表示 packed，0 表示不 packed</li>
+<li>1 位：SpritePackingMode。0 表示 tight，1 表示 rectangle</li>
+<li>2-5 位：SpritePackingRotation。0 表示不旋转，1 表示水平翻转，2 表示竖直翻转，3 表示 180 度旋转，4 表示 90 度旋转</li>
+<li>6 位：SpriteMeshType。0 表示 full rect，1 表示 tight</li>
+</ul>
+<p>其中正常生成的图集的值 67，表示 SpriteMeshType(tight) + SpritePackingMode(rectangle) + packed。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134828rwhczh91ff9vj1ch.jpg" class="" title="img">
+
+
+<p><strong>5. 在 Unity 2017 测试通过，其他版本可以通过吗</strong></p>
+<p>并不确定。通过查看 AssetStudio 源码，可以看到序列化后有许多跟 Unity 版本相关的不同处理（下图），如果在不同版本出现问题，可以通过上面对比打好的 AssetBundle 包的 Sprite 的 RenderData 的方式来排查是否需要填写其他数据。</p>
+<img src="/2020/08/14/Unity%E5%88%86%E7%A6%BB%E8%B4%B4%E5%9B%BEalpha%E9%80%9A%E9%81%93/134829q616hauaxlyy3a06.jpg" class="" title="img">
+
+
+<p><strong>延伸思考</strong></p>
+<p>如果我们把一开始刷新图集缓存的操作更换成 TexturePacker 的话，是否可以使用 TexturePacker 中的一些特性来为图集做优化和定制呢？这是可能的，但是这也不是简单就能做到的东西，还是很繁琐的，不过的确是一个不错的思路，有需要的同学可以研究一下。</p>
+<p><strong>参考资料</strong></p>
+<p><strong>IOS 下拆分 Unity 图集的透明通道（不用 TP）：</strong><br><strong><a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/32674470">https://zhuanlan.zhihu.com/p/32674470</a></strong></p>
+<p><strong>[2018.1] Unity 贴图压缩格式设置：****<a target="_blank" rel="noopener" href="https://zhuanlan.zhihu.com/p/113366420">https://zhuanlan.zhihu.com/p/113366420</a></strong></p>
+<p><strong>(Legacy) Sprite Packer：</strong><br><strong><a target="_blank" rel="noopener" href="https://docs.unity3d.com/Manual/SpritePacker.html">https://docs.unity3d.com/Manual/SpritePacker.html</a></strong></p>
+<p><strong>文中提到的工具：</strong></p>
+<p><strong>AssetStudio，一个可以轻松查看 AssetBundle 内容的工具：</strong><br><strong><a target="_blank" rel="noopener" href="https://github.com/Perfare/AssetStudio">https://github.com/Perfare/AssetStudio</a></strong></p>
+<p><strong>UABE，可以解包&#x2F;打包 AssetBundle，并查看其中详细数据的工具：</strong><br><strong><a target="_blank" rel="noopener" href="https://github.com/DerPopo/UABE">https://github.com/DerPopo/UABE</a></strong></p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/08/08/%E5%9F%BA%E4%BA%8EGPU-Instance%E7%9A%84%E8%8D%89%E5%9C%B0%E6%B8%B2%E6%9F%93%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0/" rel="prev" title="基于GPU Instance的草地渲染学习笔记">
+                  <i class="fa fa-angle-left"></i> 基于GPU Instance的草地渲染学习笔记
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/09/01/%E8%B5%84%E6%BA%90%E5%8A%A0%E8%BD%BD/" rel="next" title="资源加载">
+                  资源加载 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

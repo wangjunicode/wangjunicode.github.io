@@ -1,0 +1,667 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="在聊ulua、tolua之前，我们先来看看Unity热更新相关知识。">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于uLua-原理解析">
+<meta property="og:url" content="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="在聊ulua、tolua之前，我们先来看看Unity热更新相关知识。">
+<meta property="og:locale" content="en_US">
+<meta property="og:image" content="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/lua%E8%99%9A%E6%8B%9F%E6%A0%88.png">
+<meta property="og:image" content="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/lua%E8%99%9A%E6%8B%9F%E6%A0%88%E5%85%A5%E6%A0%88.png">
+<meta property="og:image" content="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/PInvoke%E6%80%A7%E8%83%BD.png">
+<meta property="article:published_time" content="2019-06-08T12:51:15.000Z">
+<meta property="article:modified_time" content="2023-09-10T13:01:30.273Z">
+<meta property="article:author" content="汪俊">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:image" content="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/lua%E8%99%9A%E6%8B%9F%E6%A0%88.png">
+
+
+<link rel="canonical" href="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/","path":"2019/06/08/关于uLua-原理解析/","title":"关于uLua-原理解析"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>关于uLua-原理解析 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%BB%80%E4%B9%88%E6%98%AF%E7%83%AD%E6%9B%B4%E6%96%B0"><span class="nav-number">1.</span> <span class="nav-text">什么是热更新</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#%E4%B8%BA%E4%BB%80%E4%B9%88%E8%A6%81%E7%94%A8lua%E5%81%9A%E7%83%AD%E6%9B%B4%E6%96%B0"><span class="nav-number">2.</span> <span class="nav-text">为什么要用lua做热更新</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lua%E7%83%AD%E6%9B%B4%E6%8A%80%E6%9C%AF"><span class="nav-number">3.</span> <span class="nav-text">lua热更技术</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lua%E7%83%AD%E6%9B%B4%E6%96%B0%E6%B5%81%E7%A8%8B"><span class="nav-number">4.</span> <span class="nav-text">lua热更新流程</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%9F%E7%90%86"><span class="nav-number">4.1.</span> <span class="nav-text">原理</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B5%81%E7%A8%8B"><span class="nav-number">4.2.</span> <span class="nav-text">流程</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ulua-tolua%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90"><span class="nav-number"></span> <span class="nav-text">ulua&amp;tolua原理解析</span></a><ol class="nav-child"><li class="nav-item nav-level-2"><a class="nav-link" href="#C-%E8%B0%83%E7%94%A8lua"><span class="nav-number">1.</span> <span class="nav-text">C#调用lua</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#lua%E8%B0%83%E7%94%A8C"><span class="nav-number">2.</span> <span class="nav-text">lua调用C#</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8F%8D%E5%B0%84"><span class="nav-number">2.1.</span> <span class="nav-text">反射</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%8E%BB%E5%8F%8D%E5%B0%84"><span class="nav-number">2.2.</span> <span class="nav-text">去反射</span></a></li></ol></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-%E4%B8%8ELua%E6%95%B0%E6%8D%AE%E4%BA%A4%E4%BA%92%EF%BC%88lua%E8%99%9A%E6%8B%9F%E6%A0%88%EF%BC%89"><span class="nav-number">3.</span> <span class="nav-text">C#与Lua数据交互（lua虚拟栈）</span></a></li><li class="nav-item nav-level-2"><a class="nav-link" href="#C-%E4%B8%8ELua%E9%80%9A%E4%BF%A1%EF%BC%88P-Invoke%EF%BC%89"><span class="nav-number">4.</span> <span class="nav-text">C#与Lua通信（P&#x2F;Invoke）</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#%E4%B8%BA%E5%95%A5P-Invoke%E7%9C%8B%E8%B5%B7%E6%9D%A5%E8%BF%99%E4%B9%88%E6%85%A2%EF%BC%9F"><span class="nav-number">4.1.</span> <span class="nav-text">为啥P&#x2F;Invoke看起来这么慢？</span></a></li></ol></li></ol></li><li class="nav-item nav-level-1"><a class="nav-link" href="#ulua%E7%9A%84%E4%BC%98%E5%8C%96%E6%96%B9%E5%BC%8F%E6%B1%87%E6%80%BB"><span class="nav-number"></span> <span class="nav-text">ulua的优化方式汇总</span></a></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="关于uLua-原理解析 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          关于uLua-原理解析
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2019-06-08 20:51:15" itemprop="dateCreated datePublished" datetime="2019-06-08T20:51:15+08:00">2019-06-08</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>在聊ulua、tolua之前，我们先来看看Unity热更新相关知识。</p>
+<span id="more"></span>
+
+<h2 id="什么是热更新"><a href="#什么是热更新" class="headerlink" title="什么是热更新"></a>什么是热更新</h2><p>举例来说： 游戏上线后，玩家下载第一个版本（70M左右或者更大） ，在运营的过程中，如果需要更换UI显示，或者修改游戏的逻辑，这个时候，如果不使用热更新，就需要重新打包，然后让玩家重新下载（浪费流量和时间，体验不好）。 热更新可以在不重新下载客户端的情况下，更新游戏的内容。 热更新一般应用在手机网游上。</p>
+<h2 id="为什么要用lua做热更新"><a href="#为什么要用lua做热更新" class="headerlink" title="为什么要用lua做热更新"></a>为什么要用lua做热更新</h2><p>其实C#本身的反射机制可以实现热更新，但是在ios平台上：</p>
+<figure class="highlight vbnet"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">System.Reflection.<span class="keyword">Assembly</span>.Load</span><br><span class="line">System.Reflection.Emit</span><br><span class="line">System.CodeDom.Compiler</span><br></pre></td></tr></table></figure>
+
+<p>无法使用，而动态载入dll或者cs的方法就这几个，因此在ios下不能动态载入dll或者cs文件（已经编译进去的没事），就把传统dotnet动态路径封死了。</p>
+<p>所以，只能通过把lua脚本打进ab包，玩家通过解压ab包来更新游戏逻辑和游戏界面。</p>
+<h2 id="lua热更技术"><a href="#lua热更技术" class="headerlink" title="lua热更技术"></a>lua热更技术</h2><ul>
+<li>ulua &amp; tolua</li>
+<li>xlua</li>
+<li>slua</li>
+<li>…</li>
+</ul>
+<h2 id="lua热更新流程"><a href="#lua热更新流程" class="headerlink" title="lua热更新流程"></a>lua热更新流程</h2><h3 id="原理"><a href="#原理" class="headerlink" title="原理"></a>原理</h3><p>使用assetbundle进行资源的更新，而由于lua运行时才编译的特性，所以lua文件也可以被看成是一种资源文件（与fbx、Image等一样）可以打进ab包中。</p>
+<h3 id="流程"><a href="#流程" class="headerlink" title="流程"></a>流程</h3><ol>
+<li>对比files清单文件</li>
+<li>更新文件</li>
+<li>解压AB包中的资源</li>
+<li>初始化</li>
+</ol>
+<p>游戏运行时从服务器下载files.txt清单文件,与本地的files.txt清单文件进行对比。如果新下载的files里面的md5值与本地files的md5值不一样,或者本地清单里根本没有这个文件就从服务器下载这个ab包到PersistentDataPath文件夹(可读写)中。下载完毕后解开AB包中的资源,然后完成初始化。</p>
+<h1 id="ulua-tolua原理解析"><a href="#ulua-tolua原理解析" class="headerlink" title="ulua&amp;tolua原理解析"></a>ulua&amp;tolua原理解析</h1><p>既然使用了lua作为热更脚本，那肯定避免不了lua和C#之间的交互。</p>
+<h2 id="C-调用lua"><a href="#C-调用lua" class="headerlink" title="C#调用lua"></a>C#调用lua</h2><p>C#调用lua的原理是lua的虚拟机，具体步骤可参见<a target="_blank" rel="noopener" href="http://richbabe.top/2018/07/07/tolua%E6%A1%86%E6%9E%B6Example%E6%A0%B7%E4%BE%8B%E5%AD%A6%E4%B9%A0%E7%AC%94%E8%AE%B0-1/">我的博客</a></p>
+<p>也可以看看简单的示例：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">private</span> <span class="built_in">string</span> script = <span class="string">@&quot;</span></span><br><span class="line"><span class="string">            function luaFunc(message)</span></span><br><span class="line"><span class="string">                print(message)</span></span><br><span class="line"><span class="string">                return 42</span></span><br><span class="line"><span class="string">            end</span></span><br><span class="line"><span class="string">        &quot;</span>;</span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Start</span> ()</span> &#123;</span><br><span class="line">        LuaState l = <span class="keyword">new</span> LuaState();</span><br><span class="line">        l.DoString(script);</span><br><span class="line">        LuaFunction f = l.GetFunction(<span class="string">&quot;luaFunc&quot;</span>);</span><br><span class="line">        <span class="built_in">object</span>[] r = f.Call(<span class="string">&quot;I called a lua function!&quot;</span>);</span><br><span class="line">        print(r[<span class="number">0</span>]);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<h2 id="lua调用C"><a href="#lua调用C" class="headerlink" title="lua调用C#"></a>lua调用C#</h2><h3 id="反射"><a href="#反射" class="headerlink" title="反射"></a>反射</h3><p>旧版本的ulua中lua调用C#是基于C#的反射。</p>
+<p>C#中的反射使用Assembly定义和加载程序集，加载在程序集清单中列出模块，以及从此程序集中查找类型并创建该类型的实例。</p>
+<p>反射用到的命名空间：</p>
+<figure class="highlight python"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">System.Reflection</span><br><span class="line">System.<span class="type">Type</span></span><br><span class="line">System.Reflection.Assembly</span><br></pre></td></tr></table></figure>
+
+<p>反射用到的主要类：</p>
+<ul>
+<li>System.Type 类－通过这个类可以访问任何给定数据类型的信息。</li>
+<li>System.Reflection.Assembly类－它可以用于访问给定程序集的信息，或者把这个程序集加载到程序中。</li>
+</ul>
+<p>ulua反射调用C#示例：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br></pre></td><td class="code"><pre><span class="line"> <span class="keyword">private</span> <span class="built_in">string</span> script = <span class="string">@&quot;</span></span><br><span class="line"><span class="string">            luanet.load_assembly(&#x27;UnityEngine&#x27;) </span></span><br><span class="line"><span class="string">            luanet.load_assembly(&#x27;Assembly-CSharp&#x27;)</span></span><br><span class="line"><span class="string">           GameObject = luanet.import_type(&#x27;UnityEngine.GameObject&#x27;)        </span></span><br><span class="line"><span class="string">           ParticleSystem = luanet.import_type(&#x27;UnityEngine.ParticleSystem&#x27;)         </span></span><br><span class="line"><span class="string">   </span></span><br><span class="line"><span class="string">            local newGameObj = GameObject(&#x27;NewObj&#x27;)</span></span><br><span class="line"><span class="string">            newGameObj:AddComponent(luanet.ctype(ParticleSystem))</span></span><br><span class="line"><span class="string">        &quot;</span>;</span><br><span class="line"></span><br><span class="line"><span class="comment">//反射调用</span></span><br><span class="line"><span class="function"><span class="keyword">void</span> <span class="title">Start</span> ()</span> &#123;</span><br><span class="line">        	LuaState lua = <span class="keyword">new</span> LuaState();</span><br><span class="line">        	lua.DoString(script);</span><br><span class="line">        &#125;</span><br></pre></td></tr></table></figure>
+
+<p>可看到通过反射（System.Reflection.Assembly）把UnityEngine程序集加入到lua代码中，通过反射（System.Type）把Unity.GameObject和Unity.ParticleSystem类型加入到lua代码中，这样我们便可以在lua中像在C#里一样调用Unity定义的类。</p>
+<h3 id="去反射"><a href="#去反射" class="headerlink" title="去反射"></a>去反射</h3><p>现版本的ulua（tolua）中lua调用C#是基于去反射。</p>
+<p>去反射的意思是：</p>
+<p>把所有的c#类的public成员变量、成员函数，都导出到一个相对应的Wrap类中，而这些成员函数通过特殊的标记，映射到lua的虚拟机中，当在lua中调用相对应的函数时候，直接调用映射进去的c# wrap函数，然后再调用到实际的c#类，完成调用过程。</p>
+<p>具体调用过程可参考： <a target="_blank" rel="noopener" href="https://blog.csdn.net/pengdongwei/article/details/50420612">Unity3d ulua c#与lua交互+wrap文件理解</a></p>
+<p>因为反射在效率上存在不足，所以通过wrap来提升性能。但是因为wrap需要自己去wrap，所以在大版本更新是可以用到的，小版本更新还是使用反射。</p>
+<h2 id="C-与Lua数据交互（lua虚拟栈）"><a href="#C-与Lua数据交互（lua虚拟栈）" class="headerlink" title="C#与Lua数据交互（lua虚拟栈）"></a>C#与Lua数据交互（lua虚拟栈）</h2><p>C#与lua的数据交互是基于一个Lua先进后出的虚拟栈：<img src="/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/lua%E8%99%9A%E6%8B%9F%E6%A0%88.png" class="" title="image"></p>
+<p>（1）若Lua虚拟机堆栈里有N个元素，则可以用 1 ~ N 从栈底向上索引，也可以用 -1 ~ -N 从栈顶向下索引，一般后者更加常用。</p>
+<p>（2）堆栈的每个元素可以为任意复杂的Lua数据类型（包括table、function等），堆栈中没有元素的空位，隐含为包含一个“空”类型数据</p>
+<p>（3）TValue stack[max_stack_len] &#x2F;&#x2F; 定义在 lstate.c 的stack_init函数</p>
+<p>关于Lua虚拟栈入栈的具体操作做可以见下图：<img src="/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/lua%E8%99%9A%E6%8B%9F%E6%A0%88%E5%85%A5%E6%A0%88.png" class="" title="image"></p>
+<p>更详细的可见： <a target="_blank" rel="noopener" href="https://blog.csdn.net/zhuzhuyule/article/details/41086745">Lua初学者（四）–Lua调用原理展示（lua的堆栈）</a></p>
+<h2 id="C-与Lua通信（P-Invoke）"><a href="#C-与Lua通信（P-Invoke）" class="headerlink" title="C#与Lua通信（P&#x2F;Invoke）"></a>C#与Lua通信（P&#x2F;Invoke）</h2><ul>
+<li>所有的通信都是基于P&#x2F;Invoke模式（性能低）类似JNI</li>
+<li>P&#x2F;Invoke：公共语言运行库（CLR）的interop功能（称为平台调用（P&#x2F;Invoke））</li>
+<li>命名空间：System.Runtime.InteropServices</li>
+</ul>
+<p>示例：</p>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">[<span class="meta">DllImport(LUADLL, CallingConvention = CallingConvention.Cdecl)</span>]</span><br><span class="line"><span class="function"><span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">extern</span> IntPtr <span class="title">luaL_newstate</span>()</span>;</span><br></pre></td></tr></table></figure>
+
+<p>P&#x2F;Invoke 要求方法被声明为 static。</p>
+<p>P&#x2F;Invoke性能：<img src="/2019/06/08/%E5%85%B3%E4%BA%8EuLua-%E5%8E%9F%E7%90%86%E8%A7%A3%E6%9E%90/PInvoke%E6%80%A7%E8%83%BD.png" class="" title="image"></p>
+<h3 id="为啥P-Invoke看起来这么慢？"><a href="#为啥P-Invoke看起来这么慢？" class="headerlink" title="为啥P&#x2F;Invoke看起来这么慢？"></a>为啥P&#x2F;Invoke看起来这么慢？</h3><p>（1）寻址方式：调用时指定了CharSet&#x3D;CharSet.Ansi 那么CLR首先在非托管的DLL中寻找，若找不到，就用带A后缀的函数进行搜索造成开销，可将ExactSpelling的值设为true防止CLR通过修改入口名称进行搜索。</p>
+<p>（2）类型转换：在Managed Code和Native Code间传递参数和返回值的过程成为marshalling。托管函数每次调用非托管函数时，都要求执行以下几项操作：</p>
+<ul>
+<li>将函数调用参数从CLR封送到本机类型。</li>
+<li>执行托管到非托管形式转换。</li>
+<li>调用非托管函数（使用参数的本机版本）</li>
+<li>Interop在进行封送时候，对bittable可以不进行拷贝，而是直接内存锚定。</li>
+<li>将返回类型及任何“out”或“in,out”参数从本机类型封送到 CLR 类型。</li>
+</ul>
+<p>（3）VC++ 提供自己的互操作性支持，这称为 C++ Interop。 C++ Interop 优于 P&#x2F;Invoke，因为 P&#x2F;Invoke 不具有类型安全性，参数传递还需要做类型检查。</p>
+<p>Bittable类型（byte,int,uint）与非Bittable类型（char, boolean,array,class）</p>
+<p>参考书： NET互操作 P_Invoke，C++Interop和COM Interop.pdf</p>
+<h1 id="ulua的优化方式汇总"><a href="#ulua的优化方式汇总" class="headerlink" title="ulua的优化方式汇总"></a>ulua的优化方式汇总</h1><ul>
+<li>BinderLua太多wrap很慢（反射与去反射共存）</li>
+<li>Lua代码打入AssetBundle为了绕过苹果检测</li>
+<li>动态注册Wrap文件到Lua虚拟机（tolua延伸）</li>
+<li>ToLuaExport. memberFilter的函数过滤</li>
+<li>尽量减少c#调用lua的次数来做主题优化思想</li>
+<li>尽量使用lua中的容器table取代c#中的所有容器</li>
+<li>例子CallLuaFunction_02里附带了no gc alloc调用方式</li>
+<li>Lua的bytecode模式性能要低于Lua源码执行</li>
+<li>取消动态参数：打开LuaFunction.cs文件，找到函数声明：</li>
+</ul>
+<figure class="highlight csharp"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="function"><span class="keyword">public</span> <span class="built_in">object</span>[] <span class="title">Call</span>(<span class="params"><span class="keyword">params</span> <span class="built_in">object</span>[] args</span>)</span>&#123;</span><br><span class="line">    <span class="keyword">return</span> call(args, <span class="literal">null</span>);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>取消动态参数args，可用较笨方法，就是定义6-7个默认参数，不够再加。</p>
+<ul>
+<li>安卓平台如果使用luajit的话，记得在lua最开始执行的地方请开启 jit.off()，性能会提升N倍。</li>
+<li>记得安卓平台上在加上jit.opt.start(3)，相当于c++程序-O3，可选范围0-3，性能还会提升。Luajit作者建议-O2</li>
+</ul>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2019/06/04/%E5%85%B3%E4%BA%8EuLua-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96/" rel="prev" title="关于uLua-性能优化">
+                  <i class="fa fa-angle-left"></i> 关于uLua-性能优化
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2019/06/12/%E5%85%B3%E4%BA%8EOpenGL-%E6%B8%B2%E6%9F%93%E7%AE%A1%E7%BA%BF/" rel="next" title="关于OpenGL-渲染管线">
+                  关于OpenGL-渲染管线 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>

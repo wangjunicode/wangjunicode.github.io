@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#222" media="(prefers-color-scheme: dark)"><meta name="generator" content="Hexo 6.3.0">
+
+  <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon-next.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/images/favicon-32x32-next.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/images/favicon-16x16-next.png">
+  <link rel="mask-icon" href="/images/logo.svg" color="#222">
+
+<link rel="stylesheet" href="/css/main.css">
+
+
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" integrity="sha256-HtsXJanqjKTc8vVQjO4YMhiqFoXkfBsjBWcX91T1jr8=" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/3.1.1/animate.min.css" integrity="sha256-PR7ttpcvz8qrF57fur/yAx1qXMFJeJFiA6pSzWi0OIE=" crossorigin="anonymous">
+
+<script class="next-config" data-name="main" type="application/json">{"hostname":"example.com","root":"/","images":"/images","scheme":"Gemini","darkmode":true,"version":"8.18.0","exturl":false,"sidebar":{"position":"left","display":"post","padding":18,"offset":12},"copycode":{"enable":false,"style":null},"fold":{"enable":false,"height":500},"bookmark":{"enable":false,"color":"#222","save":"auto"},"mediumzoom":false,"lazyload":false,"pangu":false,"comments":{"style":"tabs","active":null,"storage":true,"lazyload":false,"nav":null},"stickytabs":false,"motion":{"enable":true,"async":false,"transition":{"menu_item":"fadeInDown","post_block":"fadeIn","post_header":"fadeInDown","post_body":"fadeInDown","coll_header":"fadeInLeft","sidebar":"fadeInUp"}},"prism":false,"i18n":{"placeholder":"Searching...","empty":"We didn't find any results for the search: ${query}","hits_time":"${hits} results found in ${time} ms","hits":"${hits} results found"}}</script><script src="/js/config.js"></script>
+
+    <meta name="description" content="UGUI性能优化总结">
+<meta property="og:type" content="article">
+<meta property="og:title" content="关于UGUI-性能优化总结">
+<meta property="og:url" content="http://example.com/2020/04/19/%E5%85%B3%E4%BA%8EUGUI-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%80%BB%E7%BB%93/index.html">
+<meta property="og:site_name" content="相信一万小时定律">
+<meta property="og:description" content="UGUI性能优化总结">
+<meta property="og:locale" content="en_US">
+<meta property="article:published_time" content="2020-04-19T04:01:43.000Z">
+<meta property="article:modified_time" content="2023-09-11T04:08:10.439Z">
+<meta property="article:author" content="汪俊">
+<meta name="twitter:card" content="summary">
+
+
+<link rel="canonical" href="http://example.com/2020/04/19/%E5%85%B3%E4%BA%8EUGUI-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%80%BB%E7%BB%93/">
+
+
+
+<script class="next-config" data-name="page" type="application/json">{"sidebar":"","isHome":false,"isPost":true,"lang":"en","comments":true,"permalink":"http://example.com/2020/04/19/%E5%85%B3%E4%BA%8EUGUI-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%80%BB%E7%BB%93/","path":"2020/04/19/关于UGUI-性能优化总结/","title":"关于UGUI-性能优化总结"}</script>
+
+<script class="next-config" data-name="calendar" type="application/json">""</script>
+<title>关于UGUI-性能优化总结 | 相信一万小时定律</title>
+  
+
+
+
+
+
+
+
+
+  <noscript>
+    <link rel="stylesheet" href="/css/noscript.css">
+  </noscript>
+</head>
+
+<body itemscope itemtype="http://schema.org/WebPage" class="use-motion">
+  <div class="headband"></div>
+
+  <main class="main">
+    <div class="column">
+      <header class="header" itemscope itemtype="http://schema.org/WPHeader"><div class="site-brand-container">
+  <div class="site-nav-toggle">
+    <div class="toggle" aria-label="Toggle navigation bar" role="button">
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+        <span class="toggle-line"></span>
+    </div>
+  </div>
+
+  <div class="site-meta">
+
+    <a href="/" class="brand" rel="start">
+      <i class="logo-line"></i>
+      <p class="site-title">相信一万小时定律</p>
+      <i class="logo-line"></i>
+    </a>
+      <p class="site-subtitle" itemprop="description">Stay hungry. Stay foolish</p>
+  </div>
+
+  <div class="site-nav-right">
+    <div class="toggle popup-trigger" aria-label="Search" role="button">
+    </div>
+  </div>
+</div>
+
+
+
+<nav class="site-nav">
+  <ul class="main-menu menu"><li class="menu-item menu-item-首页"><a href="/" rel="section"><i class="fa fa-home fa-fw"></i>首页</a></li><li class="menu-item menu-item-关于"><a href="/about/" rel="section"><i class="fa fa-user fa-fw"></i>关于</a></li><li class="menu-item menu-item-标签"><a href="/tags/" rel="section"><i class="fa fa-tags fa-fw"></i>标签</a></li><li class="menu-item menu-item-分类"><a href="/categories/" rel="section"><i class="fa fa-th fa-fw"></i>分类</a></li><li class="menu-item menu-item-归档"><a href="/archives/" rel="section"><i class="fa fa-archive fa-fw"></i>归档</a></li>
+  </ul>
+</nav>
+
+
+
+
+</header>
+        
+  
+  <aside class="sidebar">
+
+    <div class="sidebar-inner sidebar-nav-active sidebar-toc-active">
+      <ul class="sidebar-nav">
+        <li class="sidebar-nav-toc">
+          Table of Contents
+        </li>
+        <li class="sidebar-nav-overview">
+          Overview
+        </li>
+      </ul>
+
+      <div class="sidebar-panel-container">
+        <!--noindex-->
+        <div class="post-toc-wrap sidebar-panel">
+            <div class="post-toc animated"><ol class="nav"><li class="nav-item nav-level-2"><a class="nav-link" href="#UGUI%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%80%BB%E7%BB%93"><span class="nav-number">1.</span> <span class="nav-text">UGUI性能优化总结</span></a><ol class="nav-child"><li class="nav-item nav-level-3"><a class="nav-link" href="#UGUI%E5%9F%BA%E7%A1%80"><span class="nav-number">1.1.</span> <span class="nav-text">UGUI基础</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E6%B8%B2%E6%9F%93%E7%BB%86%E8%8A%82"><span class="nav-number">1.2.</span> <span class="nav-text">渲染细节</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#Rebatch%E5%92%8CRebuild%E7%9A%84%E8%A7%A6%E5%8F%91%E6%9D%A1%E4%BB%B6"><span class="nav-number">1.3.</span> <span class="nav-text">Rebatch和Rebuild的触发条件</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%90%88%E6%89%B9%E8%A7%84%E5%88%99-Draw-Call"><span class="nav-number">1.4.</span> <span class="nav-text">合批规则(Draw Call)</span></a></li><li class="nav-item nav-level-3"><a class="nav-link" href="#%E5%9B%BE%E9%9B%86"><span class="nav-number">1.5.</span> <span class="nav-text">图集</span></a></li></ol></li></ol></div>
+        </div>
+        <!--/noindex-->
+
+        <div class="site-overview-wrap sidebar-panel">
+          <div class="site-author animated" itemprop="author" itemscope itemtype="http://schema.org/Person">
+    <img class="site-author-image" itemprop="image" alt="汪俊"
+      src="/images/avatar.gif">
+  <p class="site-author-name" itemprop="name">汪俊</p>
+  <div class="site-description" itemprop="description"></div>
+</div>
+<div class="site-state-wrap animated">
+  <nav class="site-state">
+      <div class="site-state-item site-state-posts">
+        <a href="/archives/">
+          <span class="site-state-item-count">65</span>
+          <span class="site-state-item-name">posts</span>
+        </a>
+      </div>
+      <div class="site-state-item site-state-categories">
+          <a href="/categories/">
+        <span class="site-state-item-count">21</span>
+        <span class="site-state-item-name">categories</span></a>
+      </div>
+      <div class="site-state-item site-state-tags">
+          <a href="/tags/">
+        <span class="site-state-item-count">51</span>
+        <span class="site-state-item-name">tags</span></a>
+      </div>
+  </nav>
+</div>
+  <div class="links-of-author animated">
+      <span class="links-of-author-item">
+        <a href="https://github.com/wangjunicode" title="GitHub → https:&#x2F;&#x2F;github.com&#x2F;wangjunicode" rel="noopener me" target="_blank"><i class="fab fa-github fa-fw"></i>GitHub</a>
+      </span>
+      <span class="links-of-author-item">
+        <a href="mailto:wangjunicode@qq.com" title="E-Mail → mailto:wangjunicode@qq.com" rel="noopener me" target="_blank"><i class="fa fa-envelope fa-fw"></i>E-Mail</a>
+      </span>
+  </div>
+<div style="">
+  <canvas id="canvas" style="width:60%;">当前浏览器不支持canvas，请更换浏览器后再试</canvas>
+</div>
+<script>
+(function(){
+
+   var digit=
+    [
+        [
+            [0,0,1,1,1,0,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,0,1,1,0],
+            [0,0,1,1,1,0,0]
+        ],//0
+        [
+            [0,0,0,1,1,0,0],
+            [0,1,1,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [1,1,1,1,1,1,1]
+        ],//1
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,1,1],
+            [1,1,1,1,1,1,1]
+        ],//2
+        [
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//3
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,0],
+            [0,0,1,1,1,1,0],
+            [0,1,1,0,1,1,0],
+            [1,1,0,0,1,1,0],
+            [1,1,1,1,1,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,1,1]
+        ],//4
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,1,1,1,1,0],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//5
+        [
+            [0,0,0,0,1,1,0],
+            [0,0,1,1,0,0,0],
+            [0,1,1,0,0,0,0],
+            [1,1,0,0,0,0,0],
+            [1,1,0,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//6
+        [
+            [1,1,1,1,1,1,1],
+            [1,1,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,0,0,1,1,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0],
+            [0,0,1,1,0,0,0]
+        ],//7
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,1,1,0]
+        ],//8
+        [
+            [0,1,1,1,1,1,0],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [1,1,0,0,0,1,1],
+            [0,1,1,1,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,0,1,1],
+            [0,0,0,0,1,1,0],
+            [0,0,0,1,1,0,0],
+            [0,1,1,0,0,0,0]
+        ],//9
+        [
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,0,0,0,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,1,1,1,0,0],
+            [0,0,0,0,0,0,0]
+        ]//:
+    ];
+
+var canvas = document.getElementById('canvas');
+
+if(canvas.getContext){
+    var cxt = canvas.getContext('2d');
+    //声明canvas的宽高
+    var H = 100,W = 700;
+    canvas.height = H;
+    canvas.width = W;
+    cxt.fillStyle = '#f00';
+    cxt.fillRect(10,10,50,50);
+
+    //存储时间数据
+    var data = [];
+    //存储运动的小球
+    var balls = [];
+    //设置粒子半径
+    var R = canvas.height/20-1;
+    (function(){
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        //存储时间数字，由十位小时、个位小时、冒号、十位分钟、个位分钟、冒号、十位秒钟、个位秒钟这7个数字组成
+        data.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+    })();
+
+    /*生成点阵数字*/
+    function renderDigit(index,num){
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    cxt.beginPath();
+                    cxt.arc(14*(R+2)*index + j*2*(R+1)+(R+1),i*2*(R+1)+(R+1),R,0,2*Math.PI);
+                    cxt.closePath();
+                    cxt.fill();
+                }
+            }
+        }
+    }
+
+    /*更新时钟*/
+    function updateDigitTime(){
+        var changeNumArray = [];
+        var temp = /(\d)(\d):(\d)(\d):(\d)(\d)/.exec(new Date());
+        var NewData = [];
+        NewData.push(temp[1],temp[2],10,temp[3],temp[4],10,temp[5],temp[6]);
+        for(var i = data.length-1; i >=0 ; i--){
+            //时间发生变化
+            if(NewData[i] !== data[i]){
+                //将变化的数字值和在data数组中的索引存储在changeNumArray数组中
+                changeNumArray.push(i+'_'+(Number(data[i])+1)%10);
+            }
+        }
+        //增加小球
+        for(var i = 0; i< changeNumArray.length; i++){
+            addBalls.apply(this,changeNumArray[i].split('_'));
+        }
+        data = NewData.concat();
+    }
+
+    /*更新小球状态*/
+    function updateBalls(){
+        for(var i = 0; i < balls.length; i++){
+            balls[i].stepY += balls[i].disY;
+            balls[i].x += balls[i].stepX;
+            balls[i].y += balls[i].stepY;
+            if(balls[i].x > W + R || balls[i].y > H + R){
+                balls.splice(i,1);
+                i--;
+            }
+        }
+    }
+
+    /*增加要运动的小球*/
+    function addBalls(index,num){
+        var numArray = [1,2,3];
+        var colorArray =  ["#3BE","#09C","#A6C","#93C","#9C0","#690","#FB3","#F80","#F44","#C00"];
+        for(var i = 0; i < digit[num].length; i++){
+            for(var j = 0; j < digit[num][i].length; j++){
+                if(digit[num][i][j] == 1){
+                    var ball = {
+                        x:14*(R+2)*index + j*2*(R+1)+(R+1),
+                        y:i*2*(R+1)+(R+1),
+                        stepX:Math.floor(Math.random() * 4 -2),
+                        stepY:-2*numArray[Math.floor(Math.random()*numArray.length)],
+                        color:colorArray[Math.floor(Math.random()*colorArray.length)],
+                        disY:1
+                    };
+                    balls.push(ball);
+                }
+            }
+        }
+    }
+
+    /*渲染*/
+    function render(){
+        //重置画布宽度，达到清空画布的效果
+        canvas.height = 100;
+        //渲染时钟
+        for(var i = 0; i < data.length; i++){
+            renderDigit(i,data[i]);
+        }
+        //渲染小球
+        for(var i = 0; i < balls.length; i++){
+            cxt.beginPath();
+            cxt.arc(balls[i].x,balls[i].y,R,0,2*Math.PI);
+            cxt.fillStyle = balls[i].color;
+            cxt.closePath();
+            cxt.fill();
+        }
+    }
+
+    clearInterval(oTimer);
+    var oTimer = setInterval(function(){
+        //更新时钟
+        updateDigitTime();
+        //更新小球状态
+        updateBalls();
+        //渲染
+        render();
+    },50);
+}
+
+})();
+</script>
+
+<div class="site-overview-wrap sidebar-panel sidebar-panel-active">
+<div class="site-overview">
+    
+
+
+</div>
+</div>
+
+        </div>
+      </div>
+    </div>
+
+    
+  </aside>
+
+
+    </div>
+
+    <div class="main-inner post posts-expand">
+
+
+  
+
+
+<div class="post-block">
+  
+  
+
+  <article itemscope itemtype="http://schema.org/Article" class="post-content" lang="en">
+    <link itemprop="mainEntityOfPage" href="http://example.com/2020/04/19/%E5%85%B3%E4%BA%8EUGUI-%E6%80%A7%E8%83%BD%E4%BC%98%E5%8C%96%E6%80%BB%E7%BB%93/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="image" content="/images/avatar.gif">
+      <meta itemprop="name" content="汪俊">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+
+    <span hidden itemprop="post" itemscope itemtype="http://schema.org/CreativeWork">
+      <meta itemprop="name" content="关于UGUI-性能优化总结 | 相信一万小时定律">
+      <meta itemprop="description" content="">
+    </span>
+      <header class="post-header">
+        <h1 class="post-title" itemprop="name headline">
+          关于UGUI-性能优化总结
+        </h1>
+
+        <div class="post-meta-container">
+          <div class="post-meta">
+    <span class="post-meta-item">
+      <span class="post-meta-item-icon">
+        <i class="far fa-calendar"></i>
+      </span>
+      <span class="post-meta-item-text">Posted on</span>
+
+      <time title="Created: 2020-04-19 12:01:43" itemprop="dateCreated datePublished" datetime="2020-04-19T12:01:43+08:00">2020-04-19</time>
+    </span>
+
+  
+</div>
+
+        </div>
+      </header>
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody"><p>UGUI性能优化总结</p>
+<span id="more"></span>
+
+<h2 id="UGUI性能优化总结"><a href="#UGUI性能优化总结" class="headerlink" title="UGUI性能优化总结"></a>UGUI性能优化总结</h2><h3 id="UGUI基础"><a href="#UGUI基础" class="headerlink" title="UGUI基础"></a>UGUI基础</h3><p>Canvas<br>Canvas是一个Native层实现的Unity组件，被Unity渲染系统用于渲染分层几何体（layered geometry）在游戏世界空间中。<br>Canvas负责把它们包含的Mesh合批，生成合适的渲染命令发送给Unity图形系统。以上行为都是在Native C++代码中完成，我们称之为Rebatch或者Batch Build，当一个Canvas中包含的几何体需要Rebacth时，这个Canvas就会被标记为Dirty状态。</p>
+<p>Canvas Renderer<br>几何体数据是通过Canvas Renderer组件被提交到Canvas中。</p>
+<p>子Canvas<br>Canvas组件可以嵌套在另一个Canvas组件下，我们称为子Canvas，子Canvas可以把它的子物体与父Canvas分离，使得当子Canvas被标记为Dirty时，并不会强制让父Canvas也强制Rebuild，反之亦然。但在某些特殊情况下，使用子Canvas进行分离的方法可能会失效，例如当对父Canvas的更改导致子Canvas的大小发生变化时。</p>
+<p>Graphic<br>Graphic是UGUI的C#库提供的一个基类。它是为Canvas提供可绘制几何图形的所有UGUI的C#类的基类。大多数Unity内置的继承Graphic的类都是通过继承一个叫MaskableGraphic的子类来实现，这使得他们可以通过IMaskable接口来被隐藏。Drawable类的子类主要是Image和Text，且UGUI已提供了同名组件。</p>
+<p>Layout<br>Layout控制着RectTransform的大小和位置，通常用于创建复杂的布局，这些布局需要对其内容进行相对大小调整或相对位置调整。Layout仅依赖于RectTransforms，并且仅影响其关联RectTransforms的属性。这些Layout类不依赖于Graphic类，可以独立于UGUI的Graphic类之外使用。</p>
+<p>CanvasUpdateRegistry<br>CanvasUpdateRegistry,Graphic和Layout都依赖于CanvasUpdateRegistry类，它没有暴露在Unity编辑器的界面上。这个类追踪那些必须更新的Layout类和Graphic类，并在其关联的Canvas调用willRenderCanvases事件时根据需要触发更新。</p>
+<p>Rebuild<br>Layout和Graphic的更新称为Rebuild。本文档后面将进一步详细讨论Rebuild过程。</p>
+<h3 id="渲染细节"><a href="#渲染细节" class="headerlink" title="渲染细节"></a>渲染细节</h3><p>Canvas中所有几何体的绘制都在一个透明队列中，这就意味着由UGUI制作的几何体始终开启Alpha Blend，所以从多边形栅格化的每个像素都将被采样，即使它是完全不透明的。在移动设备上，过高的Overdraw会急剧升高填充率（Fill Rate）以超过GPU的可承受能力。</p>
+<p>Batch Build过程（Canvases）<br>Batch Build（Rebatch）：Canvas把表示它UI元素的网格合并起来，并生成合适的渲染命令发送到Unity的图形管线中。这个过程的结果会被缓存起来复用，直到这个Canvas被标记为Dirty，当Canvas中任何一个网格发生变化时，就会被标记成Dirty状态。<br>Canvas的网格是从从那些Canvas下的CanvasRenderer组件中获取的，但不包括子Canvas。<br>批处理计算需要对网格进行深度排序，并检查网格是否重叠，材质是否共享等。这种操作是多线程的，因此它的性能在不同的CPU架构中通常会有很大的不同，尤其是在移动soc（通常很少有CPU核心）和现代桌面CPU（通常有4个或更多核心）之间。</p>
+<p>Rebuild过程（Graphics）<br>Rebuild：指重新计算Graphic的布局和网格的过程，这个过程在CanvasUpdateRegistry中执行（这是一个C#类，我们可以在Unity的Bitbucket上找到源码）。<br>在CanvasUpdateRegistry中，最重要的方法是PerformUpdate。每当Canvas组件调用WillRenderCanvases事件时，就会调用此方法。此事件每帧调用一次。<br>PerformUpdate执行流程<br>被标记为Dirty状态的Layout通过ICanvasElement.Rebuild方法请求重建布局。<br>所有裁剪组件（例如Mask），对需要被裁剪的组件进行剔除。这在ClippingRegistry.Cull中执行。<br>被标记了Dirty状态的Graphic请求重建他们的图形元素。<br>对于Layout和Graphic的重建，过程分为多个部分。布局重建分为三个部分（预布局、布局和后期布局），而图形重建分为两个部分（预渲染和后期预渲染）。</p>
+<p>Layout的Rebuild<br>要重新计算包含一个或多个Layout的适当位置和大小，必须以适当的层级顺序进行布局计算，因为在GameObject在Hierarchy中靠近根的Layout，很可能会影响嵌套其中的子物体的Layout的位置和大小，所以必须优先计算。</p>
+<p>为了做到这一点，UGUI把被标记为Dirty状态的Layout按照它们在Hierarchy中的层级对它们进行排序。Hierarchy中较高的项（即父变换较少的项）将移动到列表的前面。</p>
+<p>然后这些排序后的Layout列表会请求重建它们的布局，这过程是那些UI元素被Layout真正改变位置和大小的过程。</p>
+<p>Graphic的Rebuild<br>当Graphic进行Rebuild时，UGUI将控制权转交给ICanvasElement接口的Rebuild方法。Graphic类实现了这个接口，并在Rebuild过程的预渲染阶段执行两个不同的重建步骤。</p>
+<p>如果顶点数据已标记为Dirty状态（如组件的矩形变换更改大小时），则重建网格。<br>如果材质数据已标记为Dirty状态（如组件的材质或纹理发生改变时），则将更新附着的画布渲染器的材质。<br>Graphic的Rebuild不需要按特定顺序遍历Graphic组件列表，也不需要任何排序操作。</p>
+<h3 id="Rebatch和Rebuild的触发条件"><a href="#Rebatch和Rebuild的触发条件" class="headerlink" title="Rebatch和Rebuild的触发条件"></a>Rebatch和Rebuild的触发条件</h3><p>触发Rebatch的条件<br>当Canvas下有Mesh发生改变时，如：</p>
+<p>SetActive<br>Transform属性变化<br>Graphic的Color属性变化（改Mesh顶点色）<br>Text文本内容变化<br>Depth发生变化<br>触发Rebuild的条件<br>Layout修改RectTransform部分影响布局的属性<br>Graphic的Mesh或Material发生变化<br>Mask裁剪内容变化<br>Rebuild通常引起Rebatch</p>
+<p>主要关注的性能指标<br>Canvas.BuildBatch函数耗时<br>Canvas.SendWillRenderCanvases函数耗时<br>Draw Call<br>Overdraw<br>堆内存<br>动静分离（Canvas.BuildBatch函数耗时优化）<br>基于Rebatch是以Canvas为单位，当Canvas下UI元素发生变化时，会引起整个Canvas的重构，其中会包括网格合并，网格重叠检测，层级排序等操作。对于同一个界面，我们可以再细分Canvas，把相对静态的、不会变动的UI放在一个Canvas里，而相对变化比较频繁的UI就放在另一个Canvas里，使得频繁变化的Canvas里只对自己的Canvas下的元素进行Rebatch，而节省掉另一个Canvas中不需要变化的元素的Rebatch计算。</p>
+<p>只有同一个Canvas下的UI元素才有可能合批，在中间新增Canvas会打断合批，动静分离优化本质是DrawCall换重构耗时的权衡。</p>
+<p>Rebatch是在Canvas.BuildBatch函数中进行，而在Unity 5.2版本后，已经对Canvas.BuildBatch做了优化，优化后使用子线程进行计算，已经很大程度缓解了主线程的压力，目前来说动静分离并没有那么需要关注了。</p>
+<h3 id="合批规则-Draw-Call"><a href="#合批规则-Draw-Call" class="headerlink" title="合批规则(Draw Call)"></a>合批规则(Draw Call)</h3><p>UGUI的合批除了要求相同贴图和材质外，还对Depth和Hierarchy的层级等有要求。规则比较复杂繁琐，且源码不放开，实际情况很难做到完全把控。</p>
+<p>可以借助FrameDebugger实时调试合批情况。</p>
+<p>合批范围<br>处于同一个Canvas下的（不包括子Canvas）UI元素才能进行合批，同时排除掉active&#x3D;false，CanvasGroup.alpha&#x3D;0的元素不参与。</p>
+<p>Depth计算<br>不渲染的UI元素Depth为-1，UI下没有和其他UI相交时，该UI的Depth为0。<br>当前UI下面有一个UI与其相交，若两者贴图和材质相同时，它们Depth相同，否则上面的UI的Depth是下面UI的Depth+1。<br>当前UI下面与多个UI相交，假设处于下面的多个UI中，最高Depth是MaxDepth，如果下面这些UI的Depth全是MaxDepth，则此UI不能与下面的UI合批，如果只有一个是MaxDepth，且贴图材质相同，则可以合批。<br>这里的相交是用Mesh计算相交，不是指RectTransform大小相交</p>
+<p>合批过程<br>Depth计算完后，依次根据Depth、material ID、texture ID、RendererOrder（即UI层级队列顺序，HierarchyOrder）排序（条件的优先级依次递减），剔除depth &#x3D;&#x3D; -1的UI元素，得到Batch前的UI元素队列VisiableList。<br>对VisiableList中相邻且可以Batch（相同material和texture）的UI元素合并批次，然后再生成相应mesh数据进行绘制。<br>注意策略<br>节点Position.z不为0时，视为3D UI，其子物体全部不参与合批，且打断前后合批。<br>参考Unity用户手册-UGUI合批</p>
+<h3 id="图集"><a href="#图集" class="headerlink" title="图集"></a>图集</h3><p>不同的图集&#x2F;材质会产生DrawCall，通过图集把多个图片合并到一张贴图里，让这些图片可以进行合批，以此减少DrawCall</p>
+<p>打图集规则：</p>
+<p>同个界面、同个功能的图在同一个图集<br>不要把重复的图打到不同的图集中<br>通用的，使用频率高的图，单独放在一个图集<br>尺寸过大的图尽量不打进图集<br>对于类似背包界面这种包含多个系统功能道具图标这类界面，可以考虑使用动态图集</p>
+<p>Overdraw<br>Overdraw是指一帧当中，同一个像素被重复绘制的次数。Fill Rate(填充率)是指显卡每帧每秒能够渲染的像素数。在每帧绘制中，如果一个像素被反复绘制的次数越多，那么它占用的资源也必然更多。Overdraw与Fill Rate成正比，目前在移动设备上，FillRate的压力主要来自半透明物体。因为多数情况下，半透明物体需要开启 Alpha Blend 且关闭 ZTest和 ZWrite，同时如果我们绘制像 alpha&#x3D;0 这种实际上不会产生效果的颜色上去，也同样有 Blend 操作，这是一种极大的浪费。</p>
+<p>减少UI重叠层级，隐藏处于底下被完全覆盖的UI面板。<br>对于需要暂时隐藏的UI，不要直接把Color属性的Alpha值改为0，UGUI中这样设置后仍然会渲染，应该用CanvasGroup组件把Alpha值置零。<br>需要响应Raycast事件时，不要使用空Image，可以自定义组件继承自MaskableGraphic，重写OnPopulateMesh把网格清空，这样可以响应Raycast而又不需要绘制Mesh。<br>打开全屏界面，关闭场景摄像机。对于一些非全屏但覆盖率较高的界面，在对场景动态表现要求不高的情况下，可以记录下打开UI时的画面，作为UI背景，然后关掉场景摄像机。<br>裁掉无用区域，镂空，对于Sliced类型的Image可以看情况取消Fill Center。<br>慎用Mask组件和Outline、Shadow组件<br>尽量保持UI上的粒子特效简单，尽量使用序列帧实现。<br>Unity在Scene视图可以切换成Overdraw模式，观察填充率情况，根据UWA的提示，Editor下看到的不完全准确，需要真机测试。</p>
+<p>Raycast<br>UGUI创建的所有可点击组件都会默认开启RaycastTarget，当进行点击操作时，会对所有开启RaycastTarget的组件进行遍历检测和排序，实际上大部分的组件是不需要响应点击事件的，对于这些组件我们应该取消RaycastTarget属性，最好的方式是监听组件创建，在创建时直接赋值为False，对于需要响应事件的组件再手动开启。</p>
+<p>更多优化可以参考一下文章：</p>
+<p>Unity UGUI优化：解决EventSystem耗时过长的问题 第一部分<br>Unity UGUI优化：解决EventSystem耗时过长的问题 第二部分<br>Unity UGUI优化：解决EventSystem耗时过长的问题 第三部分<br>Unity UGUI 点击性能优化</p>
+<p>Mask与RectMask2D<br>Mask<br>裁剪依赖Image组件，可根据Image裁剪不规则形状。<br>增加两个DrawCall<br>增加两层Overdraw<br>Mask与内UI不能与外面的UI合批，但不同Mask内部的多个UI可以进行合批，但当Mask之间有相交时，会打断合批。<br>RectMask2D<br>裁剪范围按照RectTransform的Rect大小，不依赖Image，不能裁剪不规则形状。<br>不增加DrawCall<br>不增加Overdraw<br>RectMask2D内UI不能与外面UI合批且多个RectMask2D之间也不能合批。<br>RectMask2D在SendWillRenderCanvases函数中每帧有计算裁剪区域的操作（非重建操作），当其里面的UI元素很多时，耗时也值得注意。参考UWA问答-RectMask2D 是不是会频繁触发 SendWillRenderCanvases。</p>
+<p>小结<br>一般情况下，对于规则形状裁剪就可以考虑使用RectMask2D代替Mask，在DrawCall和Overdraw上有直接优势。但结合一个界面多个遮罩共存，遮罩区域是否相交、遮罩间内容是否能合批、遮罩内UI元素数量等，还需要进一步权衡。</p>
+<p>其他<br>慎用自带组件Outlien和Shaow，都是通过重复绘制多个Mesh实现的，其中Showdow绘制为原文本Mesh的2倍，而Outline为5倍，对渲染面数、顶点数，BuildBatch和SendWillRenderCanvases的耗时，Overdraw都有影响。若对于某种字体每次出现都需要这两种效果，可以让美术同学直接把阴影和描边做到字体里。<br>隐藏界面时，可用CanvasGroup.Alpha&#x3D;0，或者从Camera渲染层级里移除并将Canvas设置enable&#x3D;false等方法隐藏，代替SetActive。<br>Text组件的Best Fit属性若非必要不要使用，它会使字号随着文本框大小而自动适配，一方面是适配本身在调整文本框大小时有CPU耗时开销，另一方面每个字号下新生成的字都会在Font Texture上占用一个字的大小，容易导致Font Texture过大（这个类似图集，当Font Texture当前大小放不下时才会占用更多内存）。<br>UI的图片一般关闭Read&#x2F;Write和MipMaps。<br>尽量少使用Layout组件，会增加Canvas.SendWillRenderCanvases函数耗时，利用好RectTransform同样可实现简单布局。<br>对于血条、飘字、小地图标记等频繁更新位置的UI，可尽量减低更新频率，如隔帧更新，并设定更新阈值，当位移大于一定数值时再赋值（一方面是位移小时可能表现上看不出位移，另一方面是就算是没有实际位移，重复赋相同的值，也会SetDirty触发重建），可减少BuildBatch耗时。<br>界面上的特效不要直接挂在在UI的Prefab上，而是用动态加载的方式，有助于减小UI的Prefab体积以及加载时间。<br>总结<br>以上是UGUI较为常见而又不用大动干戈的优化方案，参考了不少资料，不得不说一下目前对于UGUI的优化网上存在大量过期教程和部分问题存在误导的文章，目前UGUI的C#源码已开源，建议大家还是多读源码，多动手多试验，实践是检验真理的唯一标准。</p>
+
+    </div>
+
+    
+    
+    
+
+    <footer class="post-footer">
+
+        
+
+          <div class="post-nav">
+            <div class="post-nav-item">
+                <a href="/2020/04/11/%E5%85%B3%E4%BA%8EUGUI-%E6%B8%B2%E6%9F%93%E6%9C%BA%E5%88%B6/" rel="prev" title="关于UGUI-渲染机制">
+                  <i class="fa fa-angle-left"></i> 关于UGUI-渲染机制
+                </a>
+            </div>
+            <div class="post-nav-item">
+                <a href="/2020/05/11/%E7%BC%96%E7%A8%8B%E5%BF%83%E5%BE%97/" rel="next" title="编程心得">
+                  编程心得 <i class="fa fa-angle-right"></i>
+                </a>
+            </div>
+          </div>
+    </footer>
+  </article>
+</div>
+
+
+
+
+
+
+</div>
+  </main>
+
+  <footer class="footer">
+    <div class="footer-inner">
+
+  <div class="copyright">
+    &copy; 2017 – 
+    <span itemprop="copyrightYear">2023</span>
+    <span class="with-love">
+      <i class="fa fa-heart"></i>
+    </span>
+    <span class="author" itemprop="copyrightHolder">汪俊</span>
+  </div>
+
+    </div>
+  </footer>
+
+  
+  <div class="back-to-top" role="button" aria-label="Back to top">
+    <i class="fa fa-arrow-up fa-lg"></i>
+    <span>0%</span>
+  </div>
+  <div class="reading-progress-bar"></div>
+
+<noscript>
+  <div class="noscript-warning">Theme NexT works best with JavaScript enabled</div>
+</noscript>
+
+
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.1/anime.min.js" integrity="sha256-XL2inqUJaslATFnHdJOi9GfQ60on8Wx1C2H8DYiN1xY=" crossorigin="anonymous"></script>
+<script src="/js/comments.js"></script><script src="/js/utils.js"></script><script src="/js/motion.js"></script><script src="/js/next-boot.js"></script>
+
+  
+
+
+
+
+
+
+  
+
+
+
+
+
+</body>
+</html>
