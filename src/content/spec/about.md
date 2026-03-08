@@ -1,9 +1,19 @@
-# About
-This is the demo site for [Fuwari](https://github.com/saicaca/fuwari).
 
-::github{repo="saicaca/fuwari"}
 
-> ### Sources of images used in this site
-> - [Unsplash](https://unsplash.com/)
-> - [星と少女](https://www.pixiv.net/artworks/108916539) by [Stella](https://www.pixiv.net/users/93273965)
-> - [Rabbit - v1.4 Showcase](https://civitai.com/posts/586908) by [Rabbit_YourMajesty](https://civitai.com/user/Rabbit_YourMajesty)
+::github{repo="wangjunicode/acl"}
+
+<h1 align="center">Hi, I'm <a href="https://www.wangjunicode.com/" target="_blank">Wang Jun</a> </h1>
+
+
+<p align="center">
+  <!-- Typing SVG by wangjunicode - https://github.com/wangjunicode/readme-typing-svg -->
+  <a href="https://github.com/wangjunicode/readme-typing-svg">
+    <img src="https://readme-typing-svg.demolab.com/?lines=game developer&font=Fira%20Code&center=true&width=440&height=45&color=f75c7e&vCenter=true&pause=1000&size=22" /></a>
+</p>
+
+- 🌱 Learning...
+- 📫 wangjunicode@qq.com
+- 🔭 www.github.com/wangjunicode
+
+</div>  
+<br/>  
