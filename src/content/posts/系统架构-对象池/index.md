@@ -1,0 +1,68 @@
+﻿---
+title: 对象池
+published: 2021-08-04
+description: "对象池 `private List<GameObject> dormantObject = new List<GameObject>();`"
+tags: []
+category: 架构设计
+draft: false
+---
+
+对象池
+
+
+# 如何设计一个对象池
+
+
+
+## 维护一个休眠对象的列表
+
+`private List<GameObject> dormantObject = new List<GameObject>();` 
+
+## 从池子中取一个
+
+```c#
+public GameObject Spawn(GameObject go)
+{
+	GameObject temp = null;
+	if (dormantObjects.Count > 0)
+	{
+		foreach (GameObject item in dormantObjects)
+		{
+			if (item.name == go.name)
+			{
+				temp = item;
+				dormantObjects.Remove(temp);
+				return temp;
+			}
+		}
+	}
+}
+```
+
+## 放回到池子中
+
+```c#
+public void Despawn(GameObject go)
+{
+	go.transform.parent = Poolmanager.transform;
+	go.SetActive(false);
+	dormantObjects.Add(go);
+	Trim();
+}
+```
+
+## 控制池子的容量
+
+```
+public void Trim()
+{
+	while(dormantObjects.Count > Capacity)
+	{
+		GameObject go = dormantObjects[0];
+		dormantObjects.RemoveAt(0);
+		Destroy(go);
+	}
+}
+```
+
+![image-20231231132809457](/images/posts/系统架构-对象池/image-20231231132809457.png)
