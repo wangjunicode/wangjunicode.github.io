@@ -1,8 +1,8 @@
 ﻿---
-title: Unity帧同步
+title: 帧同步实现原理与工程实践
 published: 2019-05-28
-description: "服务器在当帧收集所有客户端上报，再将所有客户端的输入，同步给每个客户端"
-tags: []
+description: "深度解析帧同步基本原理、严格帧同步与乐观锁模式、手感优化三要素（预测/回滚/预表现）、定点数与逻辑显示分离，以及 UDP 通信策略。"
+tags: [游戏开发, 网络同步, 帧同步, Unity]
 category: 网络同步
 draft: false
 ---
@@ -117,3 +117,4 @@ draft: false
 [帧同步游戏开发小结](https://www.cnblogs.com/xiaohutu/p/12402399.html)
 
 [漫话帧同步](https://zhuanlan.zhihu.com/p/381339755)
+
