@@ -3,7 +3,6 @@ import svelte from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
-import swup from "@swup/astro";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import { defineConfig } from "astro/config";
@@ -33,20 +32,20 @@ export default defineConfig({
 		tailwind({
 			nesting: true,
 		}),
-		swup({
-			theme: false,
-			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
-			// the default value `transition-` cause transition delay
-			// when the Tailwind class `transition-all` is used
-			containers: ["main", "#toc"],
-			smoothScrolling: true,
-			cache: true,
-			preload: true,
-			accessibility: true,
-			updateHead: true,
-			updateBodyClass: false,
-			globalInstance: true,
-		}),
+		// 禁用 swup 以提升页面切换速度
+		// 保留注释以备恢复：如果希望页面切换有动画，可重新启用 swup
+		// swup({
+		// 	theme: false,
+		// 	animationClass: "transition-swup-",
+		// 	containers: ["main", "#toc"],
+		// 	smoothScrolling: true,
+		// 	cache: true,
+		// 	preload: true,
+		// 	accessibility: true,
+		// 	updateHead: true,
+		// 	updateBodyClass: false,
+		// 	globalInstance: true,
+		// }),
 		icon({
 			include: {
 				"preprocess: vitePreprocess(),": ["*"],
@@ -166,7 +165,21 @@ export default defineConfig({
 					}
 					warn(warning);
 				},
+				output: {
+					// 按需加载的 chunk 名称更短，减小打包产物文件名长度
+					chunkFileNames: "assets/[hash].js",
+					assetFileNames: "assets/[hash].[ext]",
+				},
 			},
+			// 小于 8KB 的图片转为 base64 内联，减少 HTTP 请求
+			assetsInlineLimit: 8192,
+			// 压缩静态资源
+			minify: "terser",
+			target: "es2022",
+		},
+		// 更快的开发服务器
+		server: {
+			hmr: true,
 		},
 	},
 });

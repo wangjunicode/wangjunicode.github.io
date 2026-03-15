@@ -80,6 +80,15 @@ const bannerOffset =
 
 		<title>{pageTitle}</title>
 
+		<!-- 性能优化：预连接第三方资源域名 -->
+		<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+		<link rel="dns-prefetch" href="https://fonts.gstatic.com">
+		<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+		<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+		<link rel="preconnect" href="https://github.com">
+		<!-- 预加载关键CSS -->
+		<link rel="preload" href={Astro.url.pathname === "/" ? "/?__astro-preload=1" : "/"} as="fetch" crossorigin="anonymous">
+
 		<meta charset="UTF-8" />
 		<meta name="description" content={description || pageTitle}>
 		<meta name="author" content={profileConfig.name}>

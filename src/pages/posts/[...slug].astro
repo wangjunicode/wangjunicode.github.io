@@ -158,6 +158,17 @@ const jsonLd = {
             </div>}
         </a>
 
+        <!-- 新增：归档/全部文章按钮 -->
+        <a href="/archive"
+           class="flex items-center justify-center w-full font-bold overflow-hidden active:scale-95">
+            <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center justify-center gap-3">
+                <Icon name="material-symbols:view-list-rounded" class="text-[1.5rem] text-[var(--primary)]" />
+                <div class="transition overflow-ellipsis whitespace-nowrap max-w-[calc(100%_-_3rem)] text-black/75 dark:text-white/75">
+                    全部文章
+                </div>
+            </div>
+        </a>
+
         <a href={entry.data.prevSlug ? getPostUrlBySlug(entry.data.prevSlug) : "#"}
            class:list={["w-full font-bold overflow-hidden active:scale-95", {"pointer-events-none": !entry.data.prevSlug}]}>
             {entry.data.prevSlug && <div class="btn-card rounded-2xl w-full h-[3.75rem] max-w-full px-4 flex items-center !justify-end gap-4">
