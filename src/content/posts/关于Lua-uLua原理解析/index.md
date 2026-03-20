@@ -17,7 +17,7 @@ draft: false
 
 其实C#本身的反射机制可以实现热更新，但是在ios平台上：
 
-```vbnet
+```csharp
 System.Reflection.Assembly.Load
 System.Reflection.Emit
 System.CodeDom.Compiler

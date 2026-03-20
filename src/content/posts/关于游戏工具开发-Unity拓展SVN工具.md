@@ -2,7 +2,7 @@
 title: Unity拓展SVN工具
 published: 2019-04-03
 description: "public static void ProcessCommand(string command,string argument){ System.Diagno"
-tags: []
+tags: [Unity, SVN, 工具开发]
 category: Unity开发
 draft: false
 ---
@@ -12,7 +12,7 @@ draft: false
 ## 封装调用命令行
 
 
-```c#
+```csharp
 public static void ProcessCommand(string command,string argument){
 		System.Diagnostics.ProcessStartInfo info = new System.Diagnostics.ProcessStartInfo(command);
 		info.Arguments = argument;
@@ -52,7 +52,7 @@ public static void ProcessCommand(string command,string argument){
 
 
 
-```c#
+```csharp
 [MenuItem("SVN/Commit",false,1)]
 	static void SVNCommit(){
 		List<string> pathList = new List<string> ();

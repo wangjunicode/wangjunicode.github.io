@@ -1,3 +1,12 @@
+---
+title: 06 UniScript 可视化脚本驱动战斗逻辑
+published: 2024-01-01
+description: "06 UniScript 可视化脚本驱动战斗逻辑 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 战斗系统
+draft: false
+---
+
 # 06 UniScript 可视化脚本驱动战斗逻辑
 
 > 本文介绍项目自研的 UniScript 可视化脚本系统，讲解它如何将战斗逻辑从代码中解放出来，让策划和技术美术能够通过"连连看"的方式编辑技能、Buff、AI 等战斗流程。

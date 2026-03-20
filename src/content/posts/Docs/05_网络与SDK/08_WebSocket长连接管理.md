@@ -1,3 +1,12 @@
+---
+title: 08_WebSocket长连接管理
+published: 2024-01-01
+description: "08_WebSocket长连接管理 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 网络与SDK
+draft: false
+---
+
 # 08_WebSocket长连接管理
 
 > WebSocket是游戏大厅和服务器保持实时通信的关键技术。本文讲解项目中两套WebSocket系统的设计与实现。

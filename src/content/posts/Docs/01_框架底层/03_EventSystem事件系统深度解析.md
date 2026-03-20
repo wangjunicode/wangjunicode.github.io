@@ -1,3 +1,12 @@
+---
+title: 03 EventSystem 事件系统深度解析
+published: 2024-01-01
+description: "03 EventSystem 事件系统深度解析 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: ET框架
+draft: false
+---
+
 # 03 EventSystem 事件系统深度解析
 
 > 面向刚入行的毕业生 · 技术架构师出品

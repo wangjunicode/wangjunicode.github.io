@@ -26,7 +26,7 @@ Unity最通用的资源加载方式，就三种
 
 #### 加载单元数据结构
 
-```c#
+```csharp
 private class AssetObject
 {
     public string _assetName;
@@ -52,7 +52,7 @@ private class AssetObject
 
 
 
-```c#
+```csharp
 using System.Collections.Generic;
 using UnityEngine;
 

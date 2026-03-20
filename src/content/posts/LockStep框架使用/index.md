@@ -25,7 +25,7 @@ draft: false
  - GameManager.cs（自己新建）
 
 
-```C#
+```csharp
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -46,7 +46,7 @@ public class GameManager : Singleton<GameManager> {
 
 3、LockStep 和 Game 启动、初始化 —— Main.cs
 
-```C#
+```csharp
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -101,7 +101,7 @@ public class Main : MonoBehaviour {
 
 4、连接服务器创建房间（UI 和 脚本）
 
-```C#
+```csharp
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;

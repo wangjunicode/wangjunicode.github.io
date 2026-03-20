@@ -1,3 +1,12 @@
+---
+title: UI 动效系统（YIUITween + DOTween）
+published: 2024-01-01
+description: "UI 动效系统（YIUITween + DOTween） - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: UI系统
+draft: false
+---
+
 # UI 动效系统（YIUITween + DOTween）
 
 ## 1. 系统概述

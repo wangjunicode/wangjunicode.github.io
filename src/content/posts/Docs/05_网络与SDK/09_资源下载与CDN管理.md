@@ -1,3 +1,12 @@
+---
+title: 09_资源下载与CDN管理
+published: 2024-01-01
+description: "09_资源下载与CDN管理 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 网络与SDK
+draft: false
+---
+
 # 09_资源下载与CDN管理
 
 > 游戏资源（美术素材、配置表、代码DLL）的分发是手游运营的重要基础设施。本文讲解本项目的资源下载架构，包括热更新、COS对象存储和CDN加速。

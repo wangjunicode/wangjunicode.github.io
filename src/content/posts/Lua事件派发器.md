@@ -2,7 +2,7 @@
 title: Lua事件派发器
 published: 2019-09-10
 description: "Lua事件派发器 **简易实现**"
-tags: []
+tags: [Lua, 事件系统, 游戏开发]
 category: 编程语言
 draft: false
 ---

@@ -1,3 +1,12 @@
+---
+title: 02_Dolphin热更框架集成与工作流程
+published: 2024-01-01
+description: "02_Dolphin热更框架集成与工作流程 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 热更新
+draft: false
+---
+
 # 02_Dolphin热更框架集成与工作流程
 
 > 面向刚入行的毕业生 · 建议搭配 PatchManager.cs 阅读

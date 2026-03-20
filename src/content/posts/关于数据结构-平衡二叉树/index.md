@@ -1,7 +1,7 @@
-﻿---
+---
 title: 关于数据结构-平衡二叉树
 published: 2017-09-11
-description: "关于数据结构-平衡二叉树"
+description: "平衡二叉树（AVL 树、红黑树）的原理与实现：旋转操作、平衡因子维护、与普通二叉搜索树的性能对比，以及在 Unity 中的应用场景。"
 tags: []
 category: 基础知识
 draft: false

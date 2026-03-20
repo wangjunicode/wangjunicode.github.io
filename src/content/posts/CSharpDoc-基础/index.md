@@ -1,7 +1,7 @@
 ---
 title: CSharpDoc-基础
 published: 2017-03-09
-description: "CSharpDoc-基础"
+description: "C# 语言基础知识全面梳理：值类型与引用类型、装箱拆箱、委托与事件、LINQ、异步编程（async/await），面向游戏开发的 C# 核心知识文档。"
 tags: []
 category: 编程语言
 draft: false

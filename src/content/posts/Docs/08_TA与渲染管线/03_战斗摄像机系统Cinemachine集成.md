@@ -1,3 +1,12 @@
+---
+title: 战斗摄像机系统设计（Cinemachine + 自定义追踪）
+published: 2024-01-01
+description: "战斗摄像机系统设计（Cinemachine + 自定义追踪） - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 渲染管线
+draft: false
+---
+
 # 战斗摄像机系统设计（Cinemachine + 自定义追踪）
 
 ## 1. 系统概述

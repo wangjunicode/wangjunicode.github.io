@@ -1,3 +1,12 @@
+---
+title: 01 ECS框架核心设计与实现
+published: 2024-01-01
+description: "01 ECS框架核心设计与实现 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: ET框架
+draft: false
+---
+
 # 01 ECS框架核心设计与实现
 
 > 面向刚入行的毕业生 · 技术架构师出品

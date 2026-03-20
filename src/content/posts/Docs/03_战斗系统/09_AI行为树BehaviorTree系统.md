@@ -1,3 +1,12 @@
+---
+title: 09 AI 行为树（BehaviorTree）系统
+published: 2024-01-01
+description: "09 AI 行为树（BehaviorTree）系统 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 战斗系统
+draft: false
+---
+
 # 09 AI 行为树（BehaviorTree）系统
 
 > 本文介绍战斗 AI 的行为树系统，包括行为树的基本概念、BTComponent 的设计、AI 与 UniScript 的结合方式，以及如何配置和调试 AI 行为逻辑。

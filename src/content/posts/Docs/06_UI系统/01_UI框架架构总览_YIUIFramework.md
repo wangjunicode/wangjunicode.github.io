@@ -1,3 +1,12 @@
+---
+title: UI系统架构总览 —— YIUIFramework 深度解析
+published: 2024-01-01
+description: "UI系统架构总览 —— YIUIFramework 深度解析 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: UI系统
+draft: false
+---
+
 # UI系统架构总览 —— YIUIFramework 深度解析
 
 ## 1. 系统概述

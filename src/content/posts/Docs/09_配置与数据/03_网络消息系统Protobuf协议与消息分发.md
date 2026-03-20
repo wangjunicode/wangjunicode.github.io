@@ -1,3 +1,12 @@
+---
+title: 网络消息系统：Protobuf协议与消息分发
+published: 2024-01-01
+description: "网络消息系统：Protobuf协议与消息分发 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 配置与数据
+draft: false
+---
+
 # 网络消息系统：Protobuf协议与消息分发
 
 ## 1. 系统概述

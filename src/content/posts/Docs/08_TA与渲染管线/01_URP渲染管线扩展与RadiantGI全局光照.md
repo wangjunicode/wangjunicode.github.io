@@ -1,3 +1,12 @@
+---
+title: 渲染管线扩展 —— URP 自定义 Renderer Feature
+published: 2024-01-01
+description: "渲染管线扩展 —— URP 自定义 Renderer Feature - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 渲染管线
+draft: false
+---
+
 # 渲染管线扩展 —— URP 自定义 Renderer Feature
 
 ## 1. 系统概述

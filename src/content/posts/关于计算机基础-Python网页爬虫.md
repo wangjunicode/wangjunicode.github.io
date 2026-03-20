@@ -2,7 +2,7 @@
 title: Python抓取网页所有链接及标题
 published: 2019-09-04
 description: "抓取网页的链接及标题，学学[Python](https://chegva.com/tag/python/)爬虫"
-tags: []
+tags: [Python, 爬虫, 计算机基础]
 category: 基础知识
 draft: false
 ---

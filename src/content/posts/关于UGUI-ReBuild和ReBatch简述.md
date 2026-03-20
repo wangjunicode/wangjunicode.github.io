@@ -2,7 +2,7 @@
 title: 关于UGUI-ReBuild和ReBatch简述
 published: 2019-12-11
 description: "ReBuild和ReBatch简述"
-tags: []
+tags: [Unity, UGUI, 性能优化]
 category: 图形渲染
 draft: false
 ---

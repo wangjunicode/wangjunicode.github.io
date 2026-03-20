@@ -2,7 +2,7 @@
 title: 关于uLua
 published: 2020-01-01
 description: "uLua ulua/nlua 都是基于反射的解决方案，劣势是速度慢，gc alloc频繁,不直接支持代理，优势是不会产生静态代码，减少了app的尺寸。"
-tags: []
+tags: [Lua, uLua, Unity]
 category: 编程语言
 draft: false
 ---

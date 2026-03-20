@@ -1,3 +1,12 @@
+---
+title: 05 Buff 系统架构
+published: 2024-01-01
+description: "05 Buff 系统架构 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 战斗系统
+draft: false
+---
+
 # 05 Buff 系统架构
 
 > 本文介绍战斗中的 Buff（增益/减益效果）系统，包括 Buff 的数据结构、叠加策略、与数值系统的联动，以及 Buff 的完整生命周期管理。

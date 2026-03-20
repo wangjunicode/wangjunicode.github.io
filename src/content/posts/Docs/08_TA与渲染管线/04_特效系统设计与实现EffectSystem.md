@@ -1,3 +1,12 @@
+---
+title: 特效系统设计与实现（EffectSystem + VFX Pool）
+published: 2024-01-01
+description: "特效系统设计与实现（EffectSystem + VFX Pool） - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 渲染管线
+draft: false
+---
+
 # 特效系统设计与实现（EffectSystem + VFX Pool）
 
 ## 1. 系统概述

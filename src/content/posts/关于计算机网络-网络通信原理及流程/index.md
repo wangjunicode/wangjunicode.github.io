@@ -1,7 +1,7 @@
-﻿---
+---
 title: 关于计算机网络-网络通信原理及流程
 published: 2018-09-17
-description: "关于计算机网络-网络通信原理及流程"
+description: "深入理解游戏网络通信全流程：TCP/UDP 协议选型、Socket 编程、消息序列化、长连接心跳机制、弱网处理策略，面向手游网络开发的实践指南。"
 tags: []
 category: 网络同步
 draft: false

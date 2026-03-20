@@ -19,7 +19,7 @@ Event作为C#语言特性的一部分，在.Net开发中具有比较重要的作
 
 还是通过一个简单的例子来了解委托的用法。假设现在我们分别要对奇数和偶数做不同的处理方案：
 
-```c#
+```csharp
 using System;
 
 class Program
@@ -57,13 +57,13 @@ class Program
 
 
 
-```c#
+```csharp
 public delegate void EventHandler(object sender, EventArgs e);
 ```
 
 
 
-```c#
+```csharp
 using System;
 
 public class EventExample
@@ -117,7 +117,7 @@ public class Program
 
 话不多说，我们直接上代码：
 
-```c#
+```csharp
 //使用Serializable序列化IdolEvent,否则无法在Editor中显示
 [System.Serializable]
 public class IdolEvent : UnityEvent<string>

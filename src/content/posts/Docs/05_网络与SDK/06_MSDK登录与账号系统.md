@@ -1,3 +1,12 @@
+---
+title: 06_MSDK登录与账号系统
+published: 2024-01-01
+description: "06_MSDK登录与账号系统 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 网络与SDK
+draft: false
+---
+
 # 06_MSDK登录与账号系统
 
 > MSDK是腾讯游戏的统一登录SDK，支持微信、QQ、游客等多种登录方式。本文讲解如何接入MSDK并实现完整的账号功能。

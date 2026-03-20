@@ -1,3 +1,12 @@
+---
+title: 游戏内调试控制台 Terminal 系统设计
+published: 2024-01-01
+description: "游戏内调试控制台 Terminal 系统设计 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 工具与编辑器
+draft: false
+---
+
 # 游戏内调试控制台 Terminal 系统设计
 
 ## 1. 系统概述

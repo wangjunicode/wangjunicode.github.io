@@ -1,3 +1,12 @@
+---
+title: 03_Addressables资源管理系统
+published: 2024-01-01
+description: "03_Addressables资源管理系统 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 热更新
+draft: false
+---
+
 # 03_Addressables资源管理系统
 
 > 面向刚入行的毕业生 · 建议搭配 PatchManager.cs 和 VersionManager.cs 阅读

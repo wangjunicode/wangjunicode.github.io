@@ -1,3 +1,12 @@
+---
+title: 05_GCloud_SDK集成指南
+published: 2024-01-01
+description: "05_GCloud_SDK集成指南 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 网络与SDK
+draft: false
+---
+
 # 05_GCloud_SDK集成指南
 
 > GCloud是腾讯游戏专用的云服务SDK，提供了帧同步、热更新、网络优化、语音等一系列能力。本文是从零开始接入GCloud的完整指南。

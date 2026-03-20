@@ -34,7 +34,7 @@ draft: false
 
 主工程创建一个适配器类
 
-```c#
+```csharp
 public class HotfixMonoBehaviourAdapter:MonoBehaviour
 {
     public string bindClass = "HotFix_Project.HotFixMonoBehaviour";
@@ -56,7 +56,7 @@ public class HotfixMonoBehaviourAdapter:MonoBehaviour
 
 热更工程创建一个HotFixMono
 
-```c#
+```csharp
 public class HotFixMonoBehaviour
 {
 	void Awake()
@@ -123,7 +123,7 @@ https://ourpalm.github.io/ILRuntime/public/v1/guide/principle.html
 
 
 
-```c#
+```csharp
 public class Example
 {
     static void Main()

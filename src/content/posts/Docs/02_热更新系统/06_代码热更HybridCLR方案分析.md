@@ -1,3 +1,12 @@
+---
+title: 06_代码热更HybridCLR方案分析
+published: 2024-01-01
+description: "06_代码热更HybridCLR方案分析 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 热更新
+draft: false
+---
+
 # 06_代码热更HybridCLR方案分析
 
 > 面向刚入行的毕业生 · 建议搭配 ClientBridge.cs 和 BuildAssetsCommand.cs 阅读

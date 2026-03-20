@@ -2,7 +2,7 @@
 title: 关于算法-LeetCode题库
 published: 2017-09-11
 description: "关于算法-面试常见的算法问题"
-tags: []
+tags: [算法, LeetCode, 面试]
 category: 基础知识
 draft: false
 ---
@@ -21,7 +21,7 @@ https://leetcode.cn/problems/3sum-closest/submissions/496369065/
 
 输出：返回所有和为0且不重复的三元组
 
-```c#
+```csharp
 public class Solution
 {
 	public IList<IList<int>> ThreeSum(int[] nums)

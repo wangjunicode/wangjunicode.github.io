@@ -1,7 +1,7 @@
-﻿---
+---
 title: Unity分离贴图alpha通道
 published: 2020-08-14
-description: "Unity分离贴图alpha通道"
+description: "Unity 分离贴图 Alpha 通道的完整技术方案：通过将 RGB 和 Alpha 分别存储在两张贴图中，大幅减少移动端纹理内存占用和包体大小。"
 tags: []
 category: Unity开发
 draft: false

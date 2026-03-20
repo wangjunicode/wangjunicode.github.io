@@ -1,3 +1,12 @@
+---
+title: 07 协程锁 CoroutineLock 机制详解
+published: 2024-01-01
+description: "07 协程锁 CoroutineLock 机制详解 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: ET框架
+draft: false
+---
+
 # 07 协程锁 CoroutineLock 机制详解
 
 > 面向刚入行的毕业生 · 技术架构师出品

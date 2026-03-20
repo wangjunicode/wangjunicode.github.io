@@ -2,7 +2,7 @@
 title: Unity通信方案Protobuf
 published: 2019-04-06
 description: "Google Protobuf是一种轻量级、高效、易于使用的数据序列化协议。"
-tags: []
+tags: [Unity, Protobuf, 网络编程]
 category: Unity开发
 draft: false
 ---
@@ -34,13 +34,13 @@ message LoginMessage {
 
 ### 2. 使用Protoc编译消息格式定义文件
 
-```c#
+```csharp
 protoc --csharp_out=./ ./chat.proto
 ```
 
 ### 3. 使用Protobuf编解码消息
 
-```c#
+```csharp
 using UnityEngine;
 using UnityEngine.Networking;
 using chat;

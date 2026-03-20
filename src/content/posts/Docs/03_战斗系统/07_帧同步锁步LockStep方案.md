@@ -1,3 +1,12 @@
+---
+title: 07 帧同步锁步（LockStep）方案
+published: 2024-01-01
+description: "07 帧同步锁步（LockStep）方案 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 战斗系统
+draft: false
+---
+
 # 07 帧同步锁步（LockStep）方案
 
 > 本文介绍战斗系统中的帧同步机制，讲解如何保证多个客户端在同一战斗中的状态完全一致，以及确定性、输入同步、哈希校验等核心技术点。

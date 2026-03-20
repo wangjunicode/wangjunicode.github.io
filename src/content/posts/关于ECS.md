@@ -2,7 +2,7 @@
 title: 关于ECS
 published: 2021-09-12
 description: "OO和ECS的模式，并不需要分的太开。总体上，OO的模式，偏向于人类和生物对世界的概念及其创造物，偏高层偏对外偏应用实现。ECS的模式，偏向于无机世界及低级有机"
-tags: []
+tags: [Unity, ECS, DOTS]
 category: 游戏开发
 draft: false
 ---

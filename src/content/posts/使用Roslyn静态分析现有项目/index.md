@@ -31,7 +31,7 @@ draft: false
 
 ![image-20230907163724401](/images/posts/使用Roslyn静态分析现有项目/image-20230907163724401.png)
 
-```c#
+```csharp
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -98,7 +98,7 @@ namespace TestMyRewriter
 
 ## 加载一个项目
 
-```c#
+```csharp
 static async Task Main(string[] args)
 {
     string solutionPath = @"H:\CSharpProject\MyConsole\MyConsole.sln";
@@ -128,7 +128,7 @@ static async Task Main(string[] args)
 
 
 
-```c#
+```csharp
 using System;
 using System.Collections.Generic;
 using System.IO;
