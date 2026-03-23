@@ -1,7 +1,7 @@
 ---
 title: 游戏性能诊断：从Profiler到线上监控体系
 description: 系统讲解游戏性能问题的完整诊断流程：Unity Profiler深度使用、帧率/内存/GPU分析方法论、线上性能监控告警体系建立与性能基准测试。
-pubDate: 2026-03-21
+published: 2026-03-21
 category: 性能优化
 tags: [性能优化, Profiler, 性能监控, 帧率分析, 内存分析, GPU分析]
 ---

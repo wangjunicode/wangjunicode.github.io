@@ -1,7 +1,7 @@
 ---
 title: 跨平台游戏开发：iOS与Android适配指南
 description: 系统讲解游戏跨平台开发的完整方案，涵盖iOS/Android平台差异处理、机型适配策略、性能分级、应用商店规范与发布流程。
-pubDate: 2026-03-21
+published: 2026-03-21
 category: 工程效能
 tags: [跨平台, iOS, Android, 机型适配, 性能分级, 发布]
 ---

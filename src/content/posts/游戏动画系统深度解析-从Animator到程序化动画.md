@@ -1,7 +1,7 @@
 ---
 title: "游戏动画系统深度解析：从Animator到程序化动画"
 description: "深入Unity动画系统的完整技术栈，包括Animator Controller状态机、Blend Tree、Animation Rigging、IK反向运动学，以及高性能程序化动画实现"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["动画系统", "Animator", "IK", "Animation Rigging", "程序化动画", "Unity"]
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: 游戏Shader入门到进阶完整指南
 description: 系统讲解游戏Shader开发从基础GLSL/HLSL语法到PBR材质、自定义渲染管线的完整学习路径，涵盖Unity URP与Shader Graph实战。
-pubDate: 2026-03-21
+published: 2026-03-21
 category: 图形渲染
 tags: [Shader, HLSL, PBR, Unity, URP, 图形渲染]
 ---

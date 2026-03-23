@@ -1,7 +1,7 @@
 ---
 title: "游戏CI/CD最佳实践：自动化构建发布流水线"
 description: "系统讲解游戏项目CI/CD体系建设，包括自动化构建、多平台打包、自动化测试、热更新发布流水线，以及Jenkins/GitHub Actions的实战配置"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["CI/CD", "DevOps", "自动化构建", "Jenkins", "游戏工程效能"]
 ---
 

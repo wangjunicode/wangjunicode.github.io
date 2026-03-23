@@ -1,7 +1,7 @@
 ---
 title: "Unity Shader高级编程：从基础语法到GPU优化"
 description: "深度解析Unity Shader编程，从ShaderLab语法到HLSL高级技巧，包括顶点着色器、片元着色器、几何着色器、计算着色器，以及移动端GPU针对性优化策略"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["Shader", "HLSL", "ShaderLab", "GPU编程", "计算着色器", "渲染优化"]
 ---
 

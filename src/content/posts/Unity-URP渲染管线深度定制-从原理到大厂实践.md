@@ -1,7 +1,7 @@
 ---
 title: "Unity URP渲染管线深度定制：从原理到大厂实践"
 description: "深入解析Unity URP（通用渲染管线）的底层架构，掌握Renderer Feature、Pass定制、Shader扩展，以及米哈游/鹰角等一线大厂的URP定制案例"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["URP", "渲染管线", "Renderer Feature", "Shader", "SRP", "Unity"]
 ---
 

@@ -1,7 +1,7 @@
 ---
 title: "Unity资源管理系统深度解析：AssetBundle到Addressables"
 description: "深入解析Unity资源管理的完整体系，包括AssetBundle打包原理、Addressables高级用法、引用计数、内存生命周期管理，以及大型项目的资源管理架构"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["AssetBundle", "Addressables", "资源管理", "内存优化", "Unity"]
 ---
 

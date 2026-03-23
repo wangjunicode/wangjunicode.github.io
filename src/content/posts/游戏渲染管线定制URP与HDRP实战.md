@@ -1,7 +1,7 @@
 ---
 title: 游戏渲染管线定制：URP与HDRP实战
 description: 深入解析Unity可编程渲染管线（SRP）架构，掌握URP自定义Pass、Renderer Feature开发、后处理效果扩展，以及从内置管线迁移到URP的完整指南。
-pubDate: 2026-03-21
+published: 2026-03-21
 category: 图形渲染
 tags: [URP, HDRP, SRP, 渲染管线, 后处理, Unity]
 ---

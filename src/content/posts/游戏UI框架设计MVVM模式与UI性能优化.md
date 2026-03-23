@@ -1,7 +1,7 @@
 ---
 title: 游戏UI框架设计：MVVM模式与UI性能优化
 description: 深入讲解游戏UI架构设计，包括MVVM数据绑定模式、UI管理器、页面栈管理、动态UI加载与UGUI/UIToolkit性能优化实战技巧。
-pubDate: 2026-03-21
+published: 2026-03-21
 category: 架构设计
 tags: [UI框架, MVVM, UGUI, UIToolkit, 性能优化, Unity]
 ---

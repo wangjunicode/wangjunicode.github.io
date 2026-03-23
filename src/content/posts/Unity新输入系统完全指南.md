@@ -1,7 +1,7 @@
 ---
 title: Unity新输入系统完全指南
 description: 全面解析Unity New Input System（InputSystem Package）的架构设计与实践，包括Action Map配置、设备热插拔、多玩家支持、移动端触控处理与主机手柄适配。
-pubDate: 2026-03-21
+published: 2026-03-21
 category: 技术基础
 tags: [Unity, InputSystem, 输入系统, 手柄, 移动端, 多平台]
 ---

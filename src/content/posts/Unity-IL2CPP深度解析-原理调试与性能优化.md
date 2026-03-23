@@ -1,7 +1,7 @@
 ---
 title: "Unity IL2CPP深度解析：原理、调试与性能优化"
 description: "深入解析Unity IL2CPP编译流程，包括C#→IL→C++转换原理、AOT限制与解决方案、IL2CPP调试技术、代码生成优化，以及IL2CPP环境下常见坑和解决方案"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["IL2CPP", "AOT", "编译优化", "调试", "反射", "Unity底层"]
 ---
 

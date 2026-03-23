@@ -1,7 +1,7 @@
 ---
 title: "Unity音频系统深度解析：从基础到高级空间音频"
 description: "深度解析Unity音频系统的完整技术栈，包括AudioMixer、3D空间音频、音频LOD、程序化音频生成、FMOD集成，以及如何为游戏打造沉浸式声音体验"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["音频系统", "AudioMixer", "空间音频", "FMOD", "声音设计", "Unity"]
 ---
 

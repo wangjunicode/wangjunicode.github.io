@@ -1,7 +1,7 @@
 ---
 title: "PBR物理渲染从理论到Unity实践"
 description: "深入解析PBR（基于物理的渲染）核心理论，包括微表面模型、能量守恒、菲涅尔效应，以及在Unity URP中的完整实践指南"
-pubDate: "2025-03-21"
+published: "2025-03-21"
 tags: ["PBR", "渲染", "图形学", "Shader", "URP", "Unity"]
 ---
 
