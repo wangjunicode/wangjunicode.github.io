@@ -3,6 +3,7 @@ import svelte from "@astrojs/svelte";
 import tailwind from "@astrojs/tailwind";
 import { pluginCollapsibleSections } from "@expressive-code/plugin-collapsible-sections";
 import { pluginLineNumbers } from "@expressive-code/plugin-line-numbers";
+import swup from "@swup/astro";
 import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import { defineConfig } from "astro/config";
@@ -25,31 +26,33 @@ import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-cop
 
 // https://astro.build/config
 export default defineConfig({
-	site: "https://wangjunicode.github.io/",
+	site: "https://fuwari.vercel.app/",
 	base: "/",
 	trailingSlash: "always",
 	integrations: [
 		tailwind({
 			nesting: true,
 		}),
-		// 禁用 swup 以提升页面切换速度
-		// 保留注释以备恢复：如果希望页面切换有动画，可重新启用 swup
-		// swup({
-		// 	theme: false,
-		// 	animationClass: "transition-swup-",
-		// 	containers: ["main", "#toc"],
-		// 	smoothScrolling: true,
-		// 	cache: true,
-		// 	preload: true,
-		// 	accessibility: true,
-		// 	updateHead: true,
-		// 	updateBodyClass: false,
-		// 	globalInstance: true,
-		// }),
+		swup({
+			theme: false,
+			animationClass: "transition-swup-", // see https://swup.js.org/options/#animationselector
+			// the default value `transition-` cause transition delay
+			// when the Tailwind class `transition-all` is used
+			containers: ["main", "#toc"],
+			smoothScrolling: true,
+			cache: true,
+			preload: true,
+			accessibility: true,
+			updateHead: true,
+			updateBodyClass: false,
+			globalInstance: true,
+		}),
 		icon({
 			include: {
-				// 只保留最常用的图标集，减少打包体积
-				"fa6-solid": ["*"], // 只保留solid图标集
+				"preprocess: vitePreprocess(),": ["*"],
+				"fa6-brands": ["*"],
+				"fa6-regular": ["*"],
+				"fa6-solid": ["*"],
 			},
 		}),
 		expressiveCode({
@@ -163,55 +166,7 @@ export default defineConfig({
 					}
 					warn(warning);
 				},
-				output: {
-					// 按需加载的 chunk 名称更短，减小打包产物文件名长度
-					chunkFileNames: "assets/[hash].js",
-					assetFileNames: "assets/[hash].[ext]",
-				},
 			},
-			// 优化资源内联策略：减少base64内联，避免JS文件过大
-			assetsInlineLimit: 4096, // 从8KB减少到4KB
-			// 启用更激进的压缩
-			minify: "terser",
-			terserOptions: {
-				compress: {
-					drop_console: true,
-					drop_debugger: true,
-				},
-			},
-			target: "es2022",
-			// 启用更细粒度的代码分割
-			rollupOptions: {
-				output: {
-					manualChunks: {
-						// 将大库单独分包
-						vendor: [
-							'katex',
-							'photoswipe',
-							'@expressive-code/core',
-							'@iconify/svelte'
-						],
-						// 图标库单独分包
-						icons: [
-							'@iconify-json/fa6-solid'
-						],
-					},
-					chunkFileNames: "assets/[name]-[hash].js",
-					assetFileNames: "assets/[name]-[hash].[ext]",
-				},
-			},
-		},
-		// 更快的开发服务器
-		server: {
-			hmr: true,
-		},
-		// 优化依赖预构建
-		optimizeDeps: {
-			include: [
-				'@astrojs/svelte',
-				'@astrojs/tailwind',
-				'astro-expressive-code'
-			],
 		},
 	},
 });
