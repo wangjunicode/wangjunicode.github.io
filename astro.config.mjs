@@ -7,10 +7,10 @@ import expressiveCode from "astro-expressive-code";
 import icon from "astro-icon";
 import { defineConfig } from "astro/config";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeComponents from "rehype-components";
+import rehypeComponents from "rehype-components"; /* Render the custom directive content */
 import rehypeKatex from "rehype-katex";
 import rehypeSlug from "rehype-slug";
-import remarkDirective from "remark-directive";
+import remarkDirective from "remark-directive"; /* Handle directives */
 import remarkGithubAdmonitionsToDirectives from "remark-github-admonitions-to-directives";
 import remarkMath from "remark-math";
 import remarkSectionize from "remark-sectionize";
@@ -25,181 +25,193 @@ import { pluginCustomCopyButton } from "./src/plugins/expressive-code/custom-cop
 
 // https://astro.build/config
 export default defineConfig({
-    site: "https://wangjunicode.github.io/",
-    base: "/",
-    trailingSlash: "always",
-    integrations: [
-        tailwind({
-            nesting: true,
-        }),
-        icon({
-            include: {
-                "preprocess: vitePreprocess(),": ["*"],
-                "fa6-brands": ["*"],
-                "fa6-regular": ["*"],
-                "fa6-solid": ["*"],
-            },
-        }),
-        expressiveCode({
-            themes: [expressiveCodeConfig.theme, expressiveCodeConfig.theme],
-            plugins: [
-                pluginCollapsibleSections(),
-                pluginLineNumbers(),
-                pluginLanguageBadge(),
-                pluginCustomCopyButton()
-            ],
-            defaultProps: {
-                wrap: true,
-                overridesByLang: {
-                    'shellsession': {
-                        showLineNumbers: false,
-                    },
-                },
-            },
-            styleOverrides: {
-                codeBackground: "var(--codeblock-bg)",
-                borderRadius: "0.75rem",
-                borderColor: "none",
-                codeFontSize: "0.875rem",
-                codeFontFamily: "'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
-                codeLineHeight: "1.5rem",
-                frames: {
-                    editorBackground: "var(--codeblock-bg)",
-                    terminalBackground: "var(--codeblock-bg)",
-                    terminalTitlebarBackground: "var(--codeblock-topbar-bg)",
-                    editorTabBarBackground: "var(--codeblock-topbar-bg)",
-                    editorActiveTabBackground: "none",
-                    editorActiveTabIndicatorBottomColor: "var(--primary)",
-                    editorActiveTabIndicatorTopColor: "none",
-                    editorTabBarBorderBottomColor: "var(--codeblock-topbar-bg)",
-                    terminalTitlebarBorderBottomColor: "none"
-                },
-                textMarkers: {
-                    delHue: 0,
-                    insHue: 180,
-                    markHue: 250
-                }
-            },
-            frames: {
-                showCopyToClipboardButton: false,
-            }
-        }),
+	site: "https://wangjunicode.github.io/",
+	base: "/",
+	trailingSlash: "always",
+	integrations: [
+		tailwind({
+			nesting: true,
+		}),
+		// 禁用 swup 以提升页面切换速度
+		// 保留注释以备恢复：如果希望页面切换有动画，可重新启用 swup
+		// swup({
+		// 	theme: false,
+		// 	animationClass: "transition-swup-",
+		// 	containers: ["main", "#toc"],
+		// 	smoothScrolling: true,
+		// 	cache: true,
+		// 	preload: true,
+		// 	accessibility: true,
+		// 	updateHead: true,
+		// 	updateBodyClass: false,
+		// 	globalInstance: true,
+		// }),
+		icon({
+			include: {
+				// 只保留最常用的图标集，减少打包体积
+				"fa6-solid": ["*"], // 只保留solid图标集
+			},
+		}),
+		expressiveCode({
+			themes: [expressiveCodeConfig.theme, expressiveCodeConfig.theme],
+			plugins: [
+				pluginCollapsibleSections(),
+				pluginLineNumbers(),
+				pluginLanguageBadge(),
+				pluginCustomCopyButton()
+			],
+			defaultProps: {
+				wrap: true,
+				overridesByLang: {
+					'shellsession': {
+						showLineNumbers: false,
+					},
+				},
+			},
+			styleOverrides: {
+				codeBackground: "var(--codeblock-bg)",
+				borderRadius: "0.75rem",
+				borderColor: "none",
+				codeFontSize: "0.875rem",
+				codeFontFamily: "'JetBrains Mono Variable', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+				codeLineHeight: "1.5rem",
+				frames: {
+					editorBackground: "var(--codeblock-bg)",
+					terminalBackground: "var(--codeblock-bg)",
+					terminalTitlebarBackground: "var(--codeblock-topbar-bg)",
+					editorTabBarBackground: "var(--codeblock-topbar-bg)",
+					editorActiveTabBackground: "none",
+					editorActiveTabIndicatorBottomColor: "var(--primary)",
+					editorActiveTabIndicatorTopColor: "none",
+					editorTabBarBorderBottomColor: "var(--codeblock-topbar-bg)",
+					terminalTitlebarBorderBottomColor: "none"
+				},
+				textMarkers: {
+					delHue: 0,
+					insHue: 180,
+					markHue: 250
+				}
+			},
+			frames: {
+				showCopyToClipboardButton: false,
+			}
+		}),
         svelte(),
-        sitemap(),
-    ],
-    markdown: {
-        remarkPlugins: [
-            remarkMath,
-            remarkReadingTime,
-            remarkExcerpt,
-            remarkGithubAdmonitionsToDirectives,
-            remarkDirective,
-            remarkSectionize,
-            parseDirectiveNode,
-        ],
-        rehypePlugins: [
-            rehypeKatex,
-            rehypeSlug,
-            [
-                rehypeComponents,
-                {
-                    components: {
-                        github: GithubCardComponent,
-                        note: (x, y) => AdmonitionComponent(x, y, "note"),
-                        tip: (x, y) => AdmonitionComponent(x, y, "tip"),
-                        important: (x, y) => AdmonitionComponent(x, y, "important"),
-                        caution: (x, y) => AdmonitionComponent(x, y, "caution"),
-                        warning: (x, y) => AdmonitionComponent(x, y, "warning"),
-                    },
-                },
-            ],
-            [
-                rehypeAutolinkHeadings,
-                {
-                    behavior: "append",
-                    properties: {
-                        className: ["anchor"],
-                    },
-                    content: {
-                        type: "element",
-                        tagName: "span",
-                        properties: {
-                            className: ["anchor-icon"],
-                            "data-pagefind-ignore": true,
-                        },
-                        children: [
-                            {
-                                type: "text",
-                                value: "#",
-                            },
-                        ],
-                    },
-                },
-            ],
-        ],
-    },
-    vite: {
-        build: {
-            rollupOptions: {
-                onwarn(warning, warn) {
-                    if (
-                        warning.message.includes("is dynamically imported by") &&
-                        warning.message.includes("but also statically imported by")
-                    ) {
-                        return;
-                    }
-                    warn(warning);
-                },
-                output: {
-                    chunkFileNames: "assets/[hash].js",
-                    assetFileNames: "assets/[hash].[ext]",
-                    // 代码分割配置：解决 Cloudflare Pages 25MB 文件限制
-                    manualChunks: (id) => {
-                        if (id.includes("node_modules")) {
-                            // 大型数学/公式库单独打包
-                            if (id.includes("katex")) {
-                                return "vendor-katex";
-                            }
-                            // 3D/图形库单独打包
-                            if (id.includes("three") || id.includes("@three")) {
-                                return "vendor-three";
-                            }
-                            // 图表库单独打包
-                            if (id.includes("echarts") || id.includes("zrender")) {
-                                return "vendor-echarts";
-                            }
-                            // Mermaid 图表库单独打包
-                            if (id.includes("mermaid") || id.includes("dagre") || id.includes("cytoscape")) {
-                                return "vendor-mermaid";
-                            }
-                            // 代码高亮相关库单独打包
-                            if (id.includes("shiki") || id.includes("expressive-code") || id.includes("hast") || id.includes("unist")) {
-                                return "vendor-shiki";
-                            }
-                            // Svelte 框架单独打包
-                            if (id.includes("svelte")) {
-                                return "vendor-svelte";
-                            }
-                            // Markdown 处理相关库
-                            if (id.includes("remark") || id.includes("rehype") || id.includes("mdast") || id.includes("micromark")) {
-                                return "vendor-markdown";
-                            }
-                            // 工具库合并打包
-                            if (id.includes("lodash") || id.includes("dayjs") || id.includes("date-fns")) {
-                                return "vendor-utils";
-                            }
-                            // 其他 node_modules 统一打包
-                            return "vendor";
-                        }
-                    },
-                },
-            },
-            assetsInlineLimit: 8192,
-            minify: "terser",
-            target: "es2022",
-        },
-        server: {
-            hmr: true,
-        },
-    },
+		sitemap(),
+	],
+	markdown: {
+		remarkPlugins: [
+			remarkMath,
+			remarkReadingTime,
+			remarkExcerpt,
+			remarkGithubAdmonitionsToDirectives,
+			remarkDirective,
+			remarkSectionize,
+			parseDirectiveNode,
+		],
+		rehypePlugins: [
+			rehypeKatex,
+			rehypeSlug,
+			[
+				rehypeComponents,
+				{
+					components: {
+						github: GithubCardComponent,
+						note: (x, y) => AdmonitionComponent(x, y, "note"),
+						tip: (x, y) => AdmonitionComponent(x, y, "tip"),
+						important: (x, y) => AdmonitionComponent(x, y, "important"),
+						caution: (x, y) => AdmonitionComponent(x, y, "caution"),
+						warning: (x, y) => AdmonitionComponent(x, y, "warning"),
+					},
+				},
+			],
+			[
+				rehypeAutolinkHeadings,
+				{
+					behavior: "append",
+					properties: {
+						className: ["anchor"],
+					},
+					content: {
+						type: "element",
+						tagName: "span",
+						properties: {
+							className: ["anchor-icon"],
+							"data-pagefind-ignore": true,
+						},
+						children: [
+							{
+								type: "text",
+								value: "#",
+							},
+						],
+					},
+				},
+			],
+		],
+	},
+	vite: {
+		build: {
+			rollupOptions: {
+				onwarn(warning, warn) {
+					// temporarily suppress this warning
+					if (
+						warning.message.includes("is dynamically imported by") &&
+						warning.message.includes("but also statically imported by")
+					) {
+						return;
+					}
+					warn(warning);
+				},
+				output: {
+					// 按需加载的 chunk 名称更短，减小打包产物文件名长度
+					chunkFileNames: "assets/[hash].js",
+					assetFileNames: "assets/[hash].[ext]",
+				},
+			},
+			// 优化资源内联策略：减少base64内联，避免JS文件过大
+			assetsInlineLimit: 4096, // 从8KB减少到4KB
+			// 启用更激进的压缩
+			minify: "terser",
+			terserOptions: {
+				compress: {
+					drop_console: true,
+					drop_debugger: true,
+				},
+			},
+			target: "es2022",
+			// 启用更细粒度的代码分割
+			rollupOptions: {
+				output: {
+					manualChunks: {
+						// 将大库单独分包
+						vendor: [
+							'katex',
+							'photoswipe',
+							'@expressive-code/core',
+							'@iconify/svelte'
+						],
+						// 图标库单独分包
+						icons: [
+							'@iconify-json/fa6-solid'
+						],
+					},
+					chunkFileNames: "assets/[name]-[hash].js",
+					assetFileNames: "assets/[name]-[hash].[ext]",
+				},
+			},
+		},
+		// 更快的开发服务器
+		server: {
+			hmr: true,
+		},
+		// 优化依赖预构建
+		optimizeDeps: {
+			include: [
+				'@astrojs/svelte',
+				'@astrojs/tailwind',
+				'astro-expressive-code'
+			],
+		},
+	},
 });
