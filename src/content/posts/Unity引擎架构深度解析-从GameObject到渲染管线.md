@@ -1,7 +1,7 @@
 ---
 title: "Unity引擎架构深度解析：从GameObject到渲染管线"
 description: "深入Unity引擎底层架构，解析GameObject/Component体系、消息系统、Native层通信机制，以及渲染管线的完整原理"
-published: "2025-03-21"
+published: 2025-03-21
 tags: ["Unity", "引擎架构", "GameObject", "渲染管线", "技术深度"]
 ---
 

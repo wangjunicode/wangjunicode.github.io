@@ -1,7 +1,7 @@
 ---
 title: "Unity性能优化方法论：Profile驱动的系统优化实践"
 description: "从方法论到工具链，系统讲解Unity游戏性能优化的完整流程，包括CPU/GPU/内存三维优化、Profiler工具链使用、移动端特化优化策略"
-published: "2025-03-21"
+published: 2025-03-21
 tags: ["性能优化", "Profiler", "DrawCall", "GC优化", "移动端", "Unity"]
 ---
 
