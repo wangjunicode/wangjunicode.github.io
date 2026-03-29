@@ -1,0 +1,227 @@
+---
+title: 协程锁的设计原理与异步安全
+published: 2026-03-30
+description: "深度解析单线程游戏中协程锁的必要性，以及 Dispose 触发、nextFrameRun 延迟、100级警告的工程实现细节。"
+tags: [Unity, 框架设计]
+category: 框架底层
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 为什么这样设计（第一性原理）
+
+**"游戏是单线程的，我需要锁吗？"** 这是很多开发者的第一反应。答案是：需要，但不是传统的线程锁，而是**协程锁**。
+
+原因在于异步的本质：`async/await` 协程会在 `await` 点让出执行权，然后在未来某一帧恢复。两个协程 A 和 B 都在操作同一份数据，执行顺序可能是：
+
+```
+A: 读取数据 → await → (B 开始) → B: 读取相同数据 → B: 修改 → A: 恢复 → A: 基于旧数据修改 → 数据错乱
+```
+
+这与多线程的竞态条件（Race Condition）**完全等价**，只是发生在帧间而非线程间。
+
+**第一性原理的解法**：引入协程锁。持有锁期间，其他协程的相同操作进入等待队列；锁释放（`Dispose`）时，队列里的下一个等待者被唤醒。这精确复制了互斥锁的语义，但实现是协程友好的（等待时不阻塞主线程）。
+
+---
+
+## 源码解析
+
+### 1. CoroutineLock：极简的锁对象
+
+```csharp
+public class CoroutineLock : IDisposable
+{
+    private int type;   // 锁的类型（业务分类）
+    private long key;   // 锁的键（同一类型下的具体区分，如 entityId）
+    private int level;  // 当前层级（重入计数）
+
+    public static CoroutineLock Create(int type, long k, int count)
+    {
+        CoroutineLock coroutineLock = ObjectPool.Instance.Fetch<CoroutineLock>();
+        coroutineLock.type = type;
+        coroutineLock.key  = k;
+        coroutineLock.level = count;
+        return coroutineLock;
+    }
+
+    public void Dispose()
+    {
+        // ① 触发下一个等待者（延迟到下一帧）
+        CoroutineLockComponent.Instance.RunNextCoroutine(this.type, this.key, this.level + 1);
+
+        // ② 重置字段
+        this.type  = CoroutineLockType.None;
+        this.key   = 0;
+        this.level = 0;
+
+        // ③ 回收到对象池
+        ObjectPool.Instance.Recycle(this);
+    }
+}
+```
+
+`CoroutineLock` 的设计极简：本身只携带元数据（type/key/level），核心逻辑委托给 `CoroutineLockComponent`。
+
+`Dispose()` 是整个机制的触发点，配合 C# 的 `using` 语法，能够在协程退出作用域时**自动释放锁**：
+
+```csharp
+using CoroutineLock lock = await CoroutineLockComponent.Instance.Wait(LockType.Inventory, playerId);
+// ... 临界区代码 ...
+// 离开 using 块时自动调用 Dispose，唤醒下一个等待者
+```
+
+**`level + 1` 的作用**：每次锁释放，level 递增，传递给下一个等待者。这是一个单调递增的"代数"，`CoroutineLockQueueType` 用它来验证当前通知是否还有效（过期的通知会被忽略）。
+
+### 2. CoroutineLockComponent：调度中枢
+
+```csharp
+public class CoroutineLockComponent : Singleton<CoroutineLockComponent>, ISingletonUpdate
+{
+    // 按 type 分组的锁队列（一个 type 对应业务上的一种锁）
+    private readonly List<CoroutineLockQueueType> list = new List<CoroutineLockQueueType>(CoroutineLockType.Max);
+
+    // 延迟到下一帧执行的通知队列（关键设计！）
+    private readonly Queue<(int, long, int)> nextFrameRun = new Queue<(int, long, int)>();
+
+    public void Update()
+    {
+        // 每帧处理所有待通知项
+        // 注意：不用快照，循环中可能继续加入新项，用 Count > 0 持续消费
+        while (this.nextFrameRun.Count > 0)
+        {
+            (int coroutineLockType, long key, int count) = this.nextFrameRun.Dequeue();
+            this.Notify(coroutineLockType, key, count);
+        }
+    }
+
+    public void RunNextCoroutine(int coroutineLockType, long key, int level)
+    {
+        // 100 级警告：帧内连续锁请求过多说明设计有问题
+        if (level == 100)
+        {
+            Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
+        }
+
+        // 将通知推迟到下一帧执行（不立即 Notify）
+        this.nextFrameRun.Enqueue((coroutineLockType, key, level));
+    }
+
+    public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000)
+    {
+        CoroutineLockQueueType coroutineLockQueueType = this.list[coroutineLockType];
+        return await coroutineLockQueueType.Wait(key, time);
+    }
+}
+```
+
+### 3. nextFrameRun 延迟执行：防止帧内死循环
+
+这是整个协程锁设计中**最反直觉也最关键**的一个细节。
+
+**如果不延迟，直接在 `Dispose()` 里调用 `Notify()`，会发生什么？**
+
+```
+协程 A 持锁 → 执行业务逻辑 → Dispose() → 立即 Notify 唤醒协程 B
+→ 协程 B 恢复执行 → Dispose() → 立即 Notify 唤醒协程 C
+→ 协程 C 恢复执行 → ...
+```
+
+所有等待者在**同一帧内**被链式唤醒并执行，如果队列很长，一帧的耗时会急剧增加，产生卡帧。更危险的是，如果某个协程在锁内又 `await WaitFrameFinish()` 等待帧末，而帧末恰好在这条链的执行过程中到来，时序会完全乱掉。
+
+**延迟到下一帧的好处**：
+1. 每帧最多唤醒一批等待者，压力分散到多帧，帧耗时可控
+2. 被唤醒的协程从一个干净的帧边界开始执行，时序确定
+3. 与 `WaitFrameFinish()` 的帧末机制不会互相干扰
+
+```
+帧 N：协程 A 持锁 → Dispose() → 推入 nextFrameRun（不立即执行）
+帧 N+1：Update() → 从 nextFrameRun 出队 → Notify(B) → 协程 B 唤醒并持锁
+帧 N+1：B 执行业务 → Dispose() → 推入 nextFrameRun
+帧 N+2：Update() → Notify(C) → 协程 C 唤醒 ...
+```
+
+每个等待者至少等一帧才能获得锁，这就是协程锁的"帧间互斥"语义。
+
+### 4. 100 级警告机制
+
+```csharp
+if (level == 100)
+{
+    Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
+}
+```
+
+`level` 从 1 开始，每次锁传递递增。如果同一个 (type, key) 的锁已经传递了 100 次，说明有 100 个协程在排队等待这把锁。这在正常业务下是不合理的，通常意味着：
+
+- 某个操作被频繁重复调用（如按钮连点未做防抖）
+- 锁的粒度太粗，本该并行的操作被序列化了
+- 存在锁泄漏（某个协程拿了锁却没有正确释放）
+
+100 级警告是一个**运行时设计反馈机制**，不是错误，是信号。
+
+---
+
+## 快速开新项目的方案/清单
+
+### 最小化移植清单
+
+```
+Core/CoroutineLock/CoroutineLock.cs
+Core/CoroutineLock/CoroutineLockComponent.cs
+Core/CoroutineLock/CoroutineLockQueueType.cs
+Core/CoroutineLock/CoroutineLockType.cs   // 业务锁类型枚举
+```
+
+### 定义锁类型
+
+```csharp
+// 按业务模块定义锁类型
+public static class CoroutineLockType
+{
+    public const int None      = 0;
+    public const int Inventory = 1;  // 背包操作
+    public const int Battle    = 2;  // 战斗逻辑
+    public const int Shop      = 3;  // 商店购买
+    public const int Max       = 4;  // 必须等于最大值+1
+}
+```
+
+### 使用协程锁的标准写法
+
+```csharp
+// ✅ 正确：using 语法，自动释放
+public async ETTask UseItem(long playerId, int itemId)
+{
+    using CoroutineLock coroutineLock = 
+        await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Inventory, playerId);
+    
+    // 临界区：对背包的操作是互斥的
+    var item = GetItem(itemId);
+    await ConsumeItem(item);
+    await UpdateDatabase(playerId);
+    // 离开 using 块自动释放锁
+}
+
+// ❌ 错误：忘记 using，锁永远不释放，队列死锁
+public async ETTask UseItemBad(long playerId, int itemId)
+{
+    CoroutineLock coroutineLock = 
+        await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Inventory, playerId);
+    // ... 如果这里抛异常，锁永远不会释放！
+}
+```
+
+### 接入新项目步骤
+
+- [ ] 启动时 `Game.AddSingleton<CoroutineLockComponent>()`（它实现了 `ISingletonUpdate`，自动接入主循环）
+- [ ] 按业务划分 `CoroutineLockType` 枚举，设置好 `Max` 值
+- [ ] 所有对同一资源的异步并发操作，用相同的 `(type, key)` 组合加锁
+- [ ] 优先用 `using` 语法，次选 try/finally 确保 Dispose
+
+### 注意事项
+
+- ✅ `key` 通常用 Entity 的 InstanceId 或 PlayerId，保证不同玩家的操作互不阻塞
+- ✅ `Wait()` 有超时参数（默认 60000ms），超时后锁自动释放，防止死锁
+- ⚠️ 锁的粒度：同一 `(type, key)` 的操作是串行的，key 越粗粒度越大，尽量用最细粒度的 key
+- ⚠️ 临界区内不要有长耗时的纯等待（如 `await Task.Delay(1000)`），会延误后续等待者
+- ⚠️ 收到 100 级警告时，检查是否存在锁泄漏或调用频率异常
