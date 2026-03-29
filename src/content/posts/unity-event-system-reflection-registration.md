@@ -1,0 +1,263 @@
+---
+title: 事件系统的反射自动注册机制
+published: 2026-03-30
+description: "深度解析基于反射与 Attribute 标记的事件自动发现机制，以及 Event 广播与 Invoke 精确调用的本质区别。"
+tags: [Unity, 框架设计]
+category: 框架底层
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 为什么这样设计（第一性原理）
+
+传统事件系统有一个永恒的痛点：**手动注册**。每写一个事件处理器，就要找到某个初始化入口，手动调用 `eventBus.Subscribe(...)` 注册它，漏注册的 Bug 很难发现，而且随着系统扩大，初始化代码会变成一个无人敢动的"注册大礼包"。
+
+**第一性原理的解法**：既然代码本身携带了足够的信息（类型、Attribute），为什么不让框架自己去发现和注册？
+
+核心思路：**启动时扫描所有程序集，凡是带有特定 Attribute 的类，自动实例化并注册。** 开发者只需关注业务逻辑，注册这件事完全交给框架。
+
+这个设计还有一个深层好处：支持热重载。热重载时重新扫描新的程序集，所有事件处理器自动更新，不需要手动维护任何注册代码。
+
+---
+
+## 源码解析
+
+### 1. 两级索引结构：TypeSystems
+
+```csharp
+private class OneTypeSystems
+{
+    // 第二级：systemType → 处理器列表
+    public readonly UnOrderMultiMap<Type, object> Map = new();
+    // 快速判断是否需要进某个生命周期队列
+    public readonly bool[] QueueFlag = new bool[(int)InstanceQueueIndex.Max];
+}
+
+private class TypeSystems
+{
+    // 第一级：componentType → OneTypeSystems
+    private readonly Dictionary<Type, OneTypeSystems> typeSystemsMap = new();
+
+    public List<object> GetSystems(Type type, Type systemType)
+    {
+        if (!typeSystemsMap.TryGetValue(type, out OneTypeSystems oneTypeSystems))
+            return null;
+        if (!oneTypeSystems.Map.TryGetValue(systemType, out List<object> systems))
+            return null;
+        return systems;
+    }
+}
+```
+
+**两级索引的查询路径**：
+
+```
+组件类型 (e.g. PlayerComponent)
+    └── OneTypeSystems
+            ├── Map[IAwakeSystem]   → [PlayerAwakeSystem, ...]
+            ├── Map[IUpdateSystem]  → [PlayerUpdateSystem, ...]
+            └── Map[IDestroySystem] → [PlayerDestroySystem, ...]
+```
+
+第一级用组件类型定位，第二级用系统接口类型定位，最终得到的是一个**可直接遍历的处理器列表**。查询是两次字典查找，O(1)，非常高效。
+
+`QueueFlag` 数组是一个布尔快速表，避免每次注册 Entity 时都做完整的 Map 遍历——先查 flag，只有 `true` 的队列才入队。这是以空间换时间的典型应用。
+
+### 2. 启动时的反射扫描
+
+```csharp
+public void Add(Dictionary<string, Type> addTypes)
+{
+    // ① 扫描所有类型，记录有 BaseAttribute 标记的类型
+    foreach ((string fullName, Type type) in addTypes)
+    {
+        this.allTypes[fullName] = type;
+        if (type.IsAbstract) continue;
+
+        object[] objects = type.GetCustomAttributes(typeof(BaseAttribute), true);
+        foreach (object o in objects)
+        {
+            this.types.Add(o.GetType(), type);  // AttributeType → [实现类列表]
+        }
+    }
+
+    // ② 处理系统类（ObjectSystemAttribute）
+    this.typeSystems = new TypeSystems();
+    foreach (Type type in this.GetTypes(typeof(ObjectSystemAttribute)))
+    {
+        object obj = Activator.CreateInstance(type);
+        if (obj is ISystemType iSystemType)
+        {
+            OneTypeSystems oneTypeSystems = 
+                this.typeSystems.GetOrCreateOneTypeSystems(iSystemType.Type());
+            oneTypeSystems.Map.Add(iSystemType.SystemType(), obj);
+            // 设置 QueueFlag
+            InstanceQueueIndex index = iSystemType.GetInstanceQueueIndex();
+            if (index > InstanceQueueIndex.None && index < InstanceQueueIndex.Max)
+                oneTypeSystems.QueueFlag[(int)index] = true;
+        }
+    }
+
+    // ③ 处理事件类（EventAttribute）
+    this.allEvents.Clear();
+    foreach (var type in types[typeof(EventAttribute)])
+    {
+        IEvent obj = Activator.CreateInstance(type) as IEvent;
+        // ... 读取 EventAttribute 上的 SceneType，注册到 allEvents
+    }
+
+    // ④ 处理 Invoke 类（InvokeAttribute）
+    this.allInvokes = new Dictionary<Type, Dictionary<int, object>>();
+    foreach (var type in types[typeof(InvokeAttribute)])
+    {
+        // ... 注册到 allInvokes[argsType][invokeType]
+    }
+}
+```
+
+整个 `Add()` 方法是框架的**自举过程**：把外部传入的类型字典（通常由代码生成工具扫描程序集产出）解析成三张内部索引表：`typeSystems`、`allEvents`、`allInvokes`。
+
+`addTypes` 由调用方在启动时通过反射扫描所有程序集生成，EventSystem 自身不做反射，保持职责单一。
+
+### 3. Event 广播 vs Invoke 精确调用
+
+源码里有一段非常有价值的注释，直接道明了设计意图：
+
+```csharp
+// Invoke 类似函数，必须有被调用方，否则异常
+// 调用者跟被调用者属于同一模块
+// 比如 MoveComponent 中的 Timer 计时器，调用和被调用均属于移动模块
+//
+// Publish 是事件，抛出去可以没人订阅
+// 调用者跟被调用者属于两个模块
+// 比如任务系统订阅道具使用事件
+```
+
+**Publish（广播）**：
+
+```csharp
+public void Publish<T>(Scene scene, T a) where T : struct
+{
+    if (!this.allEvents.TryGetValue(typeof(T), out List<EventInfo> iEvents))
+        return;  // 没人订阅？没关系，静默返回
+
+    foreach (EventInfo eventInfo in iEvents)
+    {
+        // 按 SceneType 过滤
+        if (scene.SceneType != eventInfo.SceneType && eventInfo.SceneType != SceneType.None)
+            continue;
+
+        if (eventInfo.IEvent is AEvent<T> aEvent)
+            aEvent.Handle(scene, a);       // 同步事件
+        else if (eventInfo.IEvent is AAsyncEvent<T> aAsyncEvent)
+            aAsyncEvent.Handle(scene, a).Coroutine();  // 异步事件：fire and forget
+    }
+}
+```
+
+**Invoke（精确调用）**：
+
+```csharp
+public void Invoke<A>(int type, A args) where A : struct
+{
+    if (!this.allInvokes.TryGetValue(typeof(A), out var invokeHandlers))
+        throw new Exception($"Invoke error: {typeof(A).Name}");  // 没有处理器？直接异常！
+
+    if (!invokeHandlers.TryGetValue(type, out var invokeHandler))
+        throw new Exception($"Invoke error: {typeof(A).Name} {type}");
+
+    var aInvokeHandler = invokeHandler as AInvokeHandler<A>;
+    aInvokeHandler.Handle(args);
+}
+```
+
+两者的核心区别一览：
+
+| 维度 | Publish | Invoke |
+|------|---------|--------|
+| 无处理器时 | 静默忽略 | 抛异常 |
+| 处理器数量 | 0~N 个 | 精确 1 个 |
+| 跨模块边界 | ✅ 是 | ❌ 否（同模块内） |
+| 是否可异步 | ✅ 同/异步均支持 | 通常同步 |
+| 典型场景 | 任务系统监听道具使用 | Timer 分发计时回调 |
+
+### 4. SceneType 过滤——同一事件的多场景分发
+
+```csharp
+public EventInfo(IEvent iEvent, SceneType sceneType)
+{
+    this.IEvent = iEvent;
+    this.SceneType = sceneType;
+}
+
+// Publish 时的过滤
+if (scene.SceneType != eventInfo.SceneType && eventInfo.SceneType != SceneType.None)
+    continue;
+```
+
+`EventAttribute` 携带 `SceneType`，同一个事件类型可以有针对不同场景的不同处理器。`SceneType.None` 表示"所有场景都响应"，是默认的通配处理器。
+
+这让客户端逻辑和服务端逻辑可以订阅同一个事件但写在不同的处理器类里，框架在运行时自动路由到正确的处理器。
+
+---
+
+## 快速开新项目的方案/清单
+
+### 定义一个事件并广播
+
+```csharp
+// 1. 定义事件结构体（struct，零 GC）
+public struct EventOnPlayerDead
+{
+    public long PlayerId;
+    public int Reason;
+}
+
+// 2. 实现处理器（打上 EventAttribute，框架自动注册）
+[Event(SceneType.Client)]
+public class OnPlayerDead_UpdateUI : AEvent<EventOnPlayerDead>
+{
+    protected override void Run(Scene scene, EventOnPlayerDead args)
+    {
+        // 更新死亡 UI
+    }
+}
+
+// 3. 广播（无需手动注册）
+EventSystem.Instance.Publish(scene, new EventOnPlayerDead { PlayerId = 123, Reason = 1 });
+```
+
+### 定义一个 Invoke 并精确调用
+
+```csharp
+// 1. 定义参数结构体
+public struct TimerCallback { public long TimerId; }
+
+// 2. 实现处理器（打上 InvokeAttribute）
+[Invoke(TimerType.Once)]
+public class TimerOnceHandler : AInvokeHandler<TimerCallback>
+{
+    public override void Handle(TimerCallback args)
+    {
+        // 处理一次性定时器回调
+    }
+}
+
+// 3. 精确调用
+EventSystem.Instance.Invoke(TimerType.Once, new TimerCallback { TimerId = id });
+```
+
+### 接入新项目的步骤清单
+
+- [ ] 启动时扫描所有程序集，生成 `Dictionary<string, Type>` 传入 `EventSystem.Instance.Add(types)`
+- [ ] 事件结构体用 `struct`（避免 GC），存放轻量数据
+- [ ] 处理器类打 `[Event(SceneType.xxx)]`，框架自动发现
+- [ ] 跨模块通信用 `Publish`，模块内回调用 `Invoke`
+- [ ] 热重载时重新调用 `Add(newTypes)` 即可刷新所有注册
+
+### 注意事项
+
+- ⚠️ `Invoke` 找不到处理器会直接抛异常，上线前必须保证注册完整
+- ⚠️ 异步事件（`AAsyncEvent`）是 fire-and-forget，异常会被 Log 捕获，不会冒泡到 Publish 调用方
+- ✅ 事件结构体字段尽量小，大数据通过 ID 引用，不要直接装入事件
+- ✅ `SceneType.None` 适合写跨场景的通用处理器
