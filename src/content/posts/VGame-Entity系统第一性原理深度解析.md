@@ -1,8 +1,8 @@
----
-title: VGame Entity系统：第一性原理深度解析与快速开项目方案
+﻿---
+title: 实体系统第一性原理深度解析与快速开项目方案
 published: 2026-03-29
-description: "从第一性原理出发，深度解析 VGame 项目 Entity.cs 的设计哲学——为什么要这样设计？如何基于此架构快速启动新项目？技术负责人视角的完整拆解。"
-tags: [Unity, ECS, 架构设计, 第一性原理, VGame]
+description: "从第一性原理出发，深度解析 项目实体系统的设计哲学——为什么要这样设计？如何基于此架构快速启动新项目？技术负责人视角的完整拆解。"
+tags: [Unity, ECS, 架构设计, 第一性原理]
 category: 框架底层
 draft: false
 encryptedKey: henhaoji123
