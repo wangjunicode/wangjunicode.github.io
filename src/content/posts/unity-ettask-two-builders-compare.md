@@ -1,0 +1,307 @@
+---
+title: 两种轻量级方法构建器的设计对比与适用场景分析
+published: 2026-03-31
+description: 对比分析 AsyncETVoidMethodBuilder 与 AsyncETTaskCompletedMethodBuilder 的实现差异，帮你在正确场景选用正确工具。
+tags: [Unity, 异步编程, C# 原理]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 为什么需要两个"简化版"构建器？
+
+上一篇我们深入了 `ETAsyncTaskMethodBuilder`——完整版构建器，支持对象池、Context 传播、StateMachineWrap 优化。
+
+但在一些特定场景下，你并不需要这些高级特性。ETTask 框架提供了两个更简单的构建器：
+
+- **`AsyncETVoidMethodBuilder`**：用于 `async ETVoid` 方法（不需要任务对象、fire-and-forget）
+- **`AsyncETTaskCompletedMethodBuilder`**：用于 `async ETTaskCompleted` 方法（主要用于"总是同步完成"的快路径）
+
+理解它们的差异，需要回答一个关键问题：**什么是"需要的"，什么是"不需要的"？**
+
+---
+
+## AsyncETVoidMethodBuilder：无返回任务的构建器
+
+### 源码
+
+```csharp
+internal struct AsyncETVoidMethodBuilder
+{
+    private IStateMachineWrap iStateMachineWrap;  // 有！用了对象池
+    
+    public static AsyncETVoidMethodBuilder Create()
+    {
+        return new AsyncETVoidMethodBuilder();
+        // 注意：没有创建 tcs！因为不需要任务对象
+    }
+
+    public ETVoid Task => default;  // 返回默认值（IsCompleted = true）
+
+    public void SetException(Exception e)
+    {
+        if (this.iStateMachineWrap != null)
+        {
+            this.iStateMachineWrap.Recycle();
+            this.iStateMachineWrap = null;
+        }
+        ETTask.ExceptionHandler?.Invoke(e);  // 全局异常处理
+    }
+
+    public void SetResult()
+    {
+        if (this.iStateMachineWrap != null)
+        {
+            this.iStateMachineWrap.Recycle();  // 回收状态机包装
+            this.iStateMachineWrap = null;
+        }
+        // 什么都不做！没有 tcs.SetResult()
+    }
+
+    // AwaitOnCompleted/AwaitUnsafeOnCompleted：用了 StateMachineWrap
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(...) 
+    {
+        this.iStateMachineWrap ??= StateMachineWrap<TStateMachine>.Fetch(ref stateMachine);
+        awaiter.UnsafeOnCompleted(this.iStateMachineWrap.MoveNext);
+        // 注意：没有 Context 传播！
+    }
+
+    public void Start<TStateMachine>(ref TStateMachine stateMachine) 
+    {
+        stateMachine.MoveNext();
+    }
+}
+```
+
+**与 ETAsyncTaskMethodBuilder 的关键差异**：
+
+| 特性 | ETAsyncTaskMethodBuilder | AsyncETVoidMethodBuilder |
+|------|--------------------------|--------------------------|
+| 创建 tcs 对象 | ✅ | ❌（不需要） |
+| StateMachineWrap | ✅ | ✅ |
+| Context 传播 | ✅ | ❌ |
+| SetResult 通知调用者 | ✅ | ❌（没有调用者在等） |
+| SetException 传给调用者 | ✅ | ❌（全局 ExceptionHandler） |
+
+最大的区别是：`ETVoid` 方法**没有调用者在等待它**，所以完全不需要 `tcs`，`SetResult` 也是空实现。
+
+---
+
+## AsyncETTaskCompletedMethodBuilder：极简构建器
+
+### 源码
+
+```csharp
+public struct AsyncETTaskCompletedMethodBuilder
+{
+    public static AsyncETTaskCompletedMethodBuilder Create()
+    {
+        return new AsyncETTaskCompletedMethodBuilder();
+        // 比 ETVoidMethodBuilder 更简单：连 iStateMachineWrap 字段都没有！
+    }
+
+    public ETTaskCompleted Task => default;
+
+    public void SetException(Exception e)
+    {
+        ETTask.ExceptionHandler.Invoke(e);
+    }
+
+    public void SetResult() { }  // 空实现
+
+    // AwaitUnsafeOnCompleted：没有 StateMachineWrap！直接装箱
+    public void AwaitUnsafeOnCompleted<TAwaiter, TStateMachine>(
+        ref TAwaiter awaiter, ref TStateMachine stateMachine)
+        where TAwaiter : ICriticalNotifyCompletion
+        where TStateMachine : IAsyncStateMachine
+    {
+        awaiter.UnsafeOnCompleted(stateMachine.MoveNext);  // 直接传！
+    }
+
+    public void Start<TStateMachine>(ref TStateMachine stateMachine)
+    {
+        stateMachine.MoveNext();
+    }
+}
+```
+
+**与 AsyncETVoidMethodBuilder 相比**，`AsyncETTaskCompletedMethodBuilder` 更极简：
+
+- 没有 `iStateMachineWrap` 字段（零额外内存）
+- `AwaitUnsafeOnCompleted` 直接传 `stateMachine.MoveNext`（可能装箱）
+
+为什么可以这样"偷懒"？
+
+---
+
+## 设计取舍背后的逻辑
+
+### ETTaskCompleted 的使用场景
+
+`ETTaskCompleted` 的设计初衷是用于"**总是立即完成**"的场景：
+
+```csharp
+// ETTaskCompleted 作为快路径返回
+public async ETTaskCompleted ImmediatelyDone()
+{
+    DoSomethingSynchronous();
+    // 方法直接结束，没有任何 await
+}
+```
+
+当方法里**没有任何 `await`**，或者所有 `await` 的对象 `IsCompleted` 都是 `true` 时，状态机根本不会走到 `AwaitUnsafeOnCompleted`！
+
+流程是这样的：
+
+```
+Start() → MoveNext()
+    └─ 检查 awaiter.IsCompleted
+         ├─ true → 直接调用 GetResult()，继续执行，不走 AwaitUnsafeOnCompleted
+         └─ false → 调用 AwaitUnsafeOnCompleted（这条路很少走到）
+```
+
+对于 `ETTaskCompleted` 的典型使用场景，`AwaitUnsafeOnCompleted` 几乎不会被调用，偶尔调用一次的装箱开销完全可接受。
+
+这是一个完美的 **"为最常见路径优化"** 示例。
+
+---
+
+## 三个构建器的完整对比
+
+```
+复杂度（高→低）：
+ETAsyncTaskMethodBuilder > AsyncETVoidMethodBuilder > AsyncETTaskCompletedMethodBuilder
+
+适用场景：
+ETAsyncTaskMethodBuilder：
+  ✦ 需要被 await 的异步方法
+  ✦ 需要 Context 传播
+  ✦ 高频调用，需要对象池优化
+  示例：资源加载、网络请求、计时等待
+
+AsyncETVoidMethodBuilder：
+  ✦ fire-and-forget 的异步方法
+  ✦ 不需要被 await，但可能有真正的异步等待点
+  ✦ 仍需对象池优化（StateMachineWrap）
+  示例：播放音效、显示 UI 特效、发送日志
+
+AsyncETTaskCompletedMethodBuilder：
+  ✦ 主要路径是同步完成的方法
+  ✦ 用作接口/基类中的"空实现"
+  ✦ 极简，为极少发生的异步挂起场景
+  示例：缓存命中后的立即返回
+```
+
+---
+
+## 实践：接口的同步快路径
+
+一个常见的设计模式：接口有多种实现，其中一种是同步的：
+
+```csharp
+// 接口定义
+public interface IResourceLoader
+{
+    ETTask<byte[]> LoadAsync(string path);
+}
+
+// 内存缓存实现：总是同步完成
+public class MemoryCacheLoader : IResourceLoader
+{
+    private Dictionary<string, byte[]> _cache = new();
+    
+    public async ETTask<byte[]> LoadAsync(string path)
+    {
+        // 99% 的情况是缓存命中，同步返回
+        if (_cache.TryGetValue(path, out var data))
+        {
+            return data;  // 同步返回，编译器会优化为零开销
+        }
+        
+        // 极少情况：首次加载
+        var bytes = await DiskLoader.LoadRawAsync(path);
+        _cache[path] = bytes;
+        return bytes;
+    }
+}
+
+// 如果改用 ETTaskCompleted 作为"内部快速异步方法"
+private async ETTaskCompleted LoadFromCacheAsync(string path, out byte[] result)
+{
+    result = _cache[path];
+    // 同步完成，AsyncETTaskCompletedMethodBuilder 零开销
+}
+```
+
+---
+
+## SetException 的处理差异
+
+三个构建器对异常的处理方式相同：全部通过 `ETTask.ExceptionHandler` 全局处理。
+
+但 `ETAsyncTaskMethodBuilder` 会先把异常传递给 `tcs`，让 `await` 的调用者有机会 catch：
+
+```csharp
+// ETAsyncTaskMethodBuilder.SetException
+public void SetException(Exception exception)
+{
+    this.tcs.SetException(exception);  // 调用者可以 try-catch await
+}
+
+// AsyncETVoidMethodBuilder.SetException
+public void SetException(Exception e)
+{
+    ETTask.ExceptionHandler?.Invoke(e);  // 全局处理，调用者无法 catch
+}
+```
+
+这意味着：
+
+```csharp
+// ETTask 方法：可以被 catch
+public async ETTask RiskyAsync()
+{
+    throw new Exception("oops");
+}
+
+try
+{
+    await RiskyAsync();
+}
+catch (Exception e)
+{
+    Debug.Log($"捕获到：{e.Message}");  // 可以正常捕获
+}
+
+// ETVoid 方法：无法被 catch
+public async ETVoid RiskyVoid()
+{
+    throw new Exception("oops");
+    // 会走到 ETTask.ExceptionHandler，不会传播给调用者
+}
+
+RiskyVoid().Coroutine();  // 异常只能通过全局 ExceptionHandler 处理
+```
+
+---
+
+## 总结：选择哪个构建器？
+
+你不需要直接选择构建器——它们是框架实现细节，由返回类型决定：
+
+```
+返回 ETTask   → ETAsyncTaskMethodBuilder（自动）
+返回 ETVoid   → AsyncETVoidMethodBuilder（自动）
+返回 ETTaskCompleted → AsyncETTaskCompletedMethodBuilder（自动）
+```
+
+你唯一需要做的是**选择正确的返回类型**：
+
+```
+需要调用者 await 结果？→ ETTask / ETTask<T>
+不需要调用者等待，但内部有真正异步点？→ 用 ETTask + .Coroutine() 调用
+不需要调用者等待，框架内部使用？→ ETVoid（不推荐业务代码用）
+方法主要是同步完成，偶尔有异步？→ ETTask（更通用）
+```
+
+理解了这些底层实现，你就能在阅读框架代码时快速定位性能关键路径，也能在遇到 Bug 时准确判断问题出在哪个层次。

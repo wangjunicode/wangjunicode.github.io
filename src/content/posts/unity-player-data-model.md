@@ -1,0 +1,312 @@
+---
+title: 玩家数据模型设计：从登录到体力系统的全貌
+published: 2026-03-31
+description: 解析手游中玩家核心数据组件的字段设计，涵盖基础信息、战斗重连、新手引导、体力系统与养成数据的完整模型。
+tags: [Unity, 玩家系统, 数据模型, 游戏设计]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 玩家数据模型设计：从登录到体力系统的全貌
+
+## 前言
+
+在一款手游的客户端代码中，有一个类是所有系统的"地基"——玩家数据组件（PlayerComponent）。它记录了玩家的身份信息、进度状态、正在进行的战斗、未完成的引导……几乎所有业务系统都会在某个时刻读取或写入它。
+
+设计一个好的玩家数据模型，看似简单，实则考验架构师对整个游戏业务的全局理解。本文以真实项目代码为例，带你逐字段分析每个设计决策背后的动机。
+
+---
+
+## 一、最小化原则：PlayerComponent 只放什么？
+
+```csharp
+[ComponentOf(typeof(Scene))]
+public class PlayerComponent : Entity, IAwake
+{
+    public long   MyId      { get; set; }
+    public string Name      { get; set; }
+    public string OpenID    { get; set; }
+    public ulong  GID       { get; set; }
+    public string QQPayToken { get; set; }
+    public int    Level     { get; set; }
+    public EnumGenderType Gender { get; set; }
+    // ...
+}
+```
+
+`[ComponentOf(typeof(Scene))]` 表明这是挂在 `Scene` 实体上的组件——玩家数据属于"会话级"数据，随场景初始化而创建，随场景销毁而释放。
+
+**放在 PlayerComponent 的数据必须满足：**
+1. 跨系统都需要访问
+2. 生命周期与玩家会话绑定
+3. 来自服务端的权威数据（客户端不能自行决定的）
+
+---
+
+## 二、身份系统：三种 ID 的设计哲学
+
+```csharp
+public long   MyId   { get; set; }  // 内部实体 ID，框架层使用
+public ulong  GID    { get; set; }  // 业务层全局 ID
+public string OpenID { get; set; }  // 第三方平台 ID（QQ/微信）
+```
+
+### 为什么需要三个 ID？
+
+| ID | 层级 | 生成方 | 用途 |
+|----|------|--------|-----|
+| `MyId` | 框架层 | 客户端框架 | 实体寻址，内存中快速定位 |
+| `GID` | 业务层 | 服务端 | 跨服务唯一标识，写入 DB |
+| `OpenID` | 平台层 | QQ/微信平台 | 第三方登录、支付鉴权 |
+
+注释 `//业务层才会有此ID，校验服没有这个ID` 揭示了服务端的分层架构——**校验服务器**只需要 OpenID 验证身份，不参与游戏业务，因此没有 GID；**游戏服务器**才会分配并返回 GID。
+
+这种设计保证了：即使第三方平台 ID 变更（如账号迁移），`GID` 保持稳定，历史数据不会丢失。
+
+### QQPayToken 的设计
+
+```csharp
+public string QQPayToken { get; set; } // QQ是pay_token，非QQ是access_token
+```
+
+注释本身就是文档——不同平台的 token 语义不同，但统一用一个字段存储，由上层代码根据登录方式区分使用。这是一种**字段复用**的设计，减少了不必要的字段膨胀。
+
+---
+
+## 三、新手引导系统：常量设计
+
+```csharp
+public const int PrefaceBellCompletedID   = 3015;  // 序章门铃阶段完成
+public const int PrefaceEnterBattleID     = 3016;  // 序章进入战斗
+public const int PrefaceExitedBattleID    = 3017;  // 序章战斗完成
+public const int PrefaceEnteredUnlockID   = 3018;  // 序章开始解锁角色
+public const int PrefaceAllCompletedID    = 3019;  // 序章整体完成
+public const int FirstUnLockStoryGameModeID = 3100; // 首次解锁剧情本
+```
+
+### 为什么把 ID 常量放在 PlayerComponent 里？
+
+这些常量是**业务逻辑与数据的桥梁**——它们定义了哪些引导节点是"有特殊业务含义"的。放在数据组件里，是一种"数据即文档"的设计风格。
+
+当你看到某处代码写 `if (guideId == PlayerComponent.PrefaceAllCompletedID)`，立刻就能理解这是在检查序章是否全部完成，而不需要去查配置表。
+
+### 引导数据的双轨记录
+
+```csharp
+public List<NewbieGuideData>  NewbieGuideData { get; set; }    // 未完成的引导
+public BitArray NewbieGuideCompeteFlag { get; set; }            // 已完成的引导（位图）
+```
+
+**两种存储方式，各有用途：**
+
+- `List<NewbieGuideData>`：存储进行中的引导，包含步骤、完成状态等详细信息，方便断点续玩
+- `BitArray`：用位图记录已完成的引导 ID，O(1) 查询某引导是否完成，内存极其紧凑
+
+```csharp
+public class NewbieGuideData
+{
+    public int GuideID    { get; set; }
+    public int Step       { get; set; }   // 当前执行到第几步
+    public int IsComplete { get; set; }   // 是否完成
+}
+```
+
+---
+
+## 四、体力系统：三元组设计
+
+```csharp
+public class PlayerPhysicalInfo
+{
+    public long Physical        { get; set; }  // 当前体力
+    public long LastPhysicalTime { get; set; } // 上次恢复时间戳
+    public int  MaxPhysical     { get; set; }  // 体力上限
+}
+```
+
+体力系统的核心是**离线恢复**：玩家退出游戏后，体力继续恢复，下次登录时根据时间差补算。
+
+**为什么不直接存当前体力？**
+
+只存当前体力的话，服务端需要定时更新数据库，代价极高。改为存"上次恢复时间戳"，恢复量在登录时通过公式计算：
+
+```
+当前体力 = min(Physical + (now - LastPhysicalTime) / 恢复间隔, MaxPhysical)
+```
+
+这是游戏后端的经典设计——**延迟计算**，只在需要时才算最新值，而不是实时维护。
+
+---
+
+## 五、战斗重连机制
+
+```csharp
+public class BattleResumeData
+{
+    public int           DungeonID        { get; set; }  // 副本 ID
+    public int           DungeonBattleID  { get; set; }  // 对局 ID
+    public EDungeonType  DungeonType      { get; set; }  // 副本类型
+    public EnumDungeonStateType DungeonState { get; set; }  // 副本状态
+}
+```
+
+注释对 `DungeonState` 的解释非常关键：
+
+> 正常情况下 DungeonID 存在有效值即表示仍有战斗正在进行尚未结束，但养成允许回溯，在战斗未最终确认时 DungeonID 不会重置……因此需要辅助状态进一步判断
+
+这段话揭示了一个深层设计：**状态机与数据的一致性问题**。
+
+`DungeonID != 0` 通常意味着"在战斗中"，但有个例外——**养成模式**（类 Roguelike）允许查看历史结算而不清除 DungeonID。为了不破坏这个约定，引入了 `DungeonState` 作为辅助标志。
+
+**重连流程概述：**
+
+1. 登录时检查 `BattleResumeData.DungeonID != 0 && DungeonState == InProgress`
+2. 提示玩家断线重连
+3. 重连成功后清除 `BattleResumeData`
+
+---
+
+## 六、养成系统：复杂嵌套数据结构解析
+
+养成系统（类似《哈利波特》中的"魔法学校"剧本玩法）的数据最为复杂：
+
+```csharp
+public class CultivationEntryData
+{
+    public CultivationRunningData             RunningData   { get; set; }  // 进行中的剧本
+    public Dictionary<int, List<CultivationEndingData>> ScriptEndings { get; set; }  // 历史结局
+    public CultivationInheritSourceData       InheritSource { get; set; }  // 待继承数据
+}
+```
+
+### 6.1 运行中剧本
+
+```csharp
+public class CultivationRunningData
+{
+    public int                              ScriptID      { get; set; }  // 剧本 ID
+    public EScriptType                      ScriptType    { get; set; }  // 剧本类型
+    public EnumCultivateScriptState         ScriptState   { get; set; }  // 剧本状态
+    public List<CultivationCharacterBriefData> Characters { get; set; }  // 角色列表
+    public int                              ScheduleDay   { get; set; }  // 当前天数
+    public int                              TotalScheduleDay { get; set; } // 总天数
+    public CultivationRatingData            Rating        { get; set; }  // 评级
+}
+```
+
+**设计亮点：** `Characters` 用简化版数据（`BriefData`），而不是完整的角色数据。这是因为这份数据只用于**入口界面的展示**，不需要角色的战斗属性、技能等重型数据。
+
+```csharp
+public class CultivationCharacterBriefData
+{
+    public IPCharacterEnum IP         { get; set; }  // 角色 IP（品牌形象）
+    public int    StoryCharacterID    { get; set; }  // 文戏角色 ID
+    public bool   IsLeader            { get; set; }  // 是否队长
+    public int    Position            { get; set; }  // 站位（从0开始，允许不连续）
+    public EFormInTeam FormInTeam     { get; set; }  // 活动状态
+    public bool   PendantUnlocked;                   // 挂件是否已解锁
+}
+```
+
+`Position` 的注释 "允许不连续" 很有意思——这意味着阵容中可以有"空位"，比如 1 号位空着，2、3 号位有角色，这是为了支持特定的阵容展示效果。
+
+### 6.2 结局数据
+
+```csharp
+public Dictionary<int, List<CultivationEndingData>> ScriptEndings { get; set; }
+// 键 = 剧本 ID，值 = 该剧本的所有结局列表
+
+public class CultivationEndingData
+{
+    public ScriptEndType Type  { get; set; }  // 结局类型（Good/Bad/True 等）
+    public int           Count { get; set; }  // 该结局完成次数
+}
+```
+
+用 `Count` 而不是 `bool` 记录是否完成，是因为游戏支持**多周目**，同一结局可以被反复触发，且不同次数可能有不同奖励。
+
+### 6.3 继承系统
+
+```csharp
+public class CultivationInheritSourceData
+{
+    public CultivationRatingData    Rating      { get; set; }  // 上一次的评级
+    public int                      MaxChessNum { get; set; }  // 可继承心得卡上限
+    public int                      MaxChessRarity { get; set; }  // 可继承稀有度上限
+    public List<ReflectionCardData> ChessList   { get; set; }  // 可继承的心得卡列表
+}
+```
+
+"继承"是这个玩法的核心钩子——上一局的成果（心得卡/评级）可以带入下一局，激励玩家反复游玩并不断强化。
+
+`MaxChessNum` 和 `MaxChessRarity` 是两个维度的限制：数量上限防止无限继承破坏平衡，稀有度上限保证高品质资源需要玩家继续努力解锁。
+
+---
+
+## 七、系统入口数据
+
+```csharp
+public Dictionary<int, SystemEntryData> SystemEntries { get; set; }
+
+public class SystemEntryData
+{
+    public ESystemType          ID     { get; set; }
+    public ESystemEntryStatus   Status { get; set; }
+}
+```
+
+`SystemEntries` 管理所有功能系统的**开放状态**（未解锁/已解锁/有更新等）。这是一个非常实用的设计——把所有系统的入口状态统一放在一个地方，UI 层只需查这一个字典就能决定是否显示小红点、是否置灰按钮等。
+
+---
+
+## 八、数据模型设计的最佳实践
+
+通过这份代码，我们可以总结出几条实用原则：
+
+### 原则一：按使用频率决定数据粒度
+
+高频访问的数据（等级、体力、ID）直接放在 `PlayerComponent` 一级；低频访问的复杂数据（养成剧本详情）封装成独立类，按需加载。
+
+### 原则二：用状态枚举代替多个布尔值
+
+```csharp
+// 不好的设计
+public bool IsInBattle;
+public bool BattleEnded;
+public bool BattleConfirmed;
+
+// 好的设计
+public EnumDungeonStateType DungeonState;  // InProgress / Ended / Confirmed
+```
+
+枚举状态互斥，不会出现"既在战斗又已结束"这种矛盾状态。
+
+### 原则三：Brief 数据与 Full 数据分离
+
+入口页展示用 `BriefData`（只有展示需要的字段），进入系统后再请求完整数据。减少登录时的数据传输量，加快启动速度。
+
+### 原则四：用注释记录设计决策
+
+代码注释不只是解释"是什么"，更要解释"为什么"：
+
+```csharp
+// 正常情况下 DungeonID 存在有效值即表示仍有战斗正在进行尚未结束，
+// 但养成允许回溯……因此需要辅助状态进一步判断
+public EnumDungeonStateType DungeonState { get; set; }
+```
+
+这种注释能帮助三年后维护代码的人理解当时的业务背景，避免误删"看起来多余"的字段。
+
+---
+
+## 九、总结
+
+玩家数据模型是整个客户端架构的基石。一个好的模型应该：
+
+1. **精简**：只放跨系统共享的数据，业务逻辑内聚到各自的系统
+2. **分层**：框架 ID / 业务 ID / 平台 ID 各司其职
+3. **自文档化**：字段名 + 注释就能让读者理解业务语义
+4. **可扩展**：新系统的数据通过新增字段接入，不破坏现有结构
+
+对于刚入行的同学，建议在动手写代码前，先和策划、服务端同学把数据结构对齐——数据模型是前后端协作的契约，改起来代价最高，设计时最值得仔细斟酌。

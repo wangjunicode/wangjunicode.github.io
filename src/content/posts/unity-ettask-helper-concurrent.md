@@ -1,0 +1,402 @@
+---
+title: 异步任务的并发控制：等待任意与等待全部的实现原理
+published: 2026-03-31
+description: 深入剖析 WaitAny、WaitAll、GetContextAsync 等并发工具方法的内部实现，帮你彻底掌握异步任务的协同控制技巧。
+tags: [Unity, 异步编程, 并发控制]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 异步并发的需求来源
+
+在游戏开发中，经常遇到这样的场景：
+
+- **进入战斗**：需要同时加载地图、角色、音效、配置，全部加载完才能开始——**等待全部完成**。
+- **多种结束条件**：要么计时结束，要么玩家点击确认，任意一个发生就继续——**等待任意一个**。
+- **上下文传递**：在一长串异步调用链中，最内层函数需要知道"我是谁的上下文"——**获取上下文**。
+
+`ETTaskHelper.cs` 正是为解决这三类问题而生的工具箱。
+
+---
+
+## WaitAll：等待所有任务完成
+
+### 用法
+
+```csharp
+var tasks = new List<ETTask>
+{
+    LoadMapAsync(),
+    LoadHeroAsync(),
+    LoadAudioAsync()
+};
+
+await ETTaskHelper.WaitAll(tasks);
+// 所有任务完成后才到达这里
+Debug.Log("所有资源加载完毕！");
+```
+
+### 实现原理
+
+```csharp
+public static async ETTask WaitAll(List<ETTask> tasks)
+{
+    if (tasks.Count == 0) return;
+
+    CoroutineBlocker coroutineBlocker = new CoroutineBlocker(tasks.Count);
+
+    foreach (ETTask task in tasks)
+    {
+        coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+    }
+
+    await coroutineBlocker.WaitAsync();
+}
+```
+
+核心是 `CoroutineBlocker`（协程阻塞器）：
+
+```csharp
+private class CoroutineBlocker
+{
+    private int count;      // 未完成的任务数
+    private ETTask tcs;     // 等待所有任务完成的"门"
+
+    public CoroutineBlocker(int count)
+    {
+        this.count = count;
+    }
+    
+    // 包装每个子任务：完成时递减计数
+    public async ETTask RunSubCoroutineAsync(ETTask task)
+    {
+        try
+        {
+            await task;
+        }
+        finally
+        {
+            --this.count;                    // 每完成一个，计数减一
+        
+            if (this.count <= 0 && this.tcs != null)
+            {
+                ETTask t = this.tcs;
+                this.tcs = null;
+                t.SetResult();               // 全部完成，打开"门"
+            }
+        }
+    }
+
+    public async ETTask WaitAsync()
+    {
+        if (this.count <= 0) return;         // 已经全部完成
+        this.tcs = ETTask.Create(true);
+        await tcs;                           // 等待"门"被打开
+    }
+}
+```
+
+**关键设计**：使用 `finally` 块确保无论任务成功还是抛异常，计数都会递减。这避免了因为某一个任务失败而导致整个等待永远无法完成（死锁）。
+
+### 数据流可视化
+
+假设有三个任务 A、B、C：
+
+```
+初始：count = 3
+    ┌─────────────────────────────────┐
+    │  RunSubCoroutineAsync(A) ──┐    │
+    │  RunSubCoroutineAsync(B) ──┼──► count 递减
+    │  RunSubCoroutineAsync(C) ──┘    │
+    │                                 │
+    │  WaitAsync() ─────────────────► 等待 count == 0
+    └─────────────────────────────────┘
+
+A 完成：count = 2，不触发
+B 完成：count = 1，不触发
+C 完成：count = 0，调用 tcs.SetResult()，WaitAsync 返回 ✓
+```
+
+---
+
+## WaitAny：等待任意一个任务完成
+
+### 用法
+
+```csharp
+// 等玩家点击，或者 5 秒超时
+var playerClickTask = WaitForPlayerClick();
+var timeoutTask = TimerComponent.Instance.WaitAsync(5000);
+
+await ETTaskHelper.WaitAny(new[] { playerClickTask, timeoutTask });
+// 两个中任意一个完成就继续
+```
+
+### 实现原理
+
+```csharp
+public static async ETTask WaitAny(ETTask[] tasks)
+{
+    if (tasks.Length == 0) return;
+
+    CoroutineBlocker coroutineBlocker = new CoroutineBlocker(1);  // ← 注意：count = 1！
+
+    foreach (ETTask task in tasks)
+    {
+        coroutineBlocker.RunSubCoroutineAsync(task).Coroutine();
+    }
+
+    await coroutineBlocker.WaitAsync();
+}
+```
+
+和 `WaitAll` 的区别仅在于 `CoroutineBlocker` 的初始 count：
+
+- `WaitAll`：`count = tasks.Count`（所有任务完成才减到 0）
+- `WaitAny`：`count = 1`（第一个任务完成就减到 0，立即触发）
+
+非常巧妙地用同一套机制实现了两种不同的等待语义！
+
+### 注意：剩余任务不会被取消
+
+`WaitAny` 返回后，其他还未完成的任务**依然在运行**。如果不处理，可能造成逻辑错误：
+
+```csharp
+// ❌ 危险：timeout 完成后返回，但 playerClickTask 还在等待点击
+// 如果玩家之后点击了，依然会触发 SetResult，但此时已经没人在等它了
+await ETTaskHelper.WaitAny(new[] { playerClickTask, timeoutTask });
+
+// ✅ 正确：结合取消令牌
+var cancelToken = new ETCancellationToken();
+var playerClickTask = WaitForPlayerClick(cancelToken);
+var timeoutTask = TimerComponent.Instance.WaitAsync(5000, cancelToken);
+
+await ETTaskHelper.WaitAny(new[] { playerClickTask, timeoutTask });
+cancelToken.Cancel();  // 取消剩余任务
+```
+
+---
+
+## GetContextAsync：从异步链中获取上下文
+
+这是 ETTask 框架独有的设计，允许在任意深度的异步函数中获取调用链头部注入的上下文对象。
+
+### 用法
+
+```csharp
+// 在调用链入口注入上下文
+var task = DeepAsyncOperation();
+task.WithContext(myCharacter);  // 注入 Character 对象
+
+// 深层异步函数中获取
+public async ETTask DeepAsyncOperation()
+{
+    await SomeMiddleLayer();
+}
+
+public async ETTask SomeMiddleLayer()
+{
+    await BottomLayer();
+}
+
+public async ETTask BottomLayer()
+{
+    // 不需要通过参数传递，直接获取
+    var character = await ETTaskHelper.GetContextAsync<Character>();
+    Debug.Log($"我的角色是：{character.Name}");
+}
+```
+
+### 实现原理
+
+```csharp
+public static async ETTask<T> GetContextAsync<T>() where T : class
+{
+    ETTask<object> tcs = ETTask<object>.Create(true);
+    tcs.TaskType = TaskType.ContextTask;  // ← 标记为"上下文任务"
+    object ret = await tcs;
+    if (ret == null) return null;
+    return (T)ret;
+}
+```
+
+`TaskType.ContextTask` 是一个特殊标记，当 `AwaitUnsafeOnCompleted` 处理 awaiter 时，框架会顺着 Context 链找到这个任务并自动给它 `SetResult(context)`。
+
+这套机制允许框架在**不修改函数签名**的情况下，把上下文"注入"到调用链的任意深度。类似于函数式编程里的 Reader Monad，但用起来更直观。
+
+---
+
+## 并发任务的错误处理
+
+`WaitAll` 和 `WaitAny` 中，子任务抛出的异常会如何处理？
+
+目前框架的实现通过 `RunSubCoroutineAsync` 的 `try-finally` 块处理：
+
+```csharp
+public async ETTask RunSubCoroutineAsync(ETTask task)
+{
+    try
+    {
+        await task;
+    }
+    finally
+    {
+        --this.count;
+        if (this.count <= 0 && this.tcs != null)
+        {
+            ETTask t = this.tcs;
+            this.tcs = null;
+            t.SetResult();
+        }
+    }
+}
+```
+
+**注意**：这里只用了 `finally`，没有 `catch`。这意味着：
+
+- 子任务的异常会在 `await task` 处被抛出
+- 由于没有 `catch`，异常会传播到调用 `RunSubCoroutineAsync` 的地方
+- 但调用是 `.Coroutine()` 方式（即 fire-and-forget），异常会触发 `ETTask.ExceptionHandler`
+
+**实践建议**：在子任务内部自己处理异常，不要依赖 `WaitAll` / `WaitAny` 来捕获。
+
+---
+
+## 进阶：自己实现 WaitUntil
+
+基于 `CoroutineBlocker` 的思想，我们可以实现更多工具方法，比如"等到某个条件为真"：
+
+```csharp
+public static async ETTask WaitUntil(Func<bool> predicate, int checkInterval = 100)
+{
+    while (!predicate())
+    {
+        await TimerComponent.Instance.WaitAsync(checkInterval);
+    }
+}
+
+// 使用
+await WaitUntil(() => player.HP > 0);
+Debug.Log("玩家活了！");
+```
+
+或者"等到某个事件触发"：
+
+```csharp
+public static async ETTask WaitForEvent<T>(Action<Action<T>> subscribe, Action<Action<T>> unsubscribe)
+{
+    ETTask<T> tcs = ETTask<T>.Create(true);
+    
+    Action<T> handler = result => tcs.SetResult(result);
+    subscribe(handler);
+    
+    T result = await tcs;
+    unsubscribe(handler);
+}
+
+// 使用
+int damage = await WaitForEvent<int>(
+    h => damageable.OnDamage += h,
+    h => damageable.OnDamage -= h
+);
+Debug.Log($"受到了 {damage} 点伤害");
+```
+
+---
+
+## 实战：多阶段加载系统
+
+下面是一个结合 `WaitAll` 和取消令牌的实战示例——多阶段场景加载：
+
+```csharp
+public class SceneLoader
+{
+    private ETCancellationToken _loadToken;
+    
+    public async ETTask LoadBattleSceneAsync(string sceneName)
+    {
+        _loadToken = new ETCancellationToken();
+        
+        // 第一阶段：并行加载基础资源
+        var phase1Tasks = new List<ETTask>
+        {
+            LoadTerrainAsync(_loadToken),
+            LoadSkyboxAsync(_loadToken),
+            LoadAmbientSoundAsync(_loadToken)
+        };
+        
+        await ETTaskHelper.WaitAll(phase1Tasks);
+        if (_loadToken.IsCancel()) return;
+        
+        // 第二阶段：加载角色（依赖地形数据）
+        var phase2Tasks = new List<ETTask>
+        {
+            SpawnHeroAsync(_loadToken),
+            SpawnEnemiesAsync(_loadToken)
+        };
+        
+        await ETTaskHelper.WaitAll(phase2Tasks);
+        if (_loadToken.IsCancel()) return;
+        
+        // 第三阶段：等待任意一个"准备完成"信号
+        var readyTasks = new List<ETTask>
+        {
+            WaitForHeroReady(),
+            TimerComponent.Instance.WaitAsync(10000)  // 10秒超时
+        };
+        
+        await ETTaskHelper.WaitAny(readyTasks);
+        _loadToken.Cancel();  // 清理剩余任务
+        
+        // 开始战斗！
+        GameManager.Instance.StartBattle();
+    }
+    
+    public void CancelLoad()
+    {
+        _loadToken?.Cancel();
+        _loadToken = null;
+    }
+}
+```
+
+这段代码展示了分阶段并发加载的典型模式：
+1. 每个阶段内部并行
+2. 阶段之间串行（保证依赖顺序）
+3. 全程可以通过 token 取消
+
+---
+
+## 性能对比
+
+自定义的并发工具和标准 `Task.WhenAll` 的对比：
+
+| 指标 | Task.WhenAll | ETTaskHelper.WaitAll |
+|------|-------------|---------------------|
+| 内存分配 | 分配 Task 数组和包装对象 | 分配 CoroutineBlocker（轻量） |
+| 线程调度 | 关联 SynchronizationContext | 无，在主线程回调 |
+| 异常聚合 | AggregateException | 单独抛出（通过 ExceptionHandler） |
+| 适用场景 | 多线程/IO | 游戏主循环单线程 |
+
+---
+
+## 总结
+
+`ETTaskHelper` 的精华在于一个极简的 `CoroutineBlocker`：
+
+```
+WaitAll(n 个任务) = CoroutineBlocker(count = n)
+WaitAny(n 个任务) = CoroutineBlocker(count = 1)
+```
+
+通过改变初始 count 这一个参数，就实现了两种截然不同的并发语义，代码复用度极高。
+
+而 `GetContextAsync` 展示了如何利用 C# async/await 的状态机机制，在不修改函数签名的前提下实现"隐式参数传递"——这是一种只在深入理解 async 原理之后才能运用的高级技巧。
+
+对于新手来说，掌握这三个方法：
+- `WaitAll`：等所有都好了再说
+- `WaitAny`：只要有一个好了就行
+- `IsCancel()`：随时准备提前退出
+
+就能处理游戏中 90% 的异步并发场景。

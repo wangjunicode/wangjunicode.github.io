@@ -1,0 +1,316 @@
+---
+title: 战斗结算系统数据流设计
+published: 2026-03-31
+description: 从数据结构到 UI 展示，全面解析战斗结算系统的分层设计，涵盖视图数据与业务数据的分离、角色统计与奖励展示的实现。
+tags: [Unity, 战斗系统, 结算系统, 游戏开发]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 战斗结算系统数据流设计
+
+## 前言
+
+每场战斗结束后，玩家都会看到一个精心设计的结算界面：胜负标志、奖励列表、角色伤害统计、技能使用次数……这些内容背后是一套数据流水线，从服务端协议数据，经过客户端转换，最终以视图友好的形式呈现到界面上。
+
+本文将深入拆解战斗结算系统的数据结构设计，揭示它如何处理普通 PVP、养成模式等不同玩法的差异化需求。
+
+---
+
+## 一、结算系统的整体架构
+
+```
+服务端 FightDetail (Protobuf)
+         ↓
+   BattleSettleData（业务层）
+         ↓
+   BattleSettlementData（视图层）
+         ↓
+   结算 UI Panel
+```
+
+这个分层有明确的职责划分：
+- **业务层**：忠实存储服务端数据，不做视图相关的转换
+- **视图层**：把业务数据翻译成 UI 可以直接消费的格式
+
+---
+
+## 二、业务层数据：BattleSettleData
+
+```csharp
+[Serializable]
+public class BattleSettleData
+{
+    public int DungeonID;           // 副本 ID，用于定位本次战斗
+    public bool IsWin { get; set; } // 胜负结果
+    public List<CharacterSettleData> Characters; // 各角色详细统计
+    public FightDetail FightDetail; // 服务端原始对战详情
+
+    // 养成模式特有字段（普通 PVP 不用）
+    public int RemainTimes;     // 剩余次数
+    public int Fans;            // 获得粉丝数
+    public int Points;          // 获得积分
+    public int SupportRate;     // 支持率（百分比）
+    public int UnlockShopLevel; // 解锁的商店等级
+}
+```
+
+### 2.1 混合字段的利与弊
+
+注意这里有一个值得讨论的设计：`RemainTimes`、`Fans`、`Points` 等字段是**养成模式特有**的，普通 PVP 模式下它们是无效的。
+
+**为什么不拆成两个类？**
+
+这是一个工程实用主义的选择。在实际项目中，如果每种玩法都派生一个新的结算数据类，会导致：
+
+1. 结算 UI 需要针对每种类型写不同的解包逻辑
+2. 持久化和序列化代码需要处理多态
+3. 代码膨胀，维护成本上升
+
+当差异字段不多时，"平铺 + 注释"比"继承体系"更实用。当然，注释里 `// 养成特有数据，服务端下发，客户端不赋值` 非常关键——它是代码中的契约。
+
+---
+
+## 三、角色统计数据：CharacterSettleData
+
+```csharp
+[Serializable]
+public class CharacterSettleData
+{
+    public IPCharacterEnum ipID;        // IP 形象（如"爱豆A"）
+    public int outputDamage;            // 输出伤害
+    public int explosivePointCount;     // 爆发点使用次数
+    public int takeDamage;              // 承受伤害
+    public int TotalTreatment;          // 总治疗量
+    public int killCount;               // 击杀数
+    public float score;                 // 综合得分
+    public bool isMvp;                  // 是否 MVP
+    public List<SkillCountInfo> SkillInfos;    // 技能使用统计
+    public List<BuffTokenCountInfo> BuffInfos; // Buff 触发统计
+    public int vTypeID;                 // 视觉类型（皮肤/形态）
+    public int styleID;                 // 风格 ID
+    public int isOnStage;               // 是否在场
+    public int teamIndex;               // 所属队伍索引
+}
+```
+
+### 3.1 技能统计的粒度设计
+
+```csharp
+[Serializable]
+public class SkillCountInfo
+{
+    public int SkillId;  // 技能 ID
+    public int lv;       // 技能等级
+    public int Count;    // 使用次数
+    public int State;    // 技能状态（暗示可能有特殊状态的技能统计）
+}
+```
+
+注意 `lv` 字段的存在——游戏中技能是有等级的，同一个技能在不同等级可能有不同的数值表现，因此结算时需要记录当时的等级，方便复盘时还原完整信息。
+
+`State` 字段虽然没有注释，但从命名可以推断它用于区分技能的特殊使用方式（比如技能的强化形态触发了多少次）。
+
+### 3.2 Buff 统计
+
+```csharp
+[Serializable]
+public class BuffTokenCountInfo
+{
+    public int BuffId;  // Buff ID
+    public int Count;   // 触发次数
+}
+```
+
+Buff 统计相对简单，只记录"哪个 Buff 触发了多少次"。这个数据主要用于：
+1. **结算界面展示**：让玩家看到哪些战术元素发挥了作用
+2. **数据分析**：服务端收集这些数据用于平衡性调整
+
+---
+
+## 四、视图层数据：分离关注点
+
+```csharp
+/// <summary>
+/// 视图结算数据
+/// </summary>
+public struct BattleSettlementData
+{
+    public List<BattleSettlementReward> RewardList;   // UI 友好的奖励列表
+    public List<BattleSettlementUnlock> UnlockList;   // 解锁内容列表
+    public BattleSettleData SettleData;               // 原始业务数据（向下透传）
+}
+```
+
+视图层不替换业务层，而是在上面叠加了 UI 专属的展示数据：
+
+```csharp
+public struct BattleSettlementReward
+{
+    public string rewardName;            // 奖励名称（已本地化的字符串）
+    public int    rewardNum;             // 数量
+    public string suffix;               // 单位后缀（"PT"、"%"、""）
+    public int    proportion;           // 比例（百分比展示）
+    public int    decimalPlaces;        // 小数位数
+    public BattleSettlementRewardUpdownState UpdownState; // 上涨/下跌指示
+}
+```
+
+**关键设计：UpdownState**
+
+```csharp
+public enum BattleSettlementRewardUpdownState
+{
+    None = 0,  // 不显示趋势
+    Up   = 1,  // 上升（绿色箭头）
+    Down = 2,  // 下降（红色箭头）
+}
+```
+
+这个枚举驱动 UI 上的趋势指示箭头，比如积分变化、排名变化。把这个逻辑放在数据层而非 UI 层，可以让 UI 代码更纯粹——它只负责"显示 Up 就画绿色向上箭头"，不需要知道"比较两个值谁大谁小"。
+
+---
+
+## 五、常量字符串管理
+
+```csharp
+public static class BattleSettlementDataConst
+{
+    public const string GetPoint            = "获得积分:";
+    public const string GetFans             = "获得粉丝数:";
+    public const string CultivateSupport    = "支持率:";
+    public const string WinNum              = "胜场数:";
+    public const string Tolerance           = "容错值:";
+
+    public const string GetPointSuffix      = "PT";
+    public const string GetFansSuffix       = "";
+    public const string CultivateSupportSuffix = "%";
+}
+```
+
+这个静态常量类展示了一个"反模式"：**直接把中文字符串写死在代码里**。
+
+对于一个有本地化需求的游戏，这类字符串应该走本地化系统。但在实际项目中，"先 Hard Code，后重构"是常见的工程取舍——这段代码可能是在紧急版本中快速实现的，后续没有及时重构。
+
+**刚入行的同学要注意：** 看到这类代码，不要跟着写。正确做法是：
+```csharp
+// 正确做法：走本地化系统
+LocalizationManager.Get("battle_settle_get_point");
+// 或者枚举 + 配置表
+CfgManager.tables.TbText.Get(TextId.GetPoint);
+```
+
+---
+
+## 六、战斗统计面板数据
+
+```csharp
+[Serializable]
+public class BattleStatisticsPanelData
+{
+    public List<CharacterSkillCountInfo> CharacterSkillCounts = new List<CharacterSkillCountInfo>();
+}
+
+[Serializable]
+public class CharacterSkillCountInfo
+{
+    public CharacterInfo CharacterInfo = new CharacterInfo();
+    public List<SkillCountInfo> SkillCountInfos = new List<SkillCountInfo>();
+    public List<BuffTokenCountInfo> BuffTokenCountInfos = new List<BuffTokenCountInfo>();
+}
+```
+
+这组数据用于战斗中的**实时统计面板**（可以在战斗过程中查看），与结算数据不同的是它是累积更新的。
+
+**数据层级：**
+```
+BattleStatisticsPanelData
+  └─ List<CharacterSkillCountInfo>
+        ├─ CharacterInfo（角色标识）
+        ├─ List<SkillCountInfo>（该角色的技能统计）
+        └─ List<BuffTokenCountInfo>（该角色的 Buff 统计）
+```
+
+这个层级设计使得面板可以按角色维度组织数据，支持"选中某个角色，查看他的详细技能使用情况"这样的交互。
+
+---
+
+## 七、结算组件的精简设计
+
+```csharp
+// TODO Alucard: 如果其他模块也允许像养成一样，通过重连在大厅中进行结算，
+// 是不是结算相关组件应该脱离 Current Scene
+public partial class BattleSettleComponent : Entity, IAwake, IDestroy
+{
+    public BattleSettleData SettleData;
+}
+```
+
+这个组件只有一个字段，加上一段 TODO 注释。这个 TODO 揭示了一个架构问题：
+
+当前结算组件挂在 `Current Scene`（战斗场景）下，但养成模式允许在返回大厅后才做结算。如果结算组件随战斗场景销毁，结算数据就丢失了。
+
+**解决方案思路：**
+1. 把结算数据提升到 `Root Scene`（全局实体），脱离战斗场景生命周期
+2. 或者在离开战斗场景前，把数据迁移到全局暂存区
+
+这个 TODO 是很好的学习素材——它告诉我们：**即使是生产代码，架构问题也是逐步暴露、逐步解决的**，重要的是用注释记录已知的设计缺陷，等待合适时机重构。
+
+---
+
+## 八、数据流的完整生命周期
+
+```
+1. 战斗结束
+   服务端发送 BattleSettleNotify (Protobuf)
+   
+2. 客户端接收
+   将 Protobuf 数据转换为 BattleSettleData
+   存入 BattleSettleComponent.SettleData
+   
+3. 触发结算事件
+   Evt_BattleSettle → 结算界面监听
+   
+4. 界面数据组装
+   BattleSettlementData 由 BattleSettleData 派生
+   - 遍历奖励列表，转换为 UI 友好格式
+   - 计算 UpdownState（对比历史数据）
+   - 本地化字符串（应走但目前部分写死）
+   
+5. UI 渲染
+   绑定到界面控件
+   播放结算动画（奖励逐条弹出等）
+   
+6. 确认结算
+   清除 BattleSettleComponent 数据
+   更新 PlayerComponent.BattleResumeData
+```
+
+---
+
+## 九、给新手的建议
+
+通过分析这套结算系统，整理出以下实践建议：
+
+### 9.1 数据流方向要单一
+
+数据从服务端流向 UI，中间的每一层只做**单向转换**，不要让 UI 层反过来修改业务数据。
+
+### 9.2 视图数据与业务数据分离
+
+`BattleSettleData`（业务数据）和 `BattleSettlementData`（视图数据）是两个独立的类，前者对应服务端协议，后者对应 UI 需求。修改 UI 展示逻辑时不应该改动业务数据类。
+
+### 9.3 用枚举替代魔法数字
+
+`BattleSettlementRewardUpdownState` 比直接用 `0/1/2` 要好——三个月后看代码时，`UpdownState.Up` 比 `UpdownState == 1` 清晰得多。
+
+### 9.4 及时记录技术债
+
+代码里的 TODO 注释是技术债的"路标"，它标记了"这里知道有问题，但当前版本选择了务实的妥协"。好的工程师既能写出好代码，也能诚实地记录暂时的妥协。
+
+---
+
+## 十、总结
+
+战斗结算系统看起来只是"显示几行数字"，但背后涉及：数据层级设计、多玩法差异处理、视图与业务分离、生命周期管理等多个工程课题。这些设计决策没有绝对的对错，都是在特定约束下的权衡取舍。理解这些取舍的背景，比死记代码本身更重要。

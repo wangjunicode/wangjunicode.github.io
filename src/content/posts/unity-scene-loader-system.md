@@ -1,0 +1,362 @@
+---
+title: 场景加载与引用计数管理系统
+published: 2026-03-31
+description: 通过引用计数与 Reason 标记实现安全的多场景叠加加载与卸载，杜绝重复卸载和内存泄漏问题。
+tags: [Unity, 场景管理, Addressables, 游戏开发]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 场景加载与引用计数管理系统
+
+## 前言
+
+手游项目中，"场景"不再是简单的 Unity Scene 文件，而是由若干 Prefab 拼合而成的可复用资源单元。当多个系统同时持有对同一场景的引用时——比如主城场景既被"主城系统"持有，又被"剧情系统"临时借用——**谁有权卸载它？** 如果卸载时机不对，就会引发空引用崩溃或黑屏。
+
+本文深入解析一套基于**引用计数 + Reason 标记**的场景管理系统，带你理解它如何从根本上解决多持有者场景卸载的安全问题。
+
+---
+
+## 一、核心数据结构
+
+```csharp
+public class SceneInfo
+{
+    public int    SceneId;
+    public string ResKey;
+    public int    ReferenceCount { get; set; }   // 引用计数
+    public GameObject SceneGo  { get; set; }     // 实例化后的 GameObject
+
+    // 关键：按 reason 记录引用次数
+    public Dictionary<string, int> Reasons { get; } = new();
+
+    public SceneInfo(string resKey, GameObject sceneGo, int sceneId)
+    {
+        ResKey         = resKey;
+        SceneId        = sceneId;
+        ReferenceCount = 0;
+        SceneGo        = sceneGo;
+    }
+}
+
+[ComponentOf]
+public class SceneLoaderComponent : Entity, IAwake, IDestroy
+{
+    public Dictionary<string, SceneInfo> scenes { get; set; } = new();
+    public GameObject CurrentScene { get; set; }
+}
+```
+
+**设计动机：**
+
+- `ReferenceCount`：全局引用计数，当它归零时才真正隐藏/销毁 GameObject
+- `Reasons`：每个"借用者"都必须提供一个字符串标签（reason），防止同一借用者重复计数
+
+这类似于垃圾回收中的"引用计数 + 调用栈追踪"组合——计数管生命周期，标签管调试。
+
+---
+
+## 二、加载流程详解
+
+### 2.1 加载主场景
+
+```csharp
+public static async ETTask<GameObject> LoadScene(
+    this SceneLoaderComponent self,
+    ALoader loader, int sceneId, string reason,
+    Action<float> onProgress = null,
+    bool checkReason = false)
+{
+    var sceneCfg   = CfgManager.tables.TbScene.GetOrDefault(sceneId);
+    var assetsName = sceneCfg.SceneReskey;
+
+    // 如果 reason 已经存在，不重复增加引用
+    bool isIncreaseRef = !(checkReason && self.GetHadSceneReason(assetsName, reason));
+
+    var sceneInfo = self.AddSceneRef(assetsName, reason, preloading: !isIncreaseRef);
+
+    // 场景已存在（被其他人持有），直接复用
+    if (sceneInfo != null && sceneInfo.SceneGo != null)
+    {
+        self.CurrentScene = sceneInfo.SceneGo;
+        return sceneInfo.SceneGo;
+    }
+
+    // 需要真正加载
+    loader.AddLoadTask(assetsName);
+    await loader.StartLoadTaskAsync(onProgress);
+
+    var scenePrefab = AssetCache.GetCachedAssetAutoLoad<GameObject>(assetsName);
+    var go          = Object.Instantiate(scenePrefab, GlobalComponent.Instance.Scene);
+    self.AddSceneRef(assetsName, go, reason, false, sceneId);
+    self.CurrentScene = go;
+    return go;
+}
+```
+
+**关键路径说明：**
+
+1. 先查表获取资源 Key（不直接用 ID，保留映射层）
+2. 检查 Reason 是否已存在，避免同一系统重复 AddRef
+3. 如果 SceneGo 已存在，直接复用并返回，不重复实例化
+4. 真正加载时走异步流程，避免阻塞主线程
+
+### 2.2 叠加场景（Additive）
+
+```csharp
+public static async ETTask<List<GameObject>> LoadSceneAddition(
+    this SceneLoaderComponent self,
+    ALoader loader, int sceneId, string reason,
+    Action<float> onProgress = null, bool checkReason = false)
+{
+    var assetsNames = sceneCfg.AdditiveSceneReskeys; // 可以有多个叠加资源
+
+    for (int i = 0; i < assetsNames.Length; i++)
+    {
+        var assetsName = assetsNames[i];
+        bool isIncreaseRef = !(checkReason && self.GetHadSceneReason(assetsName, reason));
+        var sceneInfo      = self.AddSceneRef(assetsName, reason, preloading: !isIncreaseRef);
+
+        // 已有实例，跳过加载
+        if (sceneInfo != null && sceneInfo.SceneGo != null)
+        {
+            goList.Add(sceneInfo.SceneGo);
+            continue;
+        }
+
+        // 异步加载并实例化
+        var sceneGo = Object.Instantiate(scenePrefab, GlobalComponent.Instance.Scene);
+        self.AddSceneRef(assetsName, sceneGo, reason, false, sceneId);
+        goList.Add(sceneGo);
+    }
+}
+```
+
+叠加场景的设计思路：**每个 resKey 是独立的引用计数单元**。一个逻辑场景（sceneId）可以对应多个资源文件，它们分别被引用计数管理。
+
+---
+
+## 三、引用增减的核心实现
+
+### 3.1 AddSceneRef
+
+```csharp
+public static SceneInfo AddSceneRef(this SceneLoaderComponent self,
+    string assetsName, GameObject go, string reason,
+    bool preloading = false, int sceneId = -1)
+{
+    SceneInfo sceneInfo = null;
+    if (!self.scenes.TryGetValue(assetsName, out sceneInfo))
+    {
+        sceneInfo = new SceneInfo(assetsName, go, sceneId);
+        self.scenes.Add(assetsName, sceneInfo);
+    }
+
+    if (preloading) return sceneInfo; // 预加载阶段不计数
+
+    // Reason 管理
+    if (!string.IsNullOrEmpty(reason))
+    {
+        if (sceneInfo.Reasons.ContainsKey(reason))
+        {
+            Debug.LogWarning($"duplicate add reason, scene={assetsName}, reason={reason}");
+            sceneInfo.Reasons[reason]++;
+        }
+        else
+        {
+            sceneInfo.Reasons.Add(reason, 1);
+        }
+    }
+
+    sceneInfo.ReferenceCount++;
+
+    // 引用计数 ≥ 1 时激活场景 GameObject
+    if (sceneInfo.ReferenceCount >= 1 && sceneInfo.SceneGo != null)
+        sceneInfo.SceneGo.Active(true);
+
+    return sceneInfo;
+}
+```
+
+### 3.2 ReleaseSceneRef
+
+```csharp
+public static SceneInfo ReleaseSceneRef(this SceneLoaderComponent self,
+    string assetsName, string reason)
+{
+    if (!self.scenes.TryGetValue(assetsName, out var sceneInfo))
+    {
+        Log.LogError($"ReleaseSceneRef SceneInfo is null, assetsName={assetsName}");
+        return null;
+    }
+
+    // Reason 校验：未登记就释放，警告但不 crash
+    if (!string.IsNullOrEmpty(reason))
+    {
+        if (!sceneInfo.Reasons.ContainsKey(reason))
+        {
+            Log.LogWarning($"duplicate release reason, scene={assetsName}, reason={reason}");
+            return sceneInfo;
+        }
+        sceneInfo.Reasons[reason]--;
+        if (sceneInfo.Reasons[reason] <= 0)
+            sceneInfo.Reasons.Remove(reason);
+    }
+
+    sceneInfo.ReferenceCount--;
+
+    if (sceneInfo.ReferenceCount <= 0)
+    {
+        sceneInfo.ReferenceCount = 0;
+        if (sceneInfo.SceneGo != null)
+        {
+            var sceneCfg = CfgManager.tables.TbScene.GetOrDefault(sceneInfo.SceneId);
+            if (sceneCfg != null && sceneCfg.IsDestoryImmediately)
+            {
+                sceneInfo.SceneGo.SafeDestroySelf(); // 立即销毁（战斗场景）
+                sceneInfo.SceneGo = null;
+            }
+            else
+            {
+                sceneInfo.SceneGo.Active(false); // 隐藏但保留（主城场景）
+            }
+        }
+    }
+
+    return sceneInfo;
+}
+```
+
+**两种零引用处理策略：**
+
+| 场景类型 | `IsDestoryImmediately` | 处理方式 | 适用场景 |
+|--------|----------------------|---------|---------|
+| 临时/战斗场景 | `true` | `SafeDestroySelf()` 立即销毁 | 内存敏感，切换频繁 |
+| 持久/主城场景 | `false` | `Active(false)` 隐藏 | 需要快速切回，避免重加载 |
+
+---
+
+## 四、第一性原理：为什么需要 Reason？
+
+**引用计数的经典问题：** 如果 A 系统多次调用 AddRef（比如在网络重连时重复初始化），然后只调用一次 Release，场景就永远不会卸载。
+
+**Reason 的作用：**
+
+```
+AddSceneRef("main_city", "battle_system")  → Count: 1, Reasons: {battle_system: 1}
+AddSceneRef("main_city", "story_system")   → Count: 2, Reasons: {battle_system: 1, story_system: 1}
+AddSceneRef("main_city", "battle_system")  → Count: 3, Reasons: {battle_system: 2, story_system: 1}  ← 重复调用
+
+ReleaseSceneRef("main_city", "battle_system") → Count: 2, Reasons: {battle_system: 1, story_system: 1}
+ReleaseSceneRef("main_city", "battle_system") → Count: 1, Reasons: {story_system: 1}
+ReleaseSceneRef("main_city", "story_system")  → Count: 0 → 场景隐藏/销毁
+```
+
+Reason 既是**计数的依据**，也是**调试的线索**——当场景泄漏时，查看 `Reasons` 字典就能立刻定位是哪个系统忘记释放了。
+
+---
+
+## 五、预加载机制
+
+预加载（`preloading=true`）是一种"占座"机制：告诉系统"我即将加载这个场景"，但此时不增加引用计数。
+
+```csharp
+// 预加载：只占座，不计数
+var sceneInfo = self.AddSceneRef(assetsName, reason, preloading: !isIncreaseRef);
+// 此时 ReferenceCount 不变，Reasons 不变
+
+// 真正加载完成后，补充计数
+self.AddSceneRef(assetsName, go, reason, false, sceneId);
+```
+
+这个机制用于异步加载中途处理并发请求：第二个请求到来时，检测到 `preloading` 状态，知道资源正在路上，等待即可，不重复发起加载。
+
+---
+
+## 六、GameObject 覆盖解析
+
+`AddSceneRef` 有一个有趣的逻辑：
+
+```csharp
+else if (go != null && sceneInfo.SceneGo == null)
+{
+    // 补全场景对象引用（一般不会发生，仅作为保护）
+    sceneInfo.SceneGo = go;
+}
+```
+
+注释说"一般不会发生"——但它作为**防御性编程**存在。当异步加载完成时，`SceneInfo` 可能已经在 `preloading` 阶段创建了但 `SceneGo` 还是 null，这个分支负责补全。
+
+---
+
+## 七、批量卸载
+
+```csharp
+public static async ETTask UnloadAllScenesAsync(this SceneLoaderComponent self)
+{
+    foreach (var (assetKey, sceneInfo) in self.scenes)
+    {
+        if (self.CurrentScene == sceneInfo.SceneGo)
+            self.CurrentScene = null;
+
+        Object.Destroy(sceneInfo.SceneGo);
+    }
+    self.scenes.Clear();
+    await ETTask.CompletedTask;
+}
+```
+
+注意：这里**绕过了引用计数**，直接全部销毁。这是为了应对游戏退出、场景完全重置等极端情况，此时引用计数的状态已经不重要了。
+
+---
+
+## 八、实际项目中的应用建议
+
+### 8.1 Reason 的命名规范
+
+建议用常量定义 Reason，避免字符串拼写错误：
+
+```csharp
+public static class SceneLoadReasons
+{
+    public const string BattleSystem  = "battle_system";
+    public const string StorySystem   = "story_system";
+    public const string PreloadSystem = "preload_system";
+}
+```
+
+### 8.2 与资源管理集成
+
+本系统管理的是 **GameObject 实例**的生命周期。底层的 Asset（Prefab）生命周期由 `AssetCache` 单独管理。两层引用计数相互独立，保持职责清晰。
+
+### 8.3 调试工具
+
+建议实现一个 Debug 视图，展示当前所有 `SceneInfo` 的状态：
+
+```csharp
+public static string DumpState(this SceneLoaderComponent self)
+{
+    var sb = new System.Text.StringBuilder();
+    foreach (var (key, info) in self.scenes)
+    {
+        sb.AppendLine($"[{key}] Count={info.ReferenceCount}");
+        foreach (var (reason, cnt) in info.Reasons)
+            sb.AppendLine($"  └ {reason}: {cnt}");
+    }
+    return sb.ToString();
+}
+```
+
+---
+
+## 九、总结
+
+| 核心概念 | 解决的问题 |
+|---------|-----------|
+| 引用计数 | 多持有者安全卸载，避免过早销毁 |
+| Reason 标记 | 防止重复计数，同时提供调试信息 |
+| 预加载占座 | 处理异步加载期间的并发请求 |
+| 两种零引用策略 | 按场景类型选择销毁或隐藏，平衡内存与加载速度 |
+
+这套系统的本质是将**"谁持有、谁释放"**的约定从口头协议变成了代码级强制约束。对于刚入行的同学，这是一个非常值得深入理解的设计模式——它不仅适用于场景管理，同样适用于任何需要多方共享、需要明确所有权的资源。

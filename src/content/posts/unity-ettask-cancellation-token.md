@@ -1,0 +1,388 @@
+---
+title: 游戏异步编程中的任务取消机制设计与实践
+published: 2026-03-31
+description: 详解轻量级取消令牌的设计思路、使用方式和常见陷阱，让你在 Unity 中优雅地取消正在进行的异步操作。
+tags: [Unity, 异步编程, 取消令牌]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 为什么需要取消机制？
+
+想象这样一个场景：玩家点击了一个角色，游戏开始异步加载它的高清模型、音效和技能特效——这可能需要 2-3 秒。但在加载完成前，玩家又点击了另一个角色，或者直接退出了当前场景。
+
+此时问题来了：那些正在进行的加载任务怎么办？
+
+- 如果不处理，加载完成后代码会继续执行，尝试操作一个已经不存在的对象，轻则 NullReferenceException，重则数据错乱。
+- 如果强行停止所有异步操作，但 C# 的 `async/await` 本身并没有"强制中止"的机制。
+
+**正确的做法是：在异步操作完成前，让它"知道自己应该取消"，然后在恰当的时机主动退出。**
+
+这就是取消令牌（Cancellation Token）的核心价值。
+
+---
+
+## C# 标准的 CancellationToken 有什么问题？
+
+`System.Threading.CancellationToken` 是 C# 标准库提供的取消机制，但在游戏主线程场景下有几个缺点：
+
+1. **分配开销**：`CancellationTokenSource` 是一个较重的对象，持有锁、链表等内部结构。
+2. **线程安全开销**：标准实现为多线程设计，加了大量锁，单线程游戏中是纯粹的浪费。
+3. **无法方便地绑定到游戏对象生命周期**：你需要手动管理 `CancellationTokenSource.Dispose()`。
+
+因此，框架实现了一个专为游戏单线程设计的轻量版本：`ETCancellationToken`。
+
+---
+
+## ETCancellationToken 的设计
+
+完整源码如下：
+
+```csharp
+public class ETCancellationToken
+{
+    private HashSet<Action> actions = new();
+
+    public void Add(Action callback)
+    {
+        this.actions.Add(callback);
+    }
+    
+    public void Remove(Action callback)
+    {
+        this.actions?.Remove(callback);
+    }
+
+    public bool IsDispose()
+    {
+        return this.actions == null;
+    }
+
+    public void Cancel()
+    {
+        if (this.actions == null) return;
+        this.Invoke();
+    }
+
+    private void Invoke()
+    {
+        HashSet<Action> runActions = this.actions;
+        this.actions = null;  // 先置 null，防止重入
+        try
+        {
+            foreach (Action action in runActions)
+            {
+                action.Invoke();
+            }
+        }
+        catch (Exception e)
+        {
+            ETTask.ExceptionHandler.Invoke(e);
+        }
+    }
+}
+```
+
+**只有 28 行代码，却完成了取消机制的全部工作。**
+
+核心思路是：**注册回调 + 触发回调**。
+
+- 想取消时，调用 `Cancel()`，它会执行所有已注册的回调。
+- `IsDispose()` 检查 `actions` 是否为 null——Cancel 后 actions 被置为 null，所以 `IsDispose()` 为 true 即代表"已取消"。
+
+---
+
+## 如何正确使用取消令牌
+
+### 基础用法：让异步方法支持取消
+
+```csharp
+public async ETTask LoadCharacterAsync(string path, ETCancellationToken token)
+{
+    // 加载模型
+    var prefab = await ResManager.LoadAsync<GameObject>(path);
+    
+    // 加载完成后，先检查是否已取消
+    if (token.IsCancel())
+    {
+        // 清理资源，直接返回
+        return;
+    }
+    
+    // 后续处理...
+    Instantiate(prefab);
+}
+```
+
+`IsCancel()` 是一个扩展方法（定义在 `ETTaskHelper.cs`）：
+
+```csharp
+public static bool IsCancel(this ETCancellationToken self)
+{
+    if (self == null) return false;
+    return self.IsDispose();
+}
+```
+
+允许 token 为 null（表示"不需要取消功能"），空安全处理。
+
+### 进阶用法：主动注册取消动作
+
+假设你有一个计时等待的异步方法：
+
+```csharp
+public async ETTask WaitWithCancel(int milliseconds, ETCancellationToken token)
+{
+    ETTask tcs = ETTask.Create(true);
+    
+    // 计时器到点后完成任务
+    TimerComponent.Instance.NewOnceTimer(milliseconds, () => tcs.SetResult());
+    
+    // 注册取消动作：token 取消时，也完成这个任务
+    token?.Add(() => tcs.SetResult());
+    
+    await tcs;
+    
+    // 执行完后，从 token 中移除这个回调（防止泄漏）
+    token?.Remove(() => tcs.SetResult());
+}
+```
+
+**问题**：上面代码有一个 Bug——Lambda 每次都会创建新的 Action 对象，`Remove` 传入的不是同一个引用，无法正确移除。
+
+正确写法：
+
+```csharp
+public async ETTask WaitWithCancel(int milliseconds, ETCancellationToken token)
+{
+    ETTask tcs = ETTask.Create(true);
+    Action cancelCallback = () => tcs.SetResult();
+    
+    TimerComponent.Instance.NewOnceTimer(milliseconds, () => tcs.SetResult());
+    token?.Add(cancelCallback);
+    
+    await tcs;
+    
+    token?.Remove(cancelCallback);  // 用同一个引用移除
+}
+```
+
+---
+
+## 取消令牌的生命周期绑定
+
+游戏中最常见的场景是：**异步操作与某个游戏对象绑定，对象销毁时自动取消**。
+
+```csharp
+public class CharacterLoader : MonoBehaviour
+{
+    private ETCancellationToken _cancelToken;
+    
+    private void Start()
+    {
+        _cancelToken = new ETCancellationToken();
+        LoadCharacterAsync().Coroutine();
+    }
+    
+    private async ETTask LoadCharacterAsync()
+    {
+        var prefab = await ResManager.LoadAsync<GameObject>("Characters/Hero");
+        if (_cancelToken.IsCancel()) return;
+        
+        var go = Instantiate(prefab);
+        // 继续其他加载...
+        
+        var config = await ResManager.LoadAsync<TextAsset>("Configs/Hero");
+        if (_cancelToken.IsCancel()) return;
+        
+        // 使用 config...
+    }
+    
+    private void OnDestroy()
+    {
+        // 对象销毁时，取消所有相关异步操作
+        _cancelToken.Cancel();
+    }
+}
+```
+
+**最佳实践**：每个需要管理异步任务生命周期的组件，都持有一个 `ETCancellationToken`，在 `OnDestroy` 中调用 `Cancel()`。
+
+---
+
+## 多层取消：父子令牌关系
+
+有时候，你希望实现"取消父操作时，子操作也一并取消"。ETCancellationToken 的 `Add/Remove` 机制天然支持这种关系：
+
+```csharp
+public class SceneLoader
+{
+    private ETCancellationToken _sceneToken = new ETCancellationToken();
+    
+    public async ETTask LoadSceneAsync()
+    {
+        // 每个角色有自己的令牌
+        var heroToken = new ETCancellationToken();
+        var enemyToken = new ETCancellationToken();
+        
+        // 注册到父令牌：父取消时，子也取消
+        _sceneToken.Add(() => heroToken.Cancel());
+        _sceneToken.Add(() => enemyToken.Cancel());
+        
+        // 并发加载
+        var heroTask = LoadHeroAsync(heroToken);
+        var enemyTask = LoadEnemyAsync(enemyToken);
+        
+        await ETTaskHelper.WaitAll(new[] { heroTask, enemyTask });
+    }
+    
+    public void UnloadScene()
+    {
+        // 取消场景级令牌，会级联取消所有子令牌
+        _sceneToken.Cancel();
+    }
+}
+```
+
+---
+
+## 取消与异常的区别
+
+**取消不是异常**。这是一个非常重要的设计原则。
+
+在 C# 标准库中，取消操作会抛出 `OperationCanceledException`，这就意味着你必须用 try-catch 来处理取消逻辑，而 catch 本身有性能开销。
+
+ETCancellationToken 的设计是：取消 = 执行回调 = 让任务以"正常"方式提前结束。调用者通过 `IsCancel()` 检查来决定是否继续后续逻辑，不涉及异常机制，对性能更友好。
+
+```csharp
+// ❌ 标准库风格（不适合高频游戏逻辑）
+try
+{
+    await SomeTask(cancellationToken);
+}
+catch (OperationCanceledException)
+{
+    // 处理取消
+}
+
+// ✅ ETTask 风格（无异常开销）
+await SomeTask(cancelToken);
+if (cancelToken.IsCancel())
+{
+    // 处理取消
+    return;
+}
+```
+
+---
+
+## 重入问题的处理
+
+`ETCancellationToken.Invoke()` 里有一个细节值得注意：
+
+```csharp
+private void Invoke()
+{
+    HashSet<Action> runActions = this.actions;
+    this.actions = null;  // ← 先把 actions 置为 null
+    try
+    {
+        foreach (Action action in runActions)
+        {
+            action.Invoke();
+        }
+    }
+    // ...
+}
+```
+
+**为什么先置 null？**
+
+如果在回调执行过程中，某个回调又调用了 `Cancel()`，此时 `this.actions` 已经是 null，`IsDispose()` 返回 true，第二次调用直接返回，不会重复执行。这是防止**重入**（re-entrancy）的常见技巧。
+
+---
+
+## Invoke 中的异常处理
+
+注意 `Invoke()` 用 try-catch 包裹了回调执行，并把异常传给 `ETTask.ExceptionHandler`：
+
+```csharp
+catch (Exception e)
+{
+    ETTask.ExceptionHandler.Invoke(e);
+}
+```
+
+这意味着**即使某个取消回调抛了异常，后续的回调仍然会执行**——不，等等，这里其实有个小问题：foreach 被 try-catch 包裹，一旦某个 action 抛异常，循环就中断了，后续的 action 不会执行。
+
+更健壮的写法应该是每个回调单独 try-catch：
+
+```csharp
+// 更健壮的写法（不是当前框架实现，仅供参考）
+foreach (Action action in runActions)
+{
+    try { action.Invoke(); }
+    catch (Exception e) { ETTask.ExceptionHandler?.Invoke(e); }
+}
+```
+
+这是框架的一个小缺陷，在实际使用中要注意：取消回调尽量保持简单，不要在里面抛异常。
+
+---
+
+## 完整使用场景：技能释放取消
+
+下面是一个典型的游戏场景——施法过程被打断：
+
+```csharp
+public class Skill
+{
+    private ETCancellationToken _castToken;
+    
+    public async ETTask CastAsync()
+    {
+        _castToken = new ETCancellationToken();
+        
+        // 播放前摇动画（1秒）
+        await PlayAnimationAsync("cast_start", _castToken);
+        if (_castToken.IsCancel()) return;
+        
+        // 等待施法结束
+        await TimerComponent.Instance.WaitAsync(1000, _castToken);
+        if (_castToken.IsCancel()) return;
+        
+        // 创建技能特效
+        await SpawnEffectAsync(_castToken);
+        if (_castToken.IsCancel()) return;
+        
+        // 施法成功
+        ApplyEffect();
+    }
+    
+    // 技能被打断（受击、死亡等）
+    public void Interrupt()
+    {
+        _castToken?.Cancel();
+        _castToken = null;
+    }
+}
+```
+
+这段代码的优雅之处在于：无论是受击打断、玩家主动取消还是角色死亡，只需要调用 `Interrupt()` 即可，后续的 `IsCancel()` 检查会在每个等待点自然地终止施法流程。
+
+---
+
+## 总结
+
+ETCancellationToken 是一个极简却有力的设计：
+
+| 特性 | 说明 |
+|------|------|
+| **核心原理** | 注册回调集合，Cancel 时批量触发 |
+| **"已取消"判断** | `actions == null` → `IsDispose()` |
+| **线程安全** | 不需要（游戏主线程单线程模型） |
+| **内存占用** | 极小，一个 HashSet<Action> |
+| **与 ETTask 集成** | 通过 `IsCancel()` 扩展方法检查 |
+
+掌握取消令牌，是写出**健壮异步代码**的必经之路。记住：异步操作每个等待点之后，都应该检查一次是否需要取消，就像开车过路口都要看一眼红绿灯。

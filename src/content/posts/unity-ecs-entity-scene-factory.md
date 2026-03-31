@@ -1,0 +1,206 @@
+---
+title: 游戏场景工厂模式——用静态工厂方法创建和管理游戏场景
+published: 2026-03-31
+description: 深入解析 EntitySceneFactory 静态工厂类的设计，理解工厂方法模式如何分离对象创建逻辑，以及 ID 与 InstanceId 双标识体系的作用。
+tags: [Unity, ECS, 工厂模式, 场景管理]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 游戏场景工厂模式——用静态工厂方法创建和管理游戏场景
+
+## 前言
+
+在 ECS 框架中，"场景"（Scene）不是 Unity 的 Scene 文件，而是一个逻辑上的**实体容器**——它持有一批相关的实体，管理它们的生命周期。
+
+创建一个场景听起来很简单，但涉及 ID 分配、实例 ID 生成、父子关系建立等多个步骤。`EntitySceneFactory` 的职责，就是把这些复杂性封装起来，对外提供干净的创建接口。
+
+```csharp
+public static class EntitySceneFactory
+{
+    public static Scene CreateScene(long id, long instanceId, int zone, SceneType sceneType, string name, Entity parent = null)
+    {
+        Scene scene = new Scene(id, instanceId, zone, sceneType, name, parent);
+        return scene;
+    }
+
+    public static Scene CreateScene(int zone, SceneType sceneType, string name, Entity parent = null)
+    {
+        long instanceId = IdGenerater.Instance.GenerateInstanceId();
+        Scene scene = new Scene(zone, instanceId, zone, sceneType, name, parent);
+        return scene;
+    }
+}
+```
+
+---
+
+## 一、为什么需要工厂类？
+
+直接 `new Scene(...)` 不行吗？
+
+当然可以，但有以下问题：
+
+**1. 参数复杂**
+
+`Scene` 的构造函数有 5-6 个参数，调用方需要了解每个参数的含义。如果直接 `new`，调用处的代码可读性很差：
+
+```csharp
+// 直接 new，难以理解每个参数的含义
+new Scene(100001, 99999999, 1, SceneType.Client, "Battle", parentEntity);
+```
+
+**2. 创建逻辑不统一**
+
+某些情况下需要外部传入 ID（比如服务器指定了具体 ID），某些情况下需要自动生成 ID。如果每个调用方都自己处理这个逻辑，代码会重复。
+
+**3. 未来扩展困难**
+
+如果后续需要在创建场景时做额外初始化（注册到全局管理器、发送事件等），就需要找到所有 `new Scene(...)` 的地方逐一修改。
+
+工厂类把这些问题都解决了：**将对象创建的逻辑集中在一处**。
+
+---
+
+## 二、两个重载方法的区别
+
+### 2.1 带完整 ID 的重载
+
+```csharp
+public static Scene CreateScene(long id, long instanceId, int zone, SceneType sceneType, string name, Entity parent = null)
+```
+
+这个版本适用于 **ID 已知** 的情况，比如：
+- 服务端分配好了场景 ID，客户端同步创建时需要使用相同的 ID
+- 热重启恢复场景时，需要用原来的 ID 还原
+
+`id` 和 `instanceId` 是**两个不同的标识符**，这是 ECS 框架中非常重要的概念。
+
+**`Id` vs `InstanceId` 的区别**：
+
+| 标识符 | 说明 | 生命周期 |
+|---|---|---|
+| `Id` | 逻辑 ID，代表这个"实体概念"的标识 | 可以跨生命周期保持 |
+| `InstanceId` | 实例 ID，代表这次运行时创建的具体对象 | 每次创建唯一，销毁后改变 |
+
+举例：
+- 你的角色 ID（`Id`）是 `12345`——这是你"这个角色"的永久标识，重新登录也不变
+- 你的角色对象的 `InstanceId` 是当前运行时生成的——下次重新创建角色对象，InstanceId 变了，但 Id 还是 12345
+
+这个区分在之前分析 `EntityRef<T>` 时已经看到：用 `InstanceId` 来检测引用是否过期，用 `Id` 来标识具体的游戏实体。
+
+### 2.2 自动生成 ID 的重载
+
+```csh:
+public static Scene CreateScene(int zone, SceneType sceneType, string name, Entity parent = null)
+{
+    long instanceId = IdGenerater.Instance.GenerateInstanceId();
+    Scene scene = new Scene(zone, instanceId, zone, sceneType, name, parent);
+    return scene;
+}
+```
+
+当不需要特定 ID 时（比如创建一个客户端本地场景），使用 `IdGenerater` 自动生成。
+
+注意这里 `id` 和 `instanceId` 都使用了 `zone`（区域 ID）：`new Scene(zone, instanceId, zone, ...)`。第一个参数是 `id`，第三个是 `zone`。
+
+这是一种简化——对于不需要区分 id/instanceId 的场景，用 zone 作为 id 是合理的约定（不同 zone 的场景 ID 不会冲突）。
+
+---
+
+## 三、静态类的设计选择
+
+`EntitySceneFactory` 是静态类，不能被实例化。
+
+```csharp
+public static class EntitySceneFactory
+```
+
+**什么时候应该用静态类？**
+
+当这个类：
+1. 没有状态（不需要存储任何字段）
+2. 只提供工具性方法
+3. 不需要被继承或接口化
+
+`EntitySceneFactory` 完全符合这些条件：它只是把创建 `Scene` 的参数处理逻辑封装起来，自身不保存任何状态。
+
+**静态类 vs 单例**：
+
+- **静态类**：没有实例，方法直接通过类名调用
+- **单例**：有一个实例，通过 `Instance` 属性访问
+
+如果工厂类需要状态（比如"已创建了多少个场景的计数器"），应该用单例。如果没有状态，静态类更简洁。
+
+---
+
+## 四、可选参数 parent = null
+
+```csharp
+Entity parent = null
+```
+
+`parent` 参数是可选的，默认为 null——这意味着场景可以没有父节点（成为根场景）。
+
+在框架中，`Root` 场景就没有父节点。其他场景则挂载在它下面形成层级。
+
+**可选参数的注意事项**：
+
+可选参数必须放在参数列表的**末尾**，且必须是可以在编译时确定的常量值（null、0、""等）。
+
+---
+
+## 五、Zone——场景分区概念
+
+所有创建方法都有 `zone` 参数。`Zone` 代表逻辑上的"区域"或"服务器节点"。
+
+在多人游戏中：
+- Zone 0：可能代表大厅服务器
+- Zone 1：可能代表战斗服务器实例1
+- Zone 2：可能代表战斗服务器实例2
+
+Zone 帮助 ID 生成器避免不同区域的 ID 冲突，也帮助框架路由消息（这条消息应该发到哪个 Zone 的 Scene）。
+
+```csharp
+// Zone 信息可以通过 SceneHelper 访问
+int zone = entity.DomainZone(); // 获取实体所在的 Zone
+```
+
+---
+
+## 六、工厂方法模式在游戏中的广泛应用
+
+工厂方法模式（Factory Method Pattern）在游戏开发中极为常见：
+
+```csharp
+// 实体工厂
+Entity player = EntityFactory.Create<Player>(scene);
+
+// 子弹工厂
+Bullet bullet = BulletFactory.Create(position, direction, damage);
+
+// 特效工厂
+Effect effect = EffectFactory.CreateByName("火焰爆炸", position);
+```
+
+每次你需要"创建一类对象，但创建过程比较复杂"时，就可以考虑工厂模式。
+
+**工厂模式的三大价值**：
+1. **封装复杂性**：调用方不需要知道创建细节
+2. **集中管理**：修改创建逻辑只需要改一个地方
+3. **方便测试**：可以注入 Mock 工厂，在测试中创建假对象
+
+---
+
+## 七、写给初学者的建议
+
+工厂模式是最容易被忽视却最实用的设计模式之一。
+
+初学者常犯的错误是：在需要工厂的地方直接 `new`，然后当创建逻辑变复杂时，发现代码散落各处，难以维护。
+
+**养成一个习惯**：当你需要创建一类重要对象时，问自己："创建这个对象的过程有多复杂？这些逻辑应该集中在哪里？"
+
+如果答案是"不止一行，多个地方都会创建"，那就考虑创建一个工厂类。
+
+`EntitySceneFactory` 虽然现在看起来很简单，但它的存在使得未来的扩展（比如创建场景时自动注册到全局管理器）变得容易——只需要在工厂方法里加一行代码，所有调用方都生效。
