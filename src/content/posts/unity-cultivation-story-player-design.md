@@ -1,0 +1,269 @@
+---
+title: 养成剧情播放器设计——连续剧情列表与服务端上报的异步协调
+published: 2026-03-31
+description: 深度解析养成玩法剧情播放器的设计，包括单一剧情与剧情列表播放、取消令牌控制与服务端结果上报
+tags: [Unity, 剧情系统, 养成系统]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 养成剧情播放器设计——连续剧情列表与服务端上报的异步协调
+
+养成玩法中的剧情播放与普通主线剧情有显著不同：
+1. 可能需要连续播放多段剧情（剧情列表）
+2. 每段剧情结束后需要向服务端上报结果
+3. 中途可以取消（玩家按"跳过"）
+4. 剧情阶段切换时需要通知系统
+
+如何在这些约束下实现清晰的剧情播放逻辑？VGame的`CultivationStoryPlayerBase`给出了答案。
+
+## 一、播放器的状态变量
+
+```csharp
+public abstract class CultivationStoryPlayerBase : ICultivationStoryPlayer
+{
+    protected EScheduleStageType CurrentStage;  // 正在播放剧情的日程阶段
+    protected bool IgnoreSingleStoryEnd;        // 连续播放时忽略单个剧情结束事件
+    protected ETCancellationToken CancelToken;  // 播放列表的取消令牌
+    protected int Counter;                      // 已播放剧情计数
+    protected ICultivationStoryDetailData Data; // 当前播放的剧情数据
+    protected ETTask<bool> RequestTask;         // 服务端上报的异步任务句柄
+    
+    public CultivationComponent Comp { get; set; }
+    
+    public void Init()
+    {
+        CurrentStage = (EScheduleStageType)Comp.GetScheduleStage();
+        IgnoreSingleStoryEnd = false;
+        CancelToken = null;
+        Counter = 0;
+        Data = null;
+        RequestTask = null;
+    }
+}
+```
+
+注意`RequestTask`——它是服务端上报任务的句柄。剧情播放完后需要告诉服务器"玩家看了哪段剧情"，这是一个网络请求，是异步的。播放器需要持有这个句柄来等待上报完成（或在取消时强制结束上报等待）。
+
+## 二、单段剧情播放
+
+```csharp
+public virtual async ETTask<bool> Play(
+    ICultivationStoryDetailData story, 
+    EStoryDisposeMode disposeMode = EStoryDisposeMode.None)
+{
+    Counter++;            // 计数
+    await PlayCore(story, disposeMode);  // 核心播放逻辑
+    
+    if (!IgnoreSingleStoryEnd)
+        TriggerStoryStageFinished(); // 发布"剧情阶段完成"事件
+    
+    return true;
+}
+```
+
+`IgnoreSingleStoryEnd`是连续播放的关键：播放列表时，不希望每播完一段剧情就触发"阶段完成"事件（否则每段剧情都会触发场景切换、加载画面等），只有整个列表播完后才触发。
+
+设置时机：
+
+```csharp
+// 单段播放：IgnoreSingleStoryEnd = false（默认），每段完成都触发事件
+await player.Play(singleStory);
+
+// 列表播放：IgnoreSingleStoryEnd = true，只有列表完成才触发事件
+await player.Play(storyList);
+```
+
+## 三、剧情列表的连续播放
+
+```csharp
+public async ETTask<bool> Play(
+    IEnumerable<ICultivationStoryDetailData> storyList, 
+    EStoryDisposeMode disposeMode = EStoryDisposeMode.None)
+{
+    CancelToken = new ETCancellationToken(); // 创建取消令牌
+    IgnoreSingleStoryEnd = true;             // 单段完成不触发阶段事件
+    
+    var playedAny = false;
+    foreach (var story in storyList)
+    {
+        playedAny = true;
+        await Play(story, disposeMode);
+        
+        // 检查是否已取消（玩家点了跳过）
+        if (CancelToken != null && CancelToken.IsCancel())
+            break; // 中断后续剧情
+    }
+    
+    CancelToken = null;
+    
+    // 即使没有可播放的剧情，也要触发准备回调
+    if (!playedAny)
+        TriggerStoryStagePrepared();
+    
+    // 无论是否被取消，列表播放结束都要触发阶段完成事件
+    TriggerStoryStageFinished();
+    return true;
+}
+```
+
+**关键设计：取消后还要触发完成事件**
+
+即使列表被取消（玩家跳过），仍然调用`TriggerStoryStageFinished()`。这是因为系统依赖这个事件来推进日程阶段——如果取消后不触发，系统就卡住了，玩家无法继续游戏。
+
+取消令牌的作用只是"不再播放列表中剩余的剧情"，而不是"取消整个阶段的推进"。
+
+## 四、核心播放逻辑的防御性设计
+
+```csharp
+private async ETTask<bool> PlayCore(ICultivationStoryDetailData data, EStoryDisposeMode disposeMode)
+{
+    // 防御性检查1：数据为空
+    if (data == null)
+    {
+        await PlayEnd(false, "剧情数据非法");
+        return false;
+    }
+    
+    Data = data;
+    
+    // 防御性检查2：LogicID为空（配置错误）
+    if (Data.LogicID == 0)
+    {
+        await PlayEnd(false, "剧情配置错误");
+        return false;
+    }
+    
+    Data.Results ??= new List<CultivationStoryResultData>();
+    await PlayStart(); // 播放前准备（可重写：显示UI、音频过渡等）
+    
+    // 创建服务端上报任务句柄（注意：此时只是创建，还没发请求）
+    RequestTask = ETTask<bool>.Create(true);
+    
+    // 设置场景子关卡信息（用于剧情调度）
+    var storyComp = Comp.ClientScene().GetComponent<StoryComponent>();
+    storyComp.SetCurSceneSubLevel(Comp.GetSceneSubLevel());
+    
+    // 获取可播放的剧情列表
+    var stories = storyComp.GetStoryListFormLogicId(data.LogicID);
+    
+    if (stories.Count == 0)
+    {
+        Log.Info("[Cultivation][Story] 无可播放剧情");
+        TriggerStoryStagePrepared(); // 无剧情也要触发准备回调
+        // ... 继续处理无剧情情况
+    }
+    
+    // ... 播放剧情
+}
+```
+
+**`ETTask<bool>.Create(true)`的特殊用法**：
+
+`Create(true)`创建一个"手动模式"的ETTask，它不会立刻完成，而是需要外部调用`SetResult()`来触发完成。
+
+这里的模式是：
+1. `PlayCore`开始播放剧情时创建`RequestTask`
+2. 实际的服务端请求在剧情结束时发出（`PlayEnd`里）
+3. 服务端返回结果后，调用`RequestTask.SetResult(true)`
+4. 如果有等待`RequestTask`的代码，这时会被唤醒
+
+这解决了"剧情播放"和"服务端确认"的时序协调问题。
+
+## 五、Stop（中途取消）的实现
+
+```csharp
+public void Stop()
+{
+    CancelToken?.Cancel();
+}
+```
+
+看起来很简单，但背后的机制是：
+
+1. `CancelToken.Cancel()`设置取消标志
+2. 下一次循环检查`if (CancelToken.IsCancel()) break`时退出
+3. `Play(storyList)`的末尾`TriggerStoryStageFinished()`仍然被调用
+
+`Stop()`是同步的，立刻返回，不需要等待当前剧情播完。这是合理的——"跳过"按钮应该立刻响应，不能等当前对话框的关闭动画结束。
+
+## 六、两种触发事件的语义区分
+
+```csharp
+private void TriggerStoryStagePrepared()
+{
+    EventSystem.Instance.Publish(Comp.ClientScene(), new Evt_CultivationStoryStagePrepared
+    { 
+        CurrentStage = CurrentStage 
+    });
+}
+
+private void TriggerStoryStageFinished()
+{
+    EventSystem.Instance.Publish(Comp.ClientScene(), new Evt_CultivationStoryStageFinished
+    { 
+        CurrentStage = CurrentStage 
+    });
+}
+```
+
+**Prepared** vs **Finished**的区别：
+
+- **Prepared**：剧情即将开始播放（或没有剧情要播）。接收方可以做"剧情前"的准备：隐藏某些UI、开始过渡动画。
+- **Finished**：所有剧情都播完了。接收方可以：推进到下一个日程阶段、解锁新功能、保存进度。
+
+`Prepared`的触发条件：
+- 有剧情时：`PlayStart()`里触发
+- 没有剧情时：`Play(storyList)`里`!playedAny`分支触发
+
+这确保了无论"有没有剧情可播"，`Prepared`事件都会触发，等待它的系统不会卡住。
+
+## 七、子类的扩展点
+
+```csharp
+protected virtual void TriggerStoryStagePrepared() { ... }
+protected abstract ETTask<bool> PlayStart();
+protected abstract ETTask<bool> PlayEnd(bool success, string reason);
+```
+
+基类留了3个扩展点：
+- `TriggerStoryStagePrepared()`：可重写以改变准备事件的触发逻辑
+- `PlayStart()`：纯虚方法，子类定义"开始播放前做什么"（如显示黑幕过渡）
+- `PlayEnd()`：纯虚方法，子类定义"播放结束后做什么"（如发服务端请求、隐藏黑幕）
+
+不同的剧情阶段（训练剧情、约会剧情、赛前剧情）可以各自继承实现不同的开始/结束逻辑，但共享相同的播放控制逻辑。
+
+## 八、实战中的坑
+
+**坑：服务端请求未完成就进入下一阶段**
+
+剧情播完了，`TriggerStoryStageFinished()`触发，系统切换到下一阶段，但服务端上报还在进行中。如果下一阶段需要服务端数据，可能拿到旧数据。
+
+解决：在阶段切换时等待`RequestTask`完成（或超时）。
+
+```csharp
+// 在阶段切换前
+if (player.RequestTask != null)
+    await player.RequestTask.WithTimeout(3000); // 最多等3秒
+```
+
+**坑：CancelToken重复取消**
+
+第一次取消后`CancelToken`没有置null，第二次播放剧情列表时发现`CancelToken`已经是取消状态，剧情列表直接被跳过。
+
+解决：在列表播放结束时`CancelToken = null`（代码中已有）。
+
+## 九、总结
+
+养成剧情播放器的设计展示了以下要点：
+
+| 设计点 | 解决的问题 |
+|--------|---------|
+| IgnoreSingleStoryEnd | 列表播放时抑制中间事件 |
+| ETCancellationToken | 异步操作的可取消机制 |
+| RequestTask手动ETTask | 剧情与服务端请求的时序协调 |
+| 两个阶段事件 | 区分"即将播放"和"已完成"的语义 |
+| 取消后仍触发Finished | 防止系统卡住 |
+
+对新手来说，这套设计的核心思想是：**异步流程的每个路径（正常完成、取消、无内容）都必须走到正确的终止状态**，不能有任何"挂起不结束"的情况。
