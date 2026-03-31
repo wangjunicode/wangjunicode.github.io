@@ -1,0 +1,230 @@
+---
+title: 游戏本地化系统：多语言文本管理的架构设计与实践
+published: 2026-03-31
+description: 深入解析游戏本地化系统的完整设计，从文本 ID 管理到运行时语言切换，以及动态参数格式化的实现方法。
+tags: [Unity, 本地化, 多语言, 游戏架构]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 为什么本地化要及早规划？
+
+很多项目一开始只支持中文，后来决定出海，才发现要把几千条硬编码字符串一个个替换成本地化文本……这是极其痛苦的重构。
+
+如果一开始就用本地化系统，后期加语言只需要添加翻译文件，不需要改代码。
+
+**第一性原理**：游戏中所有玩家能看到的文字，都不应该硬编码在代码里。
+
+---
+
+## 本地化系统的核心组件
+
+### 1. 文本 ID 定义
+
+```csharp
+// 用常量而不是魔法字符串
+public static class TextKey
+{
+    // UI 通用
+    public const string Confirm     = "ui.common.confirm";
+    public const string Cancel      = "ui.common.cancel";
+    public const string Back        = "ui.common.back";
+    
+    // 角色相关
+    public const string HeroName    = "character.hero.name";
+    public const string HeroDesc    = "character.hero.description";
+    
+    // 提示文字
+    public const string NotEnoughGold  = "tips.not_enough_gold";
+    public const string InventoryFull  = "tips.inventory_full";
+    
+    // 带参数的文本
+    public const string LevelUp        = "tips.level_up";       // "恭喜升到 {0} 级！"
+    public const string ItemGet        = "tips.item_get";        // "获得 {0} x{1}"
+}
+```
+
+### 2. 翻译文件格式
+
+每种语言一个 JSON 文件：
+
+```json
+// zh-CN.json
+{
+    "ui.common.confirm": "确认",
+    "ui.common.cancel": "取消",
+    "tips.level_up": "恭喜升到 {0} 级！",
+    "tips.item_get": "获得 {0} x{1}",
+    "character.hero.name": "英雄"
+}
+
+// en-US.json
+{
+    "ui.common.confirm": "Confirm",
+    "ui.common.cancel": "Cancel",
+    "tips.level_up": "Congratulations on reaching level {0}!",
+    "tips.item_get": "Got {0} x{1}",
+    "character.hero.name": "Hero"
+}
+```
+
+### 3. 本地化管理器
+
+```csharp
+public class LocalizationManager : Singleton<LocalizationManager>
+{
+    private Dictionary<string, string> _currentTexts = new();
+    private string _currentLanguage = "zh-CN";
+    
+    // 加载语言
+    public async ETTask LoadLanguage(string language)
+    {
+        _currentLanguage = language;
+        
+        string path = $"Localization/{language}";
+        var textAsset = await ResManager.LoadAsync<TextAsset>(path);
+        
+        if (textAsset != null)
+        {
+            var data = JsonConvert.DeserializeObject<Dictionary<string, string>>(
+                textAsset.text);
+            _currentTexts = data;
+        }
+    }
+    
+    // 获取文本（无参数）
+    public string Get(string key)
+    {
+        return _currentTexts.TryGetValue(key, out var text) ? text : $"#{key}#";
+    }
+    
+    // 获取文本（带参数）
+    public string Get(string key, params object[] args)
+    {
+        string template = Get(key);
+        try
+        {
+            return string.Format(template, args);
+        }
+        catch
+        {
+            return template;  // 格式化失败时返回原模板
+        }
+    }
+    
+    // 简写方法
+    public static string T(string key) 
+        => Instance.Get(key);
+    
+    public static string T(string key, params object[] args) 
+        => Instance.Get(key, args);
+}
+```
+
+---
+
+## 使用示例
+
+```csharp
+// 静态文本
+button.text = LocalizationManager.T(TextKey.Confirm);
+
+// 带参数
+string levelUpMsg = LocalizationManager.T(TextKey.LevelUp, newLevel);
+UIManager.ShowToast(levelUpMsg);
+
+// 道具获得
+string itemMsg = LocalizationManager.T(TextKey.ItemGet, itemName, count);
+UIManager.ShowFloatingText(itemMsg);
+```
+
+---
+
+## 语言切换的动态更新
+
+```csharp
+// 语言切换事件
+public class LanguageChangedEvent
+{
+    public string NewLanguage;
+}
+
+// UI 组件监听语言切换
+public class LocalizedText : MonoBehaviour
+{
+    [SerializeField] private string _textKey;
+    private Text _text;
+    
+    private void Start()
+    {
+        _text = GetComponent<Text>();
+        UpdateText();
+        
+        // 监听语言切换事件
+        EventDispatcherSystem.Instance.RegisterEvent<LanguageChangedEvent>(
+            _ => UpdateText());
+    }
+    
+    private void UpdateText()
+    {
+        _text.text = LocalizationManager.T(_textKey);
+    }
+}
+
+// 语言切换
+public async void SwitchLanguage(string language)
+{
+    await LocalizationManager.Instance.LoadLanguage(language);
+    // 通知所有 LocalizedText 组件更新
+    EventDispatcherSystem.Instance.FireEvent(new LanguageChangedEvent { NewLanguage = language });
+}
+```
+
+---
+
+## 字体替换：不同语言不同字体
+
+有些语言（如日文、阿拉伯文）需要特定字体：
+
+```csharp
+public class LocalizationManager
+{
+    private Dictionary<string, TMP_FontAsset> _languageFonts = new();
+    
+    public TMP_FontAsset GetFont(string language = null)
+    {
+        language ??= _currentLanguage;
+        return _languageFonts.TryGetValue(language, out var font) 
+            ? font 
+            : _languageFonts["default"];
+    }
+    
+    // 切换语言时同时切换字体
+    public async ETTask LoadLanguage(string language)
+    {
+        _currentLanguage = language;
+        await LoadTexts(language);
+        await LoadFont(language);
+        
+        // 通知所有文本组件更新字体
+        FireLanguageChanged(language);
+    }
+}
+```
+
+---
+
+## 总结
+
+本地化系统的关键设计决策：
+
+| 决策 | 理由 |
+|------|------|
+| 文本 ID 常量化 | 防止拼写错误，IDE 自动补全 |
+| JSON 格式翻译文件 | 策划可直接编辑，版本控制友好 |
+| 带参数格式化 | 支持"获得 X 个道具"这类动态文本 |
+| 事件驱动更新 | 语言切换时无需重启，UI 自动更新 |
+| 保底显示 `#key#` | 缺失翻译时明显可见，便于 QA 发现 |
+
+在新项目启动时就建立本地化系统，是对未来维护成本最划算的投资之一。

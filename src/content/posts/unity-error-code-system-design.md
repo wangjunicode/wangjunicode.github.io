@@ -1,0 +1,233 @@
+---
+title: 游戏错误码系统设计：从枚举到可查询的错误知识库
+published: 2026-03-31
+description: 解析游戏错误码系统的分层设计方法，理解如何用枚举、常量和注解构建可维护的错误码体系，以及运行时错误查询的实现。
+tags: [Unity, 错误处理, 系统设计, 工程实践]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+## 为什么需要错误码系统？
+
+游戏服务器返回的响应总是包含结果状态：
+
+```json
+{"code": 0, "msg": "success"}
+{"code": 1001, "msg": "用户名已存在"}
+{"code": 5002, "msg": "道具数量不足"}
+```
+
+如果直接用 int 类型，代码可读性很差：
+
+```csharp
+if (response.ErrorCode == 5002)  // ❌ 这个 5002 是什么意思？
+{
+    ShowNotEnoughItems();
+}
+```
+
+良好的错误码系统应该做到：
+1. **自文档化**：看到错误码/名称就能理解含义
+2. **分类清晰**：哪个系统产生的错误一目了然
+3. **可查询**：运行时可以查询错误码对应的描述
+
+---
+
+## 分层错误码设计
+
+### 第一层：系统分类（高位）
+
+```csharp
+// 错误码 = 系统代码 × 1000 + 错误号
+// 系统代码决定了错误码的范围
+public static class ErrorSystem
+{
+    public const int Common    = 0;      // 0000-0999：通用错误
+    public const int Account   = 1;      // 1000-1999：账号系统
+    public const int Battle    = 2;      // 2000-2999：战斗系统
+    public const int Inventory = 3;      // 3000-3999：背包系统
+    public const int Quest     = 4;      // 4000-4999：任务系统
+    public const int Social    = 5;      // 5000-5999：社交系统
+    public const int Store     = 6;      // 6000-6999：商店系统
+}
+```
+
+### 第二层：具体错误码
+
+```csharp
+public static class ErrorCode
+{
+    // 通用错误（0-999）
+    public const int Success          = 0;
+    public const int UnknownError     = 1;
+    public const int NetworkError     = 2;
+    public const int Timeout          = 3;
+    public const int InvalidParam     = 4;
+    public const int NotLogin         = 5;
+    public const int ServerMaintain   = 6;
+    
+    // 账号系统（1000-1999）
+    public const int UserNotExist     = 1001;
+    public const int WrongPassword    = 1002;
+    public const int UsernameTaken    = 1003;
+    public const int AccountBanned    = 1004;
+    public const int VersionTooOld    = 1005;
+    
+    // 背包系统（3000-3999）
+    public const int ItemNotExist     = 3001;
+    public const int NotEnoughItems   = 3002;
+    public const int InventoryFull    = 3003;
+    public const int ItemExpired      = 3004;
+    
+    // 商店系统（6000-6999）
+    public const int NotEnoughGold    = 6001;
+    public const int NotEnoughDiamond = 6002;
+    public const int ItemSoldOut      = 6003;
+    public const int PurchaseLimited  = 6004;
+}
+```
+
+---
+
+## 错误描述注册：运行时可查询
+
+```csharp
+// 错误描述注册器
+public static class ErrorCodeDescriptions
+{
+    private static readonly Dictionary<int, string> _descriptions = new();
+    
+    static ErrorCodeDescriptions()
+    {
+        Register(ErrorCode.Success,          "操作成功");
+        Register(ErrorCode.NetworkError,     "网络异常，请检查网络连接");
+        Register(ErrorCode.Timeout,          "请求超时，请重试");
+        Register(ErrorCode.NotLogin,         "请先登录");
+        Register(ErrorCode.UserNotExist,     "用户不存在");
+        Register(ErrorCode.WrongPassword,    "密码错误");
+        Register(ErrorCode.UsernameTaken,    "用户名已被使用");
+        Register(ErrorCode.NotEnoughItems,   "道具数量不足");
+        Register(ErrorCode.InventoryFull,    "背包已满");
+        Register(ErrorCode.NotEnoughGold,    "金币不足");
+        Register(ErrorCode.NotEnoughDiamond, "钻石不足");
+        // ... 更多注册
+    }
+    
+    private static void Register(int code, string description)
+    {
+        _descriptions[code] = description;
+    }
+    
+    public static string Get(int code)
+    {
+        return _descriptions.TryGetValue(code, out var desc) 
+            ? desc 
+            : $"未知错误（{code}）";
+    }
+    
+    // 多语言支持版本
+    public static string Get(int code, string language = "zh-CN")
+    {
+        // 可以根据语言加载不同的描述
+        return Get(code);
+    }
+}
+```
+
+---
+
+## 错误处理中间层
+
+```csharp
+// 统一的错误响应处理器
+public class ResponseHandler
+{
+    public static bool Handle(AResponse response, bool showError = true)
+    {
+        if (response.ErrorCode == ErrorCode.Success)
+            return true;
+        
+        string errorMsg = string.IsNullOrEmpty(response.ErrorMsg)
+            ? ErrorCodeDescriptions.Get(response.ErrorCode)
+            : response.ErrorMsg;
+        
+        if (showError)
+        {
+            // 根据错误类型决定提示方式
+            switch (response.ErrorCode)
+            {
+                case ErrorCode.NotLogin:
+                    UIManager.ShowLoginDialog();
+                    break;
+                case ErrorCode.NetworkError:
+                case ErrorCode.Timeout:
+                    UIManager.ShowToast(errorMsg, ToastType.Warning);
+                    break;
+                case ErrorCode.ServerMaintain:
+                    UIManager.ShowMaintenanceDialog();
+                    break;
+                default:
+                    UIManager.ShowToast(errorMsg, ToastType.Error);
+                    break;
+            }
+        }
+        
+        Log.Warning($"Request failed: [{response.ErrorCode}] {errorMsg}");
+        return false;
+    }
+}
+
+// 业务代码使用
+var response = await networkComp.SendRequestAsync<BuyItemResponse>(new BuyItemRequest
+{
+    ItemId = 1001,
+    Count = 1
+});
+
+if (!ResponseHandler.Handle(response))
+    return;  // 错误已处理，直接返回
+
+// 成功逻辑...
+AddItemToInventory(response.ItemData);
+```
+
+---
+
+## 错误码的版本管理
+
+随着版本迭代，可能需要添加新错误码：
+
+```csharp
+// 版本化的错误码文件（配合注释记录添加时间和原因）
+public static class ErrorCode
+{
+    // v1.0.0
+    public const int Success = 0;
+    
+    // v1.2.0 - 添加 VIP 系统
+    public const int VipRequired = 7001;
+    
+    // v2.0.0 - 添加公会系统
+    public const int GuildNotExist = 8001;
+    public const int GuildFull     = 8002;
+    
+    // Deprecated: 不再使用，但保留以免旧版客户端解析失败
+    // [Obsolete("已废弃，使用 VipRequired 替代")]
+    // public const int PremiumRequired = 300;
+}
+```
+
+---
+
+## 总结
+
+完整的错误码系统需要三个部分：
+
+| 部分 | 职责 |
+|------|------|
+| 错误码常量 | 类型安全的错误定义 |
+| 错误描述注册 | 人可读的错误描述 |
+| 错误处理中间层 | 统一的错误展示逻辑 |
+
+设计良好的错误码系统是**客户端、服务器、QA 三方协作**的基础。服务器按范围分配错误码，客户端按类型处理，QA 根据错误码定位问题。它是项目规范化的重要标志。
