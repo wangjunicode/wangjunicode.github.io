@@ -1,0 +1,362 @@
+---
+title: 事件系统与事件特性——场景感知的发布订阅机制设计
+published: 2026-03-31
+description: 深入解析 IEvent 接口族和 EventAttribute 的设计，理解 AEvent/AAsyncEvent 两种事件类型、SceneType 过滤机制以及异常隔离的事件处理模式。
+tags: [Unity, ECS, 发布订阅, 事件系统, 异步事件]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 事件系统与事件特性——场景感知的发布订阅机制设计
+
+## 前言
+
+游戏中的很多交互是"解耦"的：任务系统需要知道玩家使用了道具，但任务系统不应该直接调用道具系统的代码。
+
+这就是**发布-订阅模式**（Pub-Sub）的用武之地：道具系统"发布"一个"使用道具"事件，任务系统"订阅"这个事件做处理——两者完全不知道对方的存在。
+
+`IEvent` 和 `EventAttribute` 是 ECS 框架事件系统的核心接口，今天我们来深入分析。
+
+---
+
+## 一、接口层级设计
+
+```csharp
+public interface IEvent
+{
+    Type Type { get; }
+}
+
+// EventDispatcher 事件（不同分发机制）
+public interface IEventDispatcherArg { }
+
+// EventSystem 事件（通过 EventSystem 分发）
+public interface IEventSystemArg { }
+```
+
+框架设计了两套事件标记接口：
+- `IEventDispatcherArg`：用于特定的 EventDispatcher 分发
+- `IEventSystemArg`：用于 EventSystem 的全局发布
+
+这允许同一个事件数据结构在不同分发机制中使用。
+
+---
+
+## 二、AEvent 和 AAsyncEvent——同步与异步两种事件
+
+### 2.1 AEvent——同步事件处理
+
+```csharp
+public abstract class AEvent<A> : IEvent
+{
+    public Type Type => typeof(A);
+
+    protected abstract void Run(Scene scene, A evt);
+    
+    public virtual void Handle(Scene scene, A evt)
+    {
+        try
+        {
+            Run(scene, evt);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+}
+```
+
+`AEvent<A>` 是同步事件处理器：
+
+1. `A`：事件数据类型（通常是结构体 `struct`，避免 GC）
+2. `Type`：通过泛型自动返回 `typeof(A)`，框架用它索引事件处理器
+3. `Run`：子类实现的处理逻辑
+4. `Handle`：包装了异常处理，确保一个处理器出错不影响其他处理器
+
+### 2.2 AAsyncEvent——异步事件处理
+
+```csharp
+public abstract class AAsyncEvent<A>: IEvent
+{
+    public Type Type => typeof(A);
+
+    protected abstract ETTask Run(Scene scene, A evt);
+
+    public virtual async ETTask Handle(Scene scene, A evt)
+    {
+        try
+        {
+            await Run(scene, evt);
+        }
+        catch (Exception e)
+        {
+            Log.Error(e);
+        }
+    }
+}
+```
+
+异步事件处理器返回 `ETTask`，可以在处理器中使用 `await`。
+
+**使用场景**：
+```csharp
+// 玩家升级时，需要异步加载新解锁的技能资源
+[Event(SceneType.Client)]
+public class PlayerLevelUpAsyncHandler: AAsyncEvent<PlayerLevelUpEvent>
+{
+    protected override async ETTask Run(Scene scene, PlayerLevelUpEvent evt)
+    {
+        // 异步加载技能资源
+        await ResourceManager.LoadAsync($"skill_{evt.NewSkillId}");
+        Log.Info($"技能 {evt.NewSkillId} 资源加载完成");
+    }
+}
+```
+
+如果用同步事件，异步加载会阻塞主线程；用异步事件，可以在等待资源加载的同时让主线程继续运行。
+
+### 2.3 异常隔离的设计价值
+
+注意 `Handle` 方法中的 `try-catch`：
+
+```csharp
+public virtual void Handle(Scene scene, A evt)
+{
+    try
+    {
+        Run(scene, evt);
+    }
+    catch (Exception e)
+    {
+        Log.Error(e); // 只打印错误，不抛出
+    }
+}
+```
+
+如果没有这个 try-catch，一个事件处理器抛出异常，会中断所有后续处理器的执行。
+
+有了它，每个处理器独立运行：A处理器出错，B处理器照常执行。这是**事件系统的鲁棒性保障**。
+
+---
+
+## 三、EventAttribute——带场景类型的事件注册
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+public class EventAttribute: BaseAttribute
+{
+    public SceneType SceneType { get; }
+
+    public EventAttribute(SceneType sceneType)
+    {
+        this.SceneType = sceneType;
+    }
+}
+```
+
+### 3.1 SceneType——场景感知的事件过滤
+
+`EventAttribute` 要求指定一个 `SceneType`，这是这个事件系统最有趣的设计。
+
+在 `EventSystem.Publish` 中：
+
+```csharp
+public void Publish<T>(Scene scene, T a)
+{
+    // ...
+    foreach (EventInfo eventInfo in iEvents)
+    {
+        // 检查事件处理器的 SceneType 是否与当前 Scene 匹配
+        if (scene.SceneType != eventInfo.SceneType && eventInfo.SceneType != SceneType.None)
+        {
+            continue; // 不匹配则跳过
+        }
+        // 执行处理器...
+    }
+}
+```
+
+**为什么需要场景类型过滤？**
+
+在同一个游戏进程中，可能同时存在多个场景（游戏大厅、战斗场景）。某些事件只在特定场景中有意义：
+
+```csharp
+// 战斗事件——只在 Current 场景（战斗场景）处理
+[Event(SceneType.Current)]
+public class EnemyDeathHandler: AEvent<EnemyDeathEvent>
+{
+    protected override void Run(Scene scene, EnemyDeathEvent evt)
+    {
+        // 处理敌人死亡：掉落物品、给经验、检查任务
+    }
+}
+
+// 大厅事件——只在 Client 场景（大厅）处理
+[Event(SceneType.Client)]
+public class FriendOnlineHandler: AEvent<FriendOnlineEvent>
+{
+    protected override void Run(Scene scene, FriendOnlineEvent evt)
+    {
+        // 显示好友上线通知
+    }
+}
+```
+
+当战斗场景发布 `EnemyDeathEvent` 时，只有 `[Event(SceneType.Current)]` 的处理器会响应，大厅的处理器不会触发（即使它们订阅了同名事件）。
+
+### 3.2 SceneType.None——全场景响应
+
+```csharp
+if (scene.SceneType != eventInfo.SceneType && eventInfo.SceneType != SceneType.None)
+{
+    continue;
+}
+```
+
+如果事件处理器的 `SceneType` 是 `None`，表示"在任何场景都响应"。
+
+```csharp
+// 全局日志事件，任何场景都处理
+[Event(SceneType.None)]
+public class GlobalLogHandler: AEvent<GlobalLogEvent>
+{
+    protected override void Run(Scene scene, GlobalLogEvent evt)
+    {
+        File.AppendAllText("game.log", evt.Message);
+    }
+}
+```
+
+### 3.3 AllowMultiple = true——同一处理器多场景注册
+
+```csharp
+[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
+```
+
+`AllowMultiple = true` 允许同一个类上标记多个 `EventAttribute`：
+
+```csharp
+// 这个处理器在 Client 和 Current 场景都会响应
+[Event(SceneType.Client)]
+[Event(SceneType.Current)]
+public class PlayerStateHandler: AEvent<PlayerStateChangeEvent>
+{
+    protected override void Run(Scene scene, PlayerStateChangeEvent evt)
+    {
+        // 根据 scene.SceneType 做不同处理
+    }
+}
+```
+
+---
+
+## 四、完整示例——任务系统订阅道具使用事件
+
+```csharp
+// 道具使用事件数据（用 struct，避免 GC）
+public struct ItemUsedEvent
+{
+    public long PlayerId;
+    public int ItemId;
+    public int Count;
+}
+
+// 道具系统发布事件
+public class ItemSystem
+{
+    public void UseItem(Player player, int itemId, int count)
+    {
+        // 执行使用逻辑
+        player.Inventory.Remove(itemId, count);
+        
+        // 发布事件，通知所有订阅者
+        EventSystem.Instance.Publish(player.DomainScene(), new ItemUsedEvent
+        {
+            PlayerId = player.Id,
+            ItemId = itemId,
+            Count = count
+        });
+    }
+}
+
+// 任务系统订阅道具使用事件
+[Event(SceneType.Current)] // 在当前战斗场景中响应
+public class TaskItemUsedHandler: AEvent<ItemUsedEvent>
+{
+    protected override void Run(Scene scene, ItemUsedEvent evt)
+    {
+        // 检查是否有"使用X个物品"类型的任务
+        TaskManager taskMgr = scene.GetComponent<TaskManager>();
+        taskMgr.CheckItemTask(evt.PlayerId, evt.ItemId, evt.Count);
+    }
+}
+```
+
+道具系统和任务系统完全解耦——道具系统不知道任务系统的存在，任务系统也不会被道具系统直接调用。
+
+---
+
+## 五、IEvent 的 Type 属性设计
+
+```csharp
+public interface IEvent
+{
+    Type Type { get; }
+}
+
+public abstract class AEvent<A> : IEvent
+{
+    public Type Type => typeof(A); // 返回事件参数类型
+}
+```
+
+框架用 `Type` 来索引事件处理器：
+
+```csharp
+// EventSystem 内部
+private readonly Dictionary<Type, List<EventInfo>> allEvents = new();
+```
+
+当 `Publish<T>()` 被调用时，`typeof(T)` 作为键查找所有处理器：
+
+```csharp
+if (!this.allEvents.TryGetValue(typeof(T), out iEvents))
+{
+    return; // 没有处理器，直接返回
+}
+```
+
+这是一种**类型安全的发布-订阅**：事件类型（`T`）同时作为"事件标识符"和"数据类型"，不需要单独维护事件 ID 映射表。
+
+---
+
+## 六、Invoke 与 Publish 的关键区别
+
+框架代码中有一段非常重要的注释（在 `EventSystem.Invoke` 方法上）：
+
+```
+Invoke 类似函数，必须有被调用方，否则异常，调用者和被调用者属于同一模块
+Publish 是事件，抛出去可以没人订阅，调用者和被调用者属于两个模块
+```
+
+| | Invoke | Publish |
+|---|---|---|
+| 是否需要订阅者 | 必须有 | 可以没有 |
+| 模块关系 | 同一模块内 | 跨模块 |
+| 无订阅时 | 抛出异常 | 静默处理 |
+| 典型用途 | 定时器回调、配置加载 | 游戏事件通知 |
+
+---
+
+## 七、写给初学者
+
+发布-订阅模式是游戏架构中最重要的设计模式之一，它解决了"模块间通信"的耦合问题。
+
+**学习建议**：
+1. 先理解为什么需要解耦（如果道具系统直接调用任务系统，两者就耦合了，后续修改麻烦）
+2. 再理解发布-订阅如何解耦（中间人/事件总线）
+3. 最后理解框架的扩展（场景类型过滤、异步事件）
+
+掌握了发布-订阅模式，你会发现它在各种场景中无处不在：UI 更新、成就系统、日志记录……几乎所有需要跨模块通信的地方都可以用它。
