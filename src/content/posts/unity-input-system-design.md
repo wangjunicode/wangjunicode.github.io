@@ -1,0 +1,351 @@
+---
+title: 游戏输入系统设计：从按键到技能触发
+published: 2026-03-31
+description: 详解基于 Unity Input System 的战斗输入处理架构，涵盖长按检测、组合键、UI 输入栈与游戏输入的隔离设计。
+tags: [Unity, 输入系统, 战斗系统, Input System]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 游戏输入系统设计：从按键到技能触发
+
+## 前言
+
+玩家与游戏的所有交互，都始于"输入"。一个设计不良的输入系统会导致：技能误触发、长按检测不准、切换角色时输入状态残留、UI 和游戏逻辑争抢同一个按键……
+
+本文通过分析真实项目中的 `VGameInputSystem` 和 `UIController`，带你理解一套能同时处理战斗逻辑输入和 UI 导航输入的完整架构。
+
+---
+
+## 一、两个世界的输入：游戏逻辑 vs UI
+
+游戏输入系统面临一个根本性矛盾：
+
+- **游戏逻辑输入**：按下 A 键 → 触发攻击技能（需要精确的帧级响应）
+- **UI 输入**：按下 A 键 → 确认按钮（需要事件驱动，不关心具体帧）
+
+同一个物理按键，在不同上下文下有不同语义。项目的解决方案是**双通道分离**：
+
+```csharp
+public static class UIController
+{
+    // UI 输入栈：管理当前激活的 UI 输入映射
+    private static readonly List<Dictionary<int, UIInputInfo>> UIInputStack = new();
+
+    // 游戏逻辑输入：非 UI 模式下的输入处理
+    public static NonUIInputMap CurrentNonUIMap = new();
+
+    // 模态输入：弹窗时接管输入
+    public static bool modalMode;
+    public static Dictionary<int, UIInputInfo> modalInput;
+}
+```
+
+当 UI 界面打开时，输入路由到 `UIInputStack`；当 UI 关闭、处于游戏玩法中时，输入路由到 `CurrentNonUIMap`（战斗输入系统）。
+
+---
+
+## 二、战斗输入系统核心：VGameInputSystem
+
+### 2.1 按键状态管理
+
+```csharp
+public class VGameInputSystem
+{
+    private Dictionary<int, bool> _holdingState;  // 各按键的持按状态
+
+    public List<List<int>> CombineButtons;  // 组合键配置
+
+    public bool IsHolding(int key)
+    {
+        return _holdingState.ContainsKey(key) && _holdingState[key];
+    }
+}
+```
+
+`_holdingState` 维护了每个按键的"是否正在按住"状态，这是实现长按检测的基础。
+
+### 2.2 按键映射：从 Action Name 到 Key ID
+
+```csharp
+public void UpdateInputData(InputAction.CallbackContext context,
+    Dictionary<string, skillKeyInputConf> vKeyDic,
+    skillKeyInputConf changeSkill,
+    skillKeyInputConf bonusScene,
+    bool blockInput = false)
+{
+    if (context.action.name.StartsWith("Atk") || context.action.name.StartsWith("Ms"))
+    {
+        // 攻击键和技能键：从字典查配置
+        if (vKeyDic.ContainsKey(context.action.name))
+        {
+            Process(context,
+                vKeyDic[context.action.name].value, // 映射后的 key ID
+                false,
+                vKeyDic[context.action.name].bEnemy); // 是否针对敌人
+        }
+    }
+    else if (context.action.name == "Change")
+    {
+        Process(context, 19, blockInput, changeSkill.bEnemy);
+    }
+    else if (context.action.name == "BonusScene")
+    {
+        Process(context, 35, blockInput, bonusScene.bEnemy, bonusScene.value);
+    }
+}
+```
+
+**设计思路：**
+
+物理按键名（`"Atk1"`, `"Ms2"` 等）通过 `vKeyDic` 映射到内部整型 `key ID`。这个间接层的好处是：
+- 技能键的映射可以在运行时改变（角色切换时更新 `vKeyDic`）
+- 游戏逻辑代码只认 `key ID`，不认物理按键，方便重映射功能
+
+### 2.3 按键事件的状态机
+
+`Process` 方法实现了一个小型状态机：
+
+```csharp
+public void Process(InputAction.CallbackContext context, int key,
+    bool blockTap = false, bool bEnemy = false, int extraInfo = -1)
+{
+    if (context.interaction is PressInteraction)
+    {
+        bool newPressed = context.action.IsPressed();
+        bool oldPressed = _holdingState.ContainsKey(key) && _holdingState[key];
+
+        if (!oldPressed && newPressed)
+        {
+            // ↓ 按下事件（上升沿）
+            if (!bEnemy)
+                FireEvent(new Evt_OnBeginHold() { Key = key });
+            else
+                FireEvent(new Evt_OnEnemyBeginHold() { Key = key });
+
+            // 启动长按计时
+            if (LongPressInfos.TryGetValue(key, out var lst))
+            {
+                foreach (var info in lst)
+                {
+                    info.press = true;
+                    info.time = 0;
+                }
+            }
+        }
+        else if (oldPressed && !newPressed)
+        {
+            // ↑ 抬起事件（下降沿）
+            FireEvent(new Evt_OnEndHold() { Key = key });
+            // 停止长按计时
+            // ...
+        }
+
+        _holdingState[key] = newPressed;
+    }
+}
+```
+
+**核心技术：上升沿/下降沿检测**
+
+通过比较 `oldPressed`（上一帧状态）和 `newPressed`（当前状态），精确捕捉"刚按下"和"刚松开"两个时刻。这是游戏输入处理的经典技法，避免持续按住时反复触发事件。
+
+---
+
+## 三、长按检测
+
+```csharp
+public class LongPressInfo
+{
+    public int     key;        // 绑定的按键 ID
+    public float   totalTime;  // 长按所需的最小时长（秒）
+    public float   time;       // 已经持按的时间
+    public bool    press;      // 当前是否在持按
+    public Action<int> callback; // 长按触发的回调
+}
+
+public Dictionary<int, List<LongPressInfo>> LongPressInfos = new();
+```
+
+在 Update 中检测长按：
+
+```csharp
+// 每帧更新长按计时（伪代码，实际在 Update 中）
+foreach (var (key, lst) in LongPressInfos)
+{
+    foreach (var info in lst)
+    {
+        if (!info.press) continue;
+        info.time += Time.deltaTime;
+        if (info.time >= info.totalTime)
+        {
+            info.callback?.Invoke(info.key);
+            info.press = false; // 触发一次后停止
+        }
+    }
+}
+```
+
+一个按键可以绑定多个 `LongPressInfo`（不同 `totalTime` 触发不同效果），比如：
+- 长按 0.3 秒：技能蓄力
+- 长按 1.5 秒：技能强化形态
+
+---
+
+## 四、组合键检测
+
+```csharp
+public bool IsCombineButton(int key1, int key2)
+{
+    for (int i = 0; i < CombineButtons.Count; i++)
+    {
+        var combineButton = CombineButtons[i];
+        if (combineButton.Contains(key1) && combineButton.Contains(key2))
+            return true;
+    }
+    return false;
+}
+```
+
+`CombineButtons` 是一个二维列表，每个内层列表定义一个组合键。检测时，如果两个同时按下的键都在同一个组合定义里，就触发组合技能。
+
+**灵活性体现：** 组合键列表可以在角色切换时替换，实现不同角色有不同组合键的需求。
+
+---
+
+## 五、UI 输入的栈式管理
+
+UI 输入使用**栈结构**管理，完美处理"弹窗叠加"的场景：
+
+```csharp
+private static readonly List<Dictionary<int, UIInputInfo>> UIInputStack = new();
+
+// 打开新 UI 时，推入输入映射
+public static void Push(Dictionary<int, UIInputInfo> inputMap)
+{
+    UIInputStack.Add(inputMap);
+}
+
+// 关闭 UI 时，弹出
+public static void Pop()
+{
+    if (UIInputStack.Count > 0)
+        UIInputStack.RemoveAt(UIInputStack.Count - 1);
+}
+```
+
+处理 UI 输入时，从栈顶取当前映射：
+
+```csharp
+public static bool ProcessUIINputByStack(int type, ...)
+{
+    // 优先检查模态输入（弹窗）
+    if (modalMode)
+    {
+        if (modalInput != null && modalInput.TryGetValue(type, out var mi))
+        {
+            mi.Action?.Invoke(mi.ExtraArgs);
+            return true;
+        }
+        return false; // 模态下，不传递给下层
+    }
+
+    // 从栈顶往下找第一个能处理该输入的映射
+    for (int i = UIInputStack.Count - 1; i >= 0; i--)
+    {
+        if (UIInputStack[i].TryGetValue(type, out var info))
+        {
+            info.Action?.Invoke(info.ExtraArgs);
+            return true; // 已处理，停止传递
+        }
+    }
+    return false;
+}
+```
+
+**栈的价值：**
+
+打开背包 → 背包推入输入映射（A=装备，B=关闭背包）  
+在背包里打开物品详情 → 详情推入映射（A=使用，B=关闭详情）  
+按 B → 详情处理（关闭详情），不会同时关闭背包  
+再按 B → 背包处理（关闭背包）  
+
+---
+
+## 六、手柄摇杆的死区处理
+
+```csharp
+private static void OnUIInput(InputComponent inputComponent,
+    InputAction.CallbackContext ctx, int actId, float v1, float v2)
+{
+    switch (actId)
+    {
+        case 0: // 摇杆移动
+            int x = 0, y = 0;
+
+            // 死区：|v1| > 0.2 才认为是"在动"
+            if (v1 > 0.2f)       x =  1;
+            else if (v1 < -0.2f) x = -1;
+
+            if (v2 > 0.2f)       y =  1;
+            else if (v2 < -0.2f) y = -1;
+
+            ProcessUIINputByStack((int)UIInputTypeEnum.Navigate, v1, v2, x, y);
+
+            // 超过 0.8 才触发方向键事件（强烈推格）
+            if (v1 > 0.8)  { ProcessUIINputByStack((int)UIInputTypeEnum.Right); break; }
+            if (v1 < -0.8) { ProcessUIINputByStack((int)UIInputTypeEnum.Left); break; }
+            // ...
+    }
+}
+```
+
+这里有两个阈值：
+
+| 阈值 | 效果 |
+|------|------|
+| 0.2（死区）| 消除摇杆漂移，细微抖动不触发输入 |
+| 0.8（强触发）| 超过此值才触发方向键事件，防止误触导航 |
+
+---
+
+## 七、Enable/Disable 全局开关
+
+```csharp
+public static bool _enable;
+
+public static void Enable()  { _enable = true; }
+public static void Disable() { _enable = false; }
+
+private static void OnUIInput(...)
+{
+    if (!_enable) return;  // 全局关闭时忽略所有输入
+    // ...
+}
+```
+
+这个全局开关用于在过场动画、载入界面等不应接收输入的时刻，一键屏蔽所有 UI 输入。比简单地移除所有事件监听要高效得多。
+
+---
+
+## 八、设计总结
+
+| 机制 | 解决的问题 |
+|------|-----------|
+| 双通道分离（游戏 vs UI）| 同一按键在不同上下文有不同语义 |
+| 状态机（上升沿/下降沿）| 精确捕捉按下和松开事件，不重复触发 |
+| 长按计时器 | 支持"按住"类技能触发 |
+| 组合键列表 | 灵活配置角色专属组合技 |
+| 栈式 UI 输入 | 弹窗叠加时输入正确路由，关闭顺序自然 |
+| 模态输入 | 确认框等场景完全接管输入 |
+| 全局开关 | 快速屏蔽输入，无需逐一移除监听 |
+
+对于刚入行的同学，建议按以下顺序学习：
+
+1. 先掌握 Unity Input System 的基本 API（ActionMap, Action, CallbackContext）
+2. 实现一个简单的上升沿/下降沿检测
+3. 尝试实现 UI 输入栈，理解为什么需要它
+4. 再加入长按和组合键
+
+输入系统的复杂度往往被低估，但它是玩家操手感的直接来源——值得花时间做好。
