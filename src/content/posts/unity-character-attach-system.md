@@ -1,0 +1,233 @@
+---
+title: 角色挂件系统与骨骼挂点设计
+published: 2026-03-31
+description: 解析角色模型的挂点体系设计，从 CharacterAttachManager 的挂件显示控制，到 VirtualSkeletonPoint 的技能效果定位，理解游戏中角色视觉附属物的完整管理架构。
+tags: [Unity, 角色系统, 骨骼挂点, 游戏美术]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 角色挂件系统与骨骼挂点设计
+
+## 前言
+
+玩家养成角色到一定程度，会解锁特别的视觉奖励——挂件（Pendant）：挂在角色头顶或手上的特效装饰物，是身份地位的象征。与此同时，技能的特效需要精确从角色身体的某个骨骼点位发出（比如"攻击从右手发出，受击特效从胸口显示"）。
+
+这两个需求都涉及"将某个东西附着到角色模型特定位置"，本文通过分析 `CharacterAttachManager` 和 `VirtualSkeletonPointComponent`，带你理解角色挂点系统的设计。
+
+---
+
+## 一、挂点的两个层次
+
+项目中的挂点分为两类：
+
+| 类型 | 组件 | 用途 | 生命周期 |
+|------|------|------|---------|
+| **装饰挂点** | `CharacterAttachManager` | 挂件（Pendant）显示/隐藏 | 跟随角色存活 |
+| **技能挂点** | `VirtualSkeletonPointComponent` | 技能特效发出/命中位置 | 跟随战斗场景 |
+
+---
+
+## 二、装饰挂点系统
+
+### 2.1 CharacterMainManager：角色模型的入口
+
+```csharp
+public class CharacterMainManager : MonoBehaviour
+{
+    private CharacterAttachManager m_CharacterAttachManager = null;
+    private int m_CharacterId = 0;
+
+    public CharacterAttachManager CharacterAttachManager
+    {
+        get
+        {
+            if (m_CharacterAttachManager == null)
+                m_CharacterAttachManager = gameObject.GetOrAddComponent<CharacterAttachManager>();
+            return m_CharacterAttachManager;
+        }
+    }
+
+    public void Initialize(int characterId)
+    {
+        CharacterId = characterId;
+        CharacterAttachManager.Init(GetIPId(), characterId);
+    }
+}
+```
+
+`GetOrAddComponent` 是"懒加载"模式：不主动创建，只有第一次访问时才创建组件。这节省了对不需要挂件功能的角色的初始化开销。
+
+`GetIPId()` 从配置表查询角色对应的 IP（品牌形象），因为挂件是绑定到 IP 的，不同皮肤共用同一套挂件解锁状态。
+
+### 2.2 CharacterAttachManager：挂件的显示控制
+
+```csharp
+public class CharacterAttachManager : MonoBehaviour
+{
+    public enum PointType
+    {
+        Pendant = 1,  // 目前只有挂件类型，预留扩展
+    }
+
+    private int m_ip_id;
+    private int m_CharacterId;
+    public List<CharacterAttachPoint> m_CharacterAttachPoints = new List<CharacterAttachPoint>();
+
+    public void Init(int charIP_Id, int characterID)
+    {
+        m_ip_id      = charIP_Id;
+        m_CharacterId = characterID;
+
+        var storyComp = YIUIComponent.ClientScene.GetComponent<StoryComponent>();
+        if (storyComp == null) return;
+
+        // 初始化时根据养成进度决定是否显示挂件
+        ShowPendant(GetCharacterPendantState(storyComp, m_CharacterId));
+    }
+}
+```
+
+**初始化时的状态同步：**
+
+角色模型实例化后，立刻从 `StoryComponent`（养成进度组件）查询挂件是否已解锁，并同步显示状态。这保证了无论何时加载角色，挂件状态都与玩家的游戏进度一致。
+
+### 2.3 查找和控制挂点
+
+```csharp
+public void ShowPendant(bool isShow)
+{
+    if (m_CharacterAttachPoints.Count == 0)
+    {
+        // 懒加载：第一次调用时收集所有挂点
+        m_CharacterAttachPoints = gameObject
+            .GetComponentsInChildren<CharacterAttachPoint>()
+            .ToList();
+    }
+
+    foreach (var point in m_CharacterAttachPoints)
+    {
+        if (point != null && point.PointType == PointType.Pendant)
+        {
+            point.ShowPoint(isShow);
+        }
+    }
+}
+```
+
+**懒加载挂点列表：**
+
+`GetComponentsInChildren` 是有一定开销的操作（需要遍历整棵子对象树）。代码将结果缓存到 `m_CharacterAttachPoints`，只在第一次调用时执行查找。后续调用直接使用缓存，即使角色被重复显示/隐藏也不会反复查找。
+
+**按 PointType 过滤：**
+
+`PointType.Pendant` 枚举值为 1，当前只有挂件类型，但这个设计**预留了扩展空间**——未来可以添加 `PointType.Wing = 2`（翅膀）、`PointType.Halo = 3`（头光圈）等新类型，现有代码结构完全复用。
+
+### 2.4 从养成进度读取解锁状态
+
+```csharp
+public static bool GetCharacterPendantState(StoryComponent self, int characterID)
+{
+    var character = self.CharacterSlots.Find(item =>
+        item.GetCurrentCharacterID() == characterID);
+
+    if (character == null)
+        return false;
+
+    return character.GetPendantUnlocked();
+}
+```
+
+`StoryComponent.CharacterSlots` 存储了养成剧本中每个角色槽位的状态，`GetPendantUnlocked()` 返回挂件是否已达到解锁条件（通常是某种好感度或养成进度）。
+
+这里的一个微妙点：`CharacterSlots.Find` 用线性查找——如果角色数量很少（通常是3-5个），这是完全可接受的；如果角色数量很大，应该改为字典查找。
+
+---
+
+## 三、技能挂点系统：VirtualSkeletonPoint
+
+```csharp
+public class VirtualSkeletonPointComponent : Entity, IAwake
+{
+    public Dictionary<int, Transform> AtkVirtualPoints    = new();  // 攻击技能发出点
+    public Dictionary<int, Transform> HurtVirtualPoints   = new();  // 受击效果点
+    public Dictionary<int, Transform> EffectVirtualPoints  { get; } = new();  // 通用特效点（按ID）
+    public Dictionary<string, Transform> EffectVirtualPointsByName { get; } = new();  // 通用特效点（按名称）
+}
+```
+
+### 3.1 三类技能挂点的用途
+
+**攻击挂点（AtkVirtualPoints）**
+
+技能释放时，特效从角色身体的特定位置发出。比如：
+- 近战攻击：从拳头发出打击特效
+- 远程技能：从手掌发出能量弹
+- 追踪弹：从胸前发出导弹
+
+`int` 键通常是技能 ID 或挂点配置 ID。
+
+**受击挂点（HurtVirtualPoints）**
+
+当角色受到攻击时，受击特效显示在特定位置：
+- 轻伤：在身体中心
+- 重击：从角色位置往外喷飞
+
+**通用特效挂点（EffectVirtualPoints）**
+
+双键查询（按 ID 和按名称）是一种经典的"两全其美"设计：
+- 按 ID 查找：用于代码中的强绑定（技能配置表的 `effectPointId`）
+- 按名称查找：用于灵活的文本配置或调试
+
+```csharp
+// 两种使用方式
+var pointById   = virtualSkeleton.EffectVirtualPoints[1001];    // 精确绑定
+var pointByName = virtualSkeleton.EffectVirtualPointsByName["hit_point_chest"];  // 语义化
+```
+
+### 3.2 为什么叫"虚拟骨骼点"
+
+Unity 的动画骨骼（Bone/Transform）会随动画变化位置和旋转。技能特效需要"跟随"特定骨骼移动，而不是固定在世界坐标。
+
+但直接引用骨骼有问题：动画骨骼的层级可能很深，名称可能因角色不同而不同。"虚拟骨骼点"是在骨骼位置创建的**逻辑代理节点**：
+
+```
+角色模型
+  └─ Bip001（根骨骼）
+       └─ Bip001 Spine
+            └─ Bip001 L Hand
+                 └─ VirtualPoint_Atk_1  ← 虚拟骨骼点（技能绑定的）
+```
+
+这样，技能逻辑只需要查 `AtkVirtualPoints[技能ID]`，不需要知道骨骼的具体层级结构。骨骼改名、重组时，只需要更新虚拟点的挂载位置，不需要修改技能代码。
+
+---
+
+## 四、挂点查找的性能策略
+
+| 挂点类型 | 查找时机 | 存储方式 | 原因 |
+|---------|---------|---------|------|
+| 装饰挂点（Pendant）| 首次调用 `ShowPendant` 时 | `List<CharacterAttachPoint>` | 挂件不多，List 足够 |
+| 技能挂点 | 角色初始化时全部收集 | `Dictionary<int, Transform>` | 战斗中频繁访问，O(1) 查找 |
+
+战斗中每帧可能多次查找技能挂点（每个技能特效、每个受击反馈），使用 Dictionary 保证查找效率；装饰挂点只在显示/隐藏时访问，List 的遍历开销可以接受。
+
+---
+
+## 五、与 GameObjectComponent 的协作
+
+`VirtualSkeletonPointComponent` 是 ECS 组件（Entity），挂在逻辑层的 Unit Entity 上；而它存储的 `Transform` 是 Unity 对象，属于视图层。
+
+这种"ECS 组件持有 Unity 对象引用"的设计，是 ECS 与 Unity 视图层之间的常见桥接模式。关键约束：**只允许读取这些 Transform 的位置，不允许直接修改它们**——Transform 的真正控制权属于动画系统。
+
+---
+
+## 六、总结
+
+| 挂点类型 | 设计目标 | 关键机制 |
+|---------|---------|---------|
+| 装饰挂点（CharacterAttachManager）| 挂件显示/隐藏由养成进度驱动 | PointType 枚举分类，懒加载缓存 |
+| 技能挂点（VirtualSkeletonPoint）| 技能特效精确定位到骨骼位置 | 虚拟代理节点，双键查找 |
+
+对于新手同学，挂点系统的核心思想是：**用逻辑 ID 解耦骨骼实现**。技能代码永远通过 ID 查找位置，而不是硬编码骨骼名称，这使得美术可以自由改造骨骼结构而不影响技能逻辑。
