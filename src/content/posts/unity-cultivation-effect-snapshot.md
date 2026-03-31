@@ -1,0 +1,265 @@
+---
+title: 养成效果快照系统——用策略模式实现可扩展的状态加成计算
+published: 2026-03-31
+description: 解析养成玩法中效果快照的设计，用标识符、来源追踪与模板方法实现复杂的状态加成叠加计算
+tags: [Unity, 养成系统, 设计模式]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 养成效果快照系统——用策略模式实现可扩展的状态加成计算
+
+养成类游戏中，角色身上可能同时存在多种"状态效果"：某个协助卡让训练效果+20%、某个角色的专长让压力减少10%……如何计算多个效果叠加之后的最终值？
+
+如果用一堆if-else堆砌各种特殊逻辑，代码会变成"效果地狱"。VGame项目用**效果快照（Effect Snapshot）模式**解决了这个问题。
+
+## 一、核心数据结构：效果标识符
+
+```csharp
+public readonly struct CultivationEffectIdentifier : IComparable<CultivationEffectIdentifier>
+{
+    private readonly CultivationEffectSource _source;  // 效果来源（谁给的这个效果）
+    private readonly int _instanceID;                   // 实例ID（状态ID或协助卡ID）
+    private readonly long _timestamp;                   // 效果生效的时间戳
+    
+    public int CompareTo(CultivationEffectIdentifier other)
+    {
+        // 按时间升序排序（先生效的在前面）
+        var result = _timestamp.CompareTo(other._timestamp);
+        if (result != 0) return result;
+        
+        // 时间相同时按来源类型排序
+        result = _source.SourceType.CompareTo(other._source.SourceType);
+        if (result != 0) return result;
+        
+        // 来源类型相同时按角色IP排序
+        result = _source.CharacterIP.CompareTo(other._source.CharacterIP);
+        if (result != 0) return result;
+        
+        return _instanceID.CompareTo(other._instanceID);
+    }
+}
+```
+
+每个"效果"在系统中都有唯一的标识符，包含三个维度：
+1. **来源（Source）**：这个效果是哪个系统/角色给的
+2. **实例ID**：具体是哪个状态或哪张协助卡
+3. **时间戳**：效果何时生效
+
+`IComparable<T>`的实现允许将效果标识符放入有序容器，按照"先生效的优先"的规则排序——这对于某些"先到先得"的效果逻辑很重要。
+
+`readonly struct`（只读结构体）是C#的性能优化特性：结构体在传递时不产生GC，`readonly`确保它不能被意外修改，适合作为字典的键。
+
+## 二、效果快照基类的模板方法设计
+
+```csharp
+public abstract class CultivationEffectSnapshot<T> : ICultivationEffectSnapshot 
+    where T : ICultivationEffectSnapshotDataSource
+{
+    // 来源 → 效果标识符列表（方便按来源查找和移除）
+    protected readonly Dictionary<CultivationEffectSource, List<CultivationEffectIdentifier>> Identifiers = new();
+    
+    // 效果标识符 → 效果数据（O(1)查找）
+    protected readonly Dictionary<CultivationEffectIdentifier, CommonEffectCultivationEffectBase> Effects = new();
+    
+    public ECultivationEffectInspectType InspectTypes { get; set; }
+    
+    // 初始化：加载当前所有存在的效果
+    public void Init()
+    {
+        // 加载协助卡效果
+        UpdateTeamAssistCards(new CultivationEffectSource(
+            CultivationEffectSourceType.TeamActiveAssistCard, IPCharacterEnum.None));
+        
+        // 加载每个角色的状态效果
+        foreach (var character in Comp.GetCharacters())
+            UpdateCharacterStatuses(new CultivationEffectSource(
+                CultivationEffectSourceType.CharacterStatus, character.IP));
+    }
+    
+    // 刷新特定来源的效果
+    public void Refresh(IEnumerable<CultivationEffectSource> sources)
+    {
+        foreach (var source in sources)
+        {
+            RemoveEffects(source);
+            // 根据来源类型重新加载对应效果
+            switch (source.SourceType)
+            {
+                case CultivationEffectSourceType.CharacterStatus:
+                    UpdateCharacterStatuses(source);
+                    break;
+                case CultivationEffectSourceType.TeamActiveAssistCard:
+                    UpdateTeamAssistCards(source);
+                    break;
+            }
+        }
+    }
+    
+    // === 模板方法（子类实现） ===
+    
+    // 过滤：这个效果类型是否有效？
+    protected abstract bool IsEffectTypeValid(CommonEffectCultivationEffectBase effect);
+    
+    // 过滤：效果是否作用于目标角色？
+    protected abstract bool IsEffectOwnerMatch(T dataSource, CultivationCharacterData owner);
+    
+    // 过滤：效果配置是否匹配目标？
+    protected abstract bool IsEffectConfigMatch(T dataSource, CommonEffectCultivationEffectBase effect, CultivationCharacterData owner);
+    
+    // 执行：将效果应用到数据源
+    protected abstract void EvaluateEffect(T dataSource, CommonEffectCultivationEffectBase effect);
+    
+    // 计算最终值（调用所有匹配的效果）
+    protected void Evaluate(T dataSource)
+    {
+        foreach (var (identifier, effect) in Effects)
+        {
+            if (!IsEffectTypeValid(effect)) continue;
+            
+            // 找到效果的来源角色
+            var ownerCharacter = Comp.GetCharacterByIP(identifier.Source.CharacterIP);
+            if (!IsEffectOwnerMatch(dataSource, ownerCharacter)) continue;
+            if (!IsEffectConfigMatch(dataSource, effect, ownerCharacter)) continue;
+            
+            EvaluateEffect(dataSource, effect);
+        }
+    }
+}
+```
+
+这是经典的**模板方法（Template Method）模式**：
+- 基类定义了计算流程的骨架（查找效果 → 过滤 → 应用）
+- 三个abstract方法由子类实现具体的匹配和应用逻辑
+
+## 三、日程压力加成快照——一个具体实现
+
+```csharp
+[CultivationEffectInspect(ECultivationEffectInspectType.SchedulePressureBonus)]
+public class CultivationSchedulePressureBonusSnapshot : 
+    CultivationEffectSnapshot<CultivationSchedulePressureBonusSnapshot.DataSource>
+{
+    // 计算上下文数据（DataSource包含计算需要的所有输入输出）
+    public class DataSource : ICultivationEffectSnapshotDataSource
+    {
+        public CultivationCharacterData Character;  // 哪个角色
+        public ECharacterScheduleType ScheduleType; // 哪类训练
+        public int ScheduleSubType;                 // 训练子类型
+        public int BasicValue;                      // 基础值（输入兼输出）
+        public int Multiplier;                      // 百分比加成倍率（万分比）
+        public int FixedValue;                      // 固定值加成
+    }
+    
+    // 对外接口：获取该角色在某种训练下的压力加成
+    public int GetBonusValue(
+        CultivationCharacterData character, 
+        ECharacterScheduleType scheduleType, 
+        int scheduleSubType, 
+        int pressure)
+    {
+        // DataSource用using，因为实现了IDisposable（可能有托管资源需要释放）
+        using var datasource = new DataSource();
+        datasource.Character = character;
+        datasource.ScheduleType = scheduleType;
+        datasource.ScheduleSubType = scheduleSubType;
+        datasource.BasicValue = pressure;   // 初始值等于基础压力
+        datasource.Multiplier = 0;
+        datasource.FixedValue = 0;
+        
+        // 用所有匹配的效果修改datasource里的值
+        Evaluate(datasource);
+        
+        // 用万分比公式计算最终加成
+        var bonus = CultivationUtil.StatusEffectBonusFormula(
+            datasource.BasicValue, datasource.Multiplier, datasource.FixedValue);
+        return bonus;
+    }
+    
+    // 模板方法实现1：效果类型是否有效？
+    protected override bool IsEffectTypeValid(CommonEffectCultivationEffectBase effect)
+    {
+        return effect.ScheduleStressModification != null; // 只关心压力修改效果
+    }
+    
+    // 模板方法实现2：效果是否作用于目标角色？
+    protected override bool IsEffectOwnerMatch(DataSource dataSource, CultivationCharacterData owner)
+    {
+        // 压力效果只作用于自身（不能给别人加成）
+        return owner != null && owner.IP == dataSource.Character.IP;
+    }
+    
+    // 模板方法实现3：效果配置是否匹配训练类型？
+    protected override bool IsEffectConfigMatch(
+        DataSource dataSource, 
+        CommonEffectCultivationEffectBase effect, 
+        CultivationCharacterData owner)
+    {
+        var concreteEffect = effect.ScheduleStressModification;
+        // 训练类型和子类型必须都匹配
+        return CultivationUtil.IsStatusEffectScheduleMatch(
+            (int)concreteEffect.ScheduleType, concreteEffect.ScheduleSubType,
+            (int)dataSource.ScheduleType, dataSource.ScheduleSubType);
+    }
+    
+    // 模板方法实现4：将效果应用到数据源
+    protected override void EvaluateEffect(DataSource dataSource, CommonEffectCultivationEffectBase effect)
+    {
+        var concreteEffect = effect.ScheduleStressModification;
+        // 修改basicValue（基础值）、multiplier（倍率）或fixedValue（固定加成）
+        CultivationUtil.GetStatusEffectBonus(
+            concreteEffect.ModificationType, concreteEffect.StressValue,
+            ref dataSource.BasicValue, ref dataSource.Multiplier, ref dataSource.FixedValue);
+    }
+}
+```
+
+**万分比公式（StatusEffectBonusFormula）**：
+
+养成游戏的加成通常用万分比表示，避免浮点精度问题：
+- `BasicValue * (1 + Multiplier / 10000) + FixedValue`
+- 比如：基础压力100，有一个`+1500/10000`（+15%）的加成和一个`+5`的固定加成 → `100 * 1.15 + 5 = 120`
+
+## 四、特性（Attribute）驱动的效果分类
+
+```csharp
+[CultivationEffectInspect(ECultivationEffectInspectType.SchedulePressureBonus)]
+public class CultivationSchedulePressureBonusSnapshot : ...
+```
+
+`[CultivationEffectInspect]`特性标记这个快照类处理哪类效果检查（`SchedulePressureBonus`）。当某种效果需要刷新时，系统通过反射找到对应的快照类，调用`Refresh()`更新。
+
+这与之前看到的`[CultivationStageBinding]`模式一致：**用特性+反射替代手动注册表**，新增效果类型只需新建类+加特性，不改现有代码。
+
+## 五、多级加成的正确叠加顺序
+
+游戏中常见的错误：两个"+15%"的加成如何叠加？
+- **加法叠加（错误）**：30% → 乘以1.3
+- **乘法叠加（更合理）**：1.15 × 1.15 ≈ 1.32，即约32%
+
+VGame的`DataSource`设计支持分别累积`BasicValue`（倍率来源）和`Multiplier`（累积百分比），最终用公式统一计算，保证叠加顺序的数学正确性。
+
+## 六、实战中的注意事项
+
+**问题：快照状态不同步**
+
+角色的状态发生变化（比如状态到期），但快照没有及时刷新，导致计算出的加成值是过期数据。
+
+解决：状态变化时触发`Evt_CultivationCharacterStatusesChanged`事件，处理器调用`snapshot.Refresh([来源])`刷新对应来源的效果。
+
+**问题：新增效果类型时忘记在快照里处理**
+
+某个策划新加了一种状态效果，但没有对应的快照类，计算时被忽略。
+
+解决：用`IsEffectTypeValid`检查 + 单元测试覆盖所有已知效果类型。
+
+## 七、总结
+
+效果快照系统展示了以下设计原则：
+
+1. **模板方法**：抽象流程，具体实现由子类决定
+2. **标识符模式**：用复合Key（来源+实例+时间）唯一标识每个效果实例
+3. **按来源管理**：效果以来源为单位增删，方便针对性刷新
+4. **万分比整数运算**：避免浮点精度问题，保证服务端和客户端计算结果一致
+
+对新手来说，这套设计最大的收获是：**复杂的数值计算不是靠大量if-else，而是靠数据结构和算法的精心设计**。好的数据组织方式让计算逻辑变得清晰且可维护。
