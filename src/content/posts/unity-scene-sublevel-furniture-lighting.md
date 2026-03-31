@@ -1,0 +1,232 @@
+---
+title: 养成场景子关卡切换系统——大家具互斥与光照数据动态切换
+published: 2026-03-31
+description: 解析养成游戏场景子关卡（SubLevel）系统，通过SceneObjManager控制家具互斥显示和动态光照烘焙数据切换
+tags: [Unity, 场景系统, 养成系统]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 养成场景子关卡切换系统——大家具互斥与光照数据动态切换
+
+养成类游戏的一个独特需求：玩家可以在同一个房间场景中，根据养成进度看到不同的"室内布置"——早期是简陋的家具，随着培育进度，家具逐渐升级替换，光照也随之变化（更多灯光、更温馨的氛围）。
+
+这个功能看起来简单，但涉及到Unity光照烘焙的一个难题：烘焙的光照贴图是针对特定场景布置的，换了家具就要换一套光照贴图。
+
+VGame项目的`SceneObjManager`给出了一个优雅的解决方案。
+
+## 一、场景元素的分类
+
+```csharp
+public class SceneObjManager : MonoBehaviour
+{
+    // 大家具：会影响光照烘焙，必须互斥显示（同时只能显示一件）
+    public List<GameObject> m_FurnituresList;
+    
+    // 摆件：不影响光照，可以灵活控制，按SubLevel分组
+    public GameObjectArray[] m_PartsList;
+    
+    // 每个SubLevel对应的光照Profile数据
+    public List<LightingProfile> m_LightmapDatas;
+}
+```
+
+**大家具（Furnitures）vs 摆件（Parts）的区别**：
+
+大家具（床、沙发、大桌子）是影响光照烘焙的主要物体。烘焙时，光线在这些大物体上的反射和阴影都被烘焙到光照贴图里。如果运行时把家具A换成家具B（体积不同、颜色不同），之前烘焙的光照贴图就不再准确。
+
+摆件（花瓶、书本、小装饰）体积小，对整体光照影响不大，可以随时显示/隐藏，不需要重新烘焙。
+
+## 二、SubLevel的切换逻辑
+
+```csharp
+public void ShowItemBySubLevel(SceneSubLevel sceneSubLevel)
+{
+    // 防重复：同一SubLevel不重复切换
+    if (_curSceneSubLevel == sceneSubLevel) return;
+    _curSceneSubLevel = sceneSubLevel;
+    
+    // 确保光照数据已初始化
+    if (!_isInitPrefabLightmapData)
+        InitLightmapData();
+    
+    // 防御性检查：家具数量和摆件组数必须匹配
+    if (m_FurnituresList.Count != m_PartsList.Length)
+    {
+        Debug.LogError(ZString.Format("FurnituresList.Count != m_PartsList.Count " + 
+                                     "{0} vs {1}", m_FurnituresList.Count, m_PartsList.Length));
+    }
+    
+    // 计算索引（SubLevel从1开始，数组从0开始）
+    int subLevel = (int)sceneSubLevel - 1;
+    int partsLevel = subLevel;
+    
+    // 边界处理：None或超出范围时使用最后一项
+    if (sceneSubLevel == SceneSubLevel.None || subLevel >= m_FurnituresList.Count)
+    {
+        subLevel = m_FurnituresList.Count - 1;
+        partsLevel = m_PartsList.Length - 1;
+    }
+    
+    // 大家具：互斥显示（只显示当前SubLevel对应的那件）
+    for (int i = 0; i < m_FurnituresList.Count; i++)
+    {
+        m_FurnituresList[i].SetActive(i == subLevel);
+    }
+    
+    // 摆件：分组处理（每个SubLevel有一组摆件配置）
+    for (int i = 0; i < m_PartsList.Length; i++)
+    {
+        if (m_PartsList[i]?.goList == null) continue;
+        var show = i == partsLevel;
+        foreach (var go in m_PartsList[i].goList)
+        {
+            if (go != null) go.SetActive(show);
+        }
+    }
+    
+    // 切换对应SubLevel的光照烘焙数据
+    SwitchLightmapProfile(subLevel);
+}
+```
+
+**互斥显示的实现**：`m_FurnituresList[i].SetActive(i == subLevel)`——用一个循环，只有`i == subLevel`的那个家具显示，其他全部隐藏。简洁而高效。
+
+**默认情况（None或超出范围）**：显示最后一项（最高级的布置）。这是一种"兜底策略"，无效SubLevel不会显示空场景。
+
+## 三、光照数据的动态切换
+
+```csharp
+public void InitLightmapData()
+{
+    if (_isInitPrefabLightmapData) return; // 只初始化一次
+    
+    if (m_LightmapData == null)
+        gameObject.TryGetComponent<PrefabLightmapData>(out m_LightmapData);
+    
+    if (m_LightmapData == null)
+    {
+        Debug.LogError("m_LightmapData == null");
+        return;
+    }
+    
+    m_LightmapData.EnableProfile = true;
+    
+    // 把所有SubLevel的LightingProfile注册到PrefabLightmapData
+    foreach (var data in m_LightmapDatas)
+        m_LightmapData.lightingProfileList.Add(data);
+    
+    _isInitPrefabLightmapData = true;
+}
+```
+
+`PrefabLightmapData`是项目自定义的光照管理组件（非Unity原生），它支持在运行时切换光照Profile（一套光照贴图数据）。
+
+每个SubLevel对应一套独立烘焙的`LightingProfile`，切换家具时，同时切换对应的光照烘焙数据：
+- SubLevel 1（初级布置）：使用光照Profile 1（光线暗淡、阴影清晰）
+- SubLevel 3（高级布置）：使用光照Profile 3（温暖灯光、柔和阴影）
+
+## 四、编辑器辅助按钮
+
+```csharp
+#region ---编辑器: 一键设置---
+public int testState = 1;
+
+[ButtonGroup("设置"), Button("一键设置 AutoSetup")]
+public static void AutoSetup()
+{
+    if (!Application.isPlaying) return;
+    
+    // 找到场景中所有SceneObjManager实例
+    var prefabs = FindObjectsOfType<SceneObjManager>();
+    foreach (var instance in prefabs)
+    {
+        Debug.Log(ZString.Format("处理SceneObjManager: {0}", instance.gameObject.name));
+        instance.ShowItemBySubLevel((SceneSubLevel)instance.testState);
+    }
+}
+#endregion
+```
+
+`[ButtonGroup]`和`[Button]`是Odin Inspector的特性，让这个方法在Unity Inspector面板上显示为一个可点击的按钮。
+
+美术/策划在编辑模式下，可以设置`testState = 2`然后点击"一键设置"，快速预览SubLevel 2的场景布置，不需要运行游戏。这大大提升了美术的迭代效率。
+
+## 五、SceneLoaderComponent的演变：注释掉的旧加载逻辑
+
+`SceneLoaderComponent.cs`中有大量被注释的旧实现：
+
+```csharp
+// public static async ETTask LoadSceneAsync(this SceneLoaderComponent self, ALoader loader, ...)
+// {
+//     loader.AddLoadTask(assetsName);
+//     await loader.StartLoadTaskAsync(onProgress);
+//     var scenePrefab = AssetCache.GetCachedAsset<GameObject>(assetsName);
+//     var sceneGo = UnityEngine.Object.Instantiate(scenePrefab, ...);
+//     ...
+// }
+```
+
+旧实现用`GameObject`实例化场景预制体（场景作为Prefab加载），新实现改用Unity的原生`Addressables.LoadSceneAsync`：
+
+```csharp
+public static async ETTask LoadSceneByAddressables(this SceneLoaderComponent self, string assetsName, ...)
+{
+    // 使用Addressables加载场景
+    var handle = Addressables.LoadSceneAsync(assetsName, LoadSceneMode.Additive);
+    await handle.Task;
+    
+    if (handle.Status != AsyncOperationStatus.Succeeded)
+    {
+        Log.Error("场景加载失败: " + assetsName);
+        return;
+    }
+    
+    // 存储场景句柄（用于后续卸载）
+    self.AddSceneRef(assetsName, handle.Result.Scene.GetRootGameObjects()[0], handle, false);
+}
+```
+
+**迁移原因**：
+- 场景作为Prefab：修改场景时需要"保存为Prefab"，工作流繁琐
+- Addressables原生场景：直接用Unity场景文件（.unity），工作流更自然
+- 内存管理：Addressables有完善的引用计数，Scene资源的生命周期更可靠
+
+保留注释的旧代码是项目演进的记录，也方便在新方案出问题时快速回退。
+
+## 六、卸载场景的引用计数
+
+```csharp
+public static async ETTask UnloadSceneAsync(this SceneLoaderComponent self, string assetsName)
+{
+    if (self.scenes.TryGetValue(assetsName, out var sceneInfo))
+    {
+        if (self.CurrentScene == sceneInfo.SceneGo)
+            self.CurrentScene = null;
+        
+        // 如果是Addressables加载的场景，用对应的句柄卸载
+        if (sceneInfo.Handle.IsValid())
+            await Addressables.UnloadSceneAsync(sceneInfo.Handle).Task;
+        else
+            UnityEngine.Object.Destroy(sceneInfo.SceneGo); // Prefab方式直接Destroy
+        
+        self.scenes.Remove(assetsName);
+    }
+}
+```
+
+根据场景是通过Addressables加载还是Prefab实例化的，选择不同的卸载方式。`sceneInfo.Handle.IsValid()`检查Addressables句柄是否有效。
+
+这个if-else是兼容新旧两种加载方式共存期间的过渡代码——实际项目迁移中不可能一次性把所有场景改掉，需要新旧兼容。
+
+## 七、总结
+
+场景子关卡系统体现了以下设计：
+
+1. **元素分类**：大家具（影响光照，互斥）vs 摆件（不影响光照，灵活）
+2. **光照Profile**：每个布置等级预烘焙对应的光照，运行时动态切换
+3. **Editor辅助**：Odin Button让美术在编辑器里直接预览各等级布置
+4. **加载方式兼容**：同时支持Prefab和Addressables两种场景加载，平滑迁移
+
+对新手来说，"运行时切换预烘焙光照"是Unity开发中解决"可变场景物体影响静态光照"问题的标准方案，非常值得掌握。

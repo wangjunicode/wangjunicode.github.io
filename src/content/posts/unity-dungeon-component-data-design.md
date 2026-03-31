@@ -1,0 +1,220 @@
+---
+title: 副本数据组件设计——战斗关卡信息管理与重试次数的防御性计算
+published: 2026-03-31
+description: 解析游戏副本数据管理组件DungeonComponent的完整设计，包括副本类型/关卡/比赛信息的管理与重试次数的服务端同步
+tags: [Unity, 战斗系统, 数据管理]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 副本数据组件设计——战斗关卡信息管理与重试次数的防御性计算
+
+游戏战斗（副本/关卡）开始前，需要一个地方存储这次战斗的所有元数据：这是什么类型的战斗（PVP还是PVE）？关卡ID是多少？是第几场比赛？可以重试几次？我方队伍的配置是什么？
+
+VGame项目的`DungeonComponent`承担了这个职责，本文分析它的完整设计。
+
+## 一、副本的核心标识数据
+
+```csharp
+[FriendOf(typeof(DungeonComponent))]
+public static partial class DungeonComponentSystem
+{
+    public static void SetDungeonBasicData(this DungeonComponent self, 
+        int dungeonID, EDungeonType dungeonType, int levelID)
+    {
+        // 这三个数据同时确定（一个副本实例同时确定ID、类型、关卡）
+        self.DungeonID = dungeonID;
+        self.DungeonType = dungeonType;
+        self.LevelID = levelID;
+    }
+    
+    public static bool IsRealBattle(this DungeonComponent self)
+    {
+        // 非Unknown类型才是真实战斗
+        return self.GetDungeonType() != EDungeonType.Unknown;
+    }
+}
+```
+
+**DungeonID vs LevelID**：
+- `DungeonID`：副本配置ID（对应配置表`TbDungeonConf`中的一行），描述这个副本的规则、奖励等
+- `LevelID`：关卡场景ID（对应哪个战斗场景），一个副本可能有多个关卡（比如第1章有5关）
+
+**IsRealBattle的用途**：
+
+游戏中有些战斗是"假战斗"（如教程、预览模式），这些战斗的`DungeonType=Unknown`。`IsRealBattle()`判断是否是会影响排名/存档的真实战斗。
+
+## 二、比赛数据的双重设置接口
+
+```csharp
+// 接口1：通过文本ID设置（配置表驱动）
+public static void SetDungeonMatchData(this DungeonComponent self, 
+    int matchRegionTextId, int matchNameTextID, int matchDay = 0)
+{
+    // 从文本配置表读取多语言文本
+    var regionCfg = CfgManager.tables.TbText.GetOrDefault(matchRegionTextId);
+    var nameCfg = CfgManager.tables.TbText.GetOrDefault(matchNameTextID);
+    
+    self.SetDungeonMatchData(
+        regionCfg != null ? regionCfg.Zh : string.Empty,
+        nameCfg != null ? nameCfg.Zh : string.Empty,
+        matchDay);
+}
+
+// 接口2：直接传文本（灵活版本）
+public static void SetDungeonMatchData(this DungeonComponent self, 
+    string matchRegionText, string matchNameText, int matchDay = 0)
+{
+    self.MatchDay = matchDay;
+    self.MatchRegionText = matchRegionText;
+    self.MatchNameText = matchNameText;
+}
+```
+
+提供两个重载版本：
+- **ID版本**：PVE副本用，配置表里已有文本ID，直接传ID让系统查配置
+- **文本版本**：PVP用，服务端下发的是文本字符串，直接赋值
+
+这种"ID→查表获取文本 + 直接文本"的双接口模式，在项目中很常见，提供了灵活性的同时保持了对多语言的支持。
+
+## 三、重试次数的防御性计算
+
+这是整个组件里最精彩的部分：
+
+```csharp
+public static void UpdateDungeonMatchRetryData(this DungeonComponent self, int remainTimes)
+{
+    // 异常情况1：服务器返回负数（协议错误）
+    if (remainTimes < 0)
+    {
+        Log.LogWarning("[Dungeon] 服务端剩余重试次数为负数: {0}，假定已用完", remainTimes);
+        self.RetryTimesUsed = self.RetryTimesLimit; // 强制设为上限（最保守方案）
+        return;
+    }
+
+    // 异常情况2：返回的次数超过总上限（数据异常）
+    if (remainTimes > self.RetryTimesLimit)
+    {
+        Log.LogWarning("[Dungeon] 服务端剩余重试次数 {0} 超过上限 {1}，重新设置上限", 
+            remainTimes, self.RetryTimesLimit);
+        self.RetryTimesUsed = 0;           // 使用次数重置为0
+        self.RetryTimesLimit = remainTimes; // 上限更新为新值
+        return;
+    }
+
+    // 正常情况：基于上限计算已使用次数
+    self.RetryTimesUsed = self.RetryTimesLimit - remainTimes;
+}
+
+public static bool HasValidMatchRetryCount(this DungeonComponent self)
+{
+    var retryCount = self.RetryTimesLimit - self.RetryTimesUsed;
+    return retryCount > 0;
+}
+```
+
+**为什么不直接存`remainTimes`，而是转换成`RetryTimesUsed`？**
+
+存储"剩余次数"看似简单，但UI展示需要同时显示"已用/总数"（比如"已用2次/共3次"），如果只有剩余次数，无法展示"已用"。
+
+通过存储`Used`和`Limit`，可以随时计算：
+- `RetryTimesLimit`：总次数
+- `RetryTimesUsed`：已使用次数
+- `RetryTimesLimit - RetryTimesUsed`：剩余次数
+
+**三种防御情况的设计意义**：
+
+实际项目中，服务端数据可能因为各种原因出现异常值。代码中的三个分支覆盖了所有边界情况：
+1. 正常值：`0 ≤ remainTimes ≤ RetryTimesLimit`
+2. 负数：服务端BUG，客户端兜底为"已用完"（最保守，防止玩家多用次数）
+3. 超上限：上限本身可能发生变化（运营活动），客户端接受服务端新上限
+
+`Log.LogWarning`而不是`Log.LogError`：这种情况不应该发生，但发生了也不影响游戏流程，用Warning级别记录便于排查问题。
+
+## 四、队伍数据的存储设计
+
+```csharp
+public static void SetDungeonTeamData(this DungeonComponent self, DungeonTeamData teamData, bool isPlayer)
+{
+    if (isPlayer)
+    {
+        self.PlayerTeamData = teamData;
+        // PlayerTeamData也存进TeamDataList，便于通用的团队遍历
+    }
+    else
+    {
+        self.EnemyTeamData = teamData;
+    }
+    
+    self.TeamDataList.Add(teamData); // 双向引用：既有专用字段，也在列表里
+}
+```
+
+`PlayerTeamData`和`EnemyTeamData`是快捷访问字段（O(1)直接访问），`TeamDataList`是所有队伍的通用列表（支持多方对战时遍历）。
+
+这种"专用字段 + 通用列表"的双重存储，为不同的访问模式各自提供最优的数据结构。
+
+## 五、战报提交机制
+
+```csharp
+[EntitySystem]
+private static void Awake(this DungeonComponent self)
+{
+    // 监听战报提交事件
+    self.RootDispatcher().RegisterEvent<Evt_SubmitBattleReport>(self.OnSubmitBattleReport);
+}
+
+private static void OnSubmitBattleReport(this DungeonComponent self, Evt_SubmitBattleReport evt)
+{
+    self.SubmitBattleReport(evt.report);
+}
+```
+
+战斗结束后，帧同步系统会发出`Evt_SubmitBattleReport`事件，`DungeonComponent`接收后负责把战报发送到服务端。
+
+为什么战报提交逻辑在`DungeonComponent`而不在帧同步系统？因为`DungeonComponent`是副本的"上下文"，它知道当前副本是PVP还是PVE、副本ID是多少……这些信息在组装战报时都需要。帧同步系统只知道战斗数据，不知道副本上下文。
+
+## 六、Clear的重要性
+
+```csharp
+public static void Clear(this DungeonComponent self)
+{
+    self.DungeonID = 0;
+    self.DungeonType = EDungeonType.Unknown;
+    self.LevelID = 0;
+    self.MatchDay = 0;
+    self.MatchRegionText = string.Empty;
+    self.MatchNameText = string.Empty;
+    self.TeamDataList.Clear();
+    self.PlayerTeamData = null;
+    self.EnemyTeamData = null;
+    self.EnemyInfoUnlockStatus = EEnemyUnlockType.None;
+    self.UnlockRoundFeatureList.Clear();
+    self.RoundFeatures.Clear();
+    // ...
+}
+```
+
+`Clear()`在每次进入新副本前调用，确保没有上一次副本的残留数据。
+
+**如果不Clear会发生什么？**
+
+假设上一局PVP结束后，`DungeonType`是`PVP`，`EnemyTeamData`是上一局的敌方数据。进入新副本时如果忘记Clear，业务代码读到的是错误的类型和数据，可能导致：
+- 开始PVE副本但系统以为是PVP
+- 战斗结算界面显示错误的敌方信息
+- 排行榜更新逻辑走错误分支
+
+定义`Clear()`方法并在关键节点调用，是防止"状态污染"的基本工程实践。
+
+## 七、总结
+
+DungeonComponent的设计体现了：
+
+1. **双重存储**：专用字段（快速访问）+ 通用列表（灵活遍历）
+2. **防御性计算**：服务端数据的每种异常情况都有对应兜底
+3. **接口重载**：同一功能提供ID版和文本版两种入口
+4. **明确的Clear**：组件状态有显式重置，防止跨局状态污染
+5. **职责边界**：战报提交在副本组件，因为它需要副本上下文
+
+对新手来说，"记录数据的组件要提供完整的Clear方法"是一个容易被忽视但非常重要的工程习惯。缺少Clear往往是游戏中"莫名其妙的历史数据残留"BUG的根本原因。
