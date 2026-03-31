@@ -1,0 +1,232 @@
+---
+title: 游戏启动序列设计——从黑屏到登录界面的完整流程控制
+published: 2026-03-31
+description: 解析手游启动闪屏序列的异步流程设计，包括腾讯版权画面、游戏忠告界面的依次展示与异常容错
+tags: [Unity, 启动流程, 异步编程]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 游戏启动序列设计——从黑屏到登录界面的完整流程控制
+
+打开一款手机游戏，你会看到：黑屏→版权logo→游戏忠告→登录界面。这个过程看起来很简单，但背后的代码设计却有不少值得学习的地方。
+
+本文分析VGame项目的`StartupSequenceEvent`，来看看一个商业级手游如何处理启动序列。
+
+## 一、为什么需要独立的启动序列事件
+
+首先思考：为什么不在`Awake`或`Start`里直接按顺序调用？
+
+```csharp
+// 反面教材：直接在Start里顺序调用
+void Start()
+{
+    ShowTencentSplash();
+    ShowCDDSplash();
+    ShowWarning();
+    ShowLogin();
+}
+```
+
+这样写有几个问题：
+1. 每个启动步骤可能需要等待异步操作（视频播放完、动画结束）
+2. 如果某一步失败，后续步骤还要继续
+3. 启动序列随业务变化而变化（比如新增一个合作厂商的Logo），修改`Start`函数违反开闭原则
+
+事件驱动的设计则是：当"开始启动序列"事件触发时，由`StartupSequenceEvent`处理器异步执行整个流程。
+
+## 二、完整的启动流程
+
+```csharp
+[Event(SceneType.Client)]
+public class StartupSequenceEvent : AAsyncEvent<Evt_StartStartupSequence>
+{
+    protected override async ETTask Run(Scene scene, Evt_StartStartupSequence evt)
+    {
+        try
+        {
+            Log.Info("开始启动流程");
+            var clientScene = scene.ClientScene();
+            
+            // 步骤0：先打开黑色背景面板（防止UI切换时闪白屏）
+            await EventSystem.Instance.PublishAsync(clientScene, 
+                new Evt_ShowUIPanel { PanelName = YIUI_PanelNameDefine.BackGroundPanel });
+            
+            // 步骤1：腾讯游戏启动画面
+            await ShowTencentSplash(clientScene);
+            
+            // 步骤2：CDD（版权方）画面
+            await ShowCDDSplash(clientScene);
+            
+            // 步骤3：游戏忠告界面（未成年人保护）
+            await ShowWarningSplash(clientScene);
+            
+            Log.Info("启动流程完成");
+        }
+        catch (System.Exception ex)
+        {
+            Log.Error(ZString.Format("启动流程出现异常: {0}", ex));
+            // 兜底：任何步骤崩溃，直接跳到登录界面
+            await ShowLoginPanel(scene.ClientScene());
+        }
+    }
+}
+```
+
+整个流程用`async/await`串联，逻辑清晰，每个步骤异步等待完成后再进入下一步。
+
+**步骤0的设计意图**：先打开一个纯黑面板。为什么？因为游戏刚启动时，Unity的Camera默认背景色是蓝色（或者天空盒颜色），在UI系统初始化之前这个背景色会短暂露出。黑色背景面板确保整个启动过程用户只看到黑色。
+
+## 三、每个启动画面的封装
+
+```csharp
+private async ETTask ShowTencentSplash(Scene clientScene)
+{
+    try
+    {
+        Log.Info("显示腾讯游戏启动画面");
+        
+        // 发布"显示面板"事件，等待面板的OnOpen完成
+        // OnOpen内部包含了视频/动画播放逻辑，播放完自动关闭面板
+        await EventSystem.Instance.PublishAsync(clientScene, 
+            new Evt_ShowUIPanel { PanelName = YIUI_PanelNameDefine.Splash_TencentPanel });
+        
+        Log.Info("腾讯游戏启动画面显示完成");
+    }
+    catch (System.Exception ex)
+    {
+        // 关键：单个步骤失败不影响后续步骤
+        Log.Error(ZString.Format("显示腾讯游戏启动画面时出现异常: {0}", ex));
+    }
+}
+```
+
+每个启动画面的展示被封装成独立的私有方法，各自有`try-catch`容错。
+
+**为什么每个步骤都要单独catch？**
+
+假设显示腾讯Logo时出现异常（网络资源加载失败），如果不在内部catch，会直接抛到外层的`try-catch`，直接跳到登录界面——跳过了CDD和游戏忠告。
+
+游戏忠告界面在中国监管要求下**必须展示**，如果因为其他步骤的异常被跳过，可能造成合规问题。所以每个步骤单独容错，保证关键步骤（游戏忠告）一定能执行到。
+
+## 四、面板的自关闭机制
+
+一个巧妙的设计点：注释里说"面板会在OnOpen完成后自动关闭"。
+
+这意味着面板本身负责管理自己的生命周期：
+
+```csharp
+// SplashPanel.cs（伪代码）
+public class TencentSplashPanel : YIUIPanel
+{
+    protected override async ETTask OnOpen()
+    {
+        // 播放视频
+        await VideoPlayer.PlayAsync("tencent_logo.mp4");
+        
+        // 淡出动画
+        await FadeOut(duration: 0.5f);
+        
+        // 自动关闭
+        await this.Close();
+    }
+}
+```
+
+`PublishAsync`等待的是整个`OnOpen`的完成，包括视频播放和淡出动画。这意味着启动序列不需要知道每个画面内部的逻辑，只需要`await`等待即可。
+
+**YIUI框架的这套设计**：Panel的生命周期（Open → 展示 → Close）完全由Panel自己控制，外部只需要等待Open事件完成。
+
+## 五、战斗加载的进度管理
+
+相比启动序列，战斗加载更复杂。`SceneChangeLoadBattleEvent`处理进入战斗时的资源加载：
+
+```csharp
+[Event(SceneType.Client)]
+public class SceneChangeLoadBattleEvent : EventWithRes2<Evt_SceneChangeLoadBattle>
+{
+    // 加载进度分段常量（告诉Loading界面当前加载到哪个阶段）
+    static float LOAD_EVENT_DEPDENT_RES_RATIO = 0.1f;   // 10%：依赖资源加载
+    static float LOAD_EVENT_DEPDENT_RES_RATIO2 = 0.2f;  // 20%
+    static float LOAD_EVENT_DEPDENT_RES_RATIO3 = 0.3f;  // 30%
+    static float LOAD_EVENT_DEPDENT_RES_RATIO4 = 0.7f;  // 70%：主要资源加载完
+    static float LOAD_SCENE_RATIO = 0.8f;               // 80%：场景加载完
+    static float LOAD_SCENE_ADDITIVE_RATIO = 0.9f;      // 90%：附加场景加载完
+    
+    protected override void Init(Scene scene, ref Evt_SceneChangeLoadBattle a)
+    {
+        // 初始化各种资源加载列表
+        a.FsmList = ListComponent<int>.Create();
+        a.CharacterIdList = ListComponent<int>.Create();
+        a.SkillList = ListComponent<int>.Create();
+        a.AnimDatas = ListComponent<string>.Create();
+        // ... 大量的列表初始化
+        
+        // 开始加载时BGM渐出
+        VGameAudioManager.Instance.LoadingBeginFadeOutBGM();
+        
+        // 清空Buff缓存
+        buffCacheComp.Clear();
+    }
+}
+```
+
+进度的精细分段（0.1 / 0.2 / 0.3 / 0.7 / 0.8 / 0.9）让Loading界面的进度条不会"卡住"——即使某个阶段耗时较长，玩家也能看到进度在推进，而不是长时间停在某个百分比。
+
+## 六、资源列表的预先收集
+
+注意Init里创建了大量列表：`FsmList`、`CharacterIdList`、`SkillList`、`AnimDatas`等。这些是要加载的资源列表，在Init阶段收集完整，然后批量异步加载。
+
+**为什么要先收集再加载，而不是边遇到边加载？**
+
+批量加载的好处：
+1. 可以去重（同一个动画可能被多个角色引用，只加载一次）
+2. 可以并行（同时发起多个异步加载，加快整体速度）
+3. 可以精准计算进度（知道总数和已完成数，才能算百分比）
+
+## 七、场景切换的事件链设计
+
+从项目中可以看到完整的场景切换事件链：
+
+```
+Evt_SceneChangeStart（开始切换）
+  → Evt_SceneChangeLoadBattlePerpare（战斗准备阶段）
+  → Evt_SceneChangeLoadBattle（战斗资源加载）
+  → Evt_StartBattleLoad（开始加载战斗）
+  → Evt_SceneChangeFinish（场景切换完成）
+```
+
+每个事件对应一个处理器类，每个类只负责自己那个阶段的工作。这是经典的**流水线（Pipeline）模式**：大任务拆分成有序的阶段，每个阶段独立实现，可以独立测试。
+
+## 八、实战中的几个坑
+
+**坑1：忘记等待异步操作**
+
+```csharp
+// 错误写法：没有await
+ShowTencentSplash(clientScene); // 直接进入下一步
+
+// 正确写法
+await ShowTencentSplash(clientScene);
+```
+
+不等待会导致多个面板同时显示，启动序列失去意义。
+
+**坑2：Loading界面的进度假卡**
+
+资源加载时进度从0%卡到80%再快速跑完，玩家体验差。解决方案：合理设计进度分段，确保每个阶段的耗时大致均匀。
+
+**坑3：Loading完成后的黑屏帧**
+
+战斗场景加载完成但UI还没完全显示，会有一帧黑屏。解决方案：场景加载完成后先显示UI，再淡出Loading界面。
+
+## 九、总结
+
+启动序列和加载流程的设计原则：
+1. **异步串联**：每个步骤异步完成后再执行下一步
+2. **各自容错**：关键步骤（如游戏忠告）必须独立容错
+3. **进度可视**：合理分段让进度条保持流动
+4. **批量加载**：先收集再并行加载，提升效率
+
+对新手来说，这套设计最值得借鉴的思路是：**把"做什么"（事件）和"怎么做"（处理器）分离**。当监管要求新增一个合规画面时，只需要新增一行`await ShowNewCompliancePanel()`，不需要改任何其他逻辑。

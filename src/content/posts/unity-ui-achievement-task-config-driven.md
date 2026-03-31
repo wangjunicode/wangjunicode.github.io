@@ -1,0 +1,518 @@
+---
+title: 任务与成就系统的分类配置化设计
+published: 2026-03-31
+description: 深度解析成就面板与调查任务面板的分类驱动架构，以及红点系统、进度数据与分页视图的协同设计
+tags: [Unity, UI系统, 任务成就]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 任务与成就系统的分类配置化设计
+
+## 前言
+
+成就系统和任务系统是游戏中最需要"可扩展性"的功能模块——策划可能随时要新增一个成就类别、调整任务显示顺序、添加新的奖励类型。如果架构设计不好，每次需求变更都要改大量代码，甚至牵连到UI的布局和逻辑。
+
+本文基于项目中 `AchievementPanel` 和 `CultivationSurveyPanel` 的完整实现，分析如何用配置化设计构建高可维护的任务成就界面体系。
+
+---
+
+## 一、分类配置化的核心设计
+
+### 静态配置字典的威力
+
+成就系统的分类管理是整个 `AchievementPanel` 设计中最值得关注的部分：
+
+```csharp
+// UIFunction/VGameUI/Achievement/AchievementPanel.cs
+
+// 分类 ID 常量
+private const int Category_Story     = 2; // 基础引导
+private const int Category_Character = 3; // 角色
+private const int Category_Collect   = 4; // 养成收集
+private const int Category_Event     = 5; // 对战
+private const int Category_Vaulted   = 6; // 隐藏事件
+
+// 分类 ID → 配置映射表（新增分类只改这一处）
+private static readonly Dictionary<int, CategoryConfig> CategoryConfigs =
+    new Dictionary<int, CategoryConfig>
+    {
+        { Category_Story,     new CategoryConfig("基础引导", IntRedDotKeyType.Key4) },
+        { Category_Character, new CategoryConfig("角色",     IntRedDotKeyType.Key5) },
+        { Category_Collect,   new CategoryConfig("养成收集", IntRedDotKeyType.Key6) },
+        { Category_Event,     new CategoryConfig("对战",     IntRedDotKeyType.Key7) },
+        { Category_Vaulted,   new CategoryConfig("隐藏事件", IntRedDotKeyType.Key8) },
+    };
+
+// 有序列表（控制左侧栏顺序）
+private static readonly int[] CategoryOrder =
+{
+    Category_Story, Category_Character, Category_Collect, 
+    Category_Event, Category_Vaulted,
+};
+```
+
+`CategoryConfig` 结构体封装了每个分类的两个关键信息：
+
+```csharp
+public struct CategoryConfig
+{
+    public string DisplayName;  // 显示名
+    public int RedDotKey;       // 红点 Key（用于红点系统绑定）
+
+    public CategoryConfig(string displayName, int redDotKey)
+    {
+        DisplayName = displayName;
+        RedDotKey = redDotKey;
+    }
+}
+```
+
+这个设计有几个关键优势：
+
+**1. 单一修改点原则**
+
+注释中明确写道"新增/修改分类只需改这一处"。如果要新增一个"PVP"成就分类，只需：
+- 添加常量 `private const int Category_PVP = 7;`
+- 在 `CategoryConfigs` 中添加一行配置
+- 在 `CategoryOrder` 中插入到合适位置
+
+不需要改任何逻辑代码。
+
+**2. 顺序与数据分离**
+
+`CategoryOrder` 数组控制分类的显示顺序，`CategoryConfigs` 字典存储分类的属性。两者分离意味着可以在不改变分类属性的情况下调整显示顺序。
+
+---
+
+## 二、成就数据的处理流水线
+
+### 服务器数据的接收与分类
+
+```csharp
+public override async ETTask RequestNetworkAsync()
+{
+    var req = new ZoneAchievementInfoReq();
+    var nr = await YIUIComponent.ClientScene.GetComponent<NetworkComponent>()
+        .SendAsync<ZoneAchievementInfoResp>(
+            (uint)ZoneClientCmd.ZoneCsAchievementInfo, req);
+    
+    if (!nr.IsCompleteSuccess)
+    {
+        UIHelper.ShowTips("请求成就数据失败");
+        return;
+    }
+
+    // 按 CategoryOrder 建立字典（保证顺序确定）
+    allAchievements = new Dictionary<int, List<AchievementItemData>>();
+    for (int i = 0; i < CategoryOrder.Length; i++)
+    {
+        allAchievements[CategoryOrder[i]] = new List<AchievementItemData>();
+    }
+    
+    GetAchieveMentData(nr.Data.AchieveList);
+}
+
+private void GetAchievementType(ZoneAchievementInfo item)
+{
+    AchievementItemData itemData = new AchievementItemData();
+    itemData.AchievementID = item.AchieveId;
+    itemData.CurrentProgress = item.Progress;
+    itemData.Status = (AchievementItemStatus)item.State;
+
+    // 完成时间的时区转换（服务器时间 → CST）
+    if (item.FinishTime > 0)
+    {
+        DateTimeOffset utcTime = DateTimeOffset.FromUnixTimeSeconds(item.FinishTime);
+        DateTimeOffset cstTime = utcTime.ToOffset(TimeSpan.FromHours(8));
+        itemData.CompleteTime = ZString.Format("{0}.{1}.{2}", 
+            cstTime.Year, cstTime.Month, cstTime.Day);
+    }
+    
+    // 根据配置表决定归属分类
+    var cfg = CfgManager.tables.TbAchievement.Get(item.AchieveId);
+    allAchievements[(int)cfg.ShowType + 1].Add(itemData);
+}
+```
+
+服务器下发的成就列表是一个扁平数组，客户端根据每个成就的 `ShowType`（配置表字段）将其分配到对应分类。这种**服务器下发原始数据、客户端按配置表分类**的模式有几个好处：
+
+1. **服务器减负**：服务器只管下发数据，不需要按分类组织
+2. **客户端灵活**：分类规则变更只需更新客户端配置表，不需要服务器配合
+3. **易于调试**：`ShowType` 到分类 ID 的映射关系在配置表中一目了然
+
+### 排序算法的业务语义
+
+```csharp
+public static void SortForDisplay(List<AchievementItemData> list)
+{
+    list.Sort((a, b) =>
+    {
+        // 可领取的（IsCompleted）置顶
+        bool aClaimable = a.Status == AchievementItemStatus.IsCompleted;
+        bool bClaimable = b.Status == AchievementItemStatus.IsCompleted;
+        if (aClaimable != bClaimable)
+            return aClaimable ? -1 : 1;
+        // 其余按 ID 升序
+        return a.AchievementID.CompareTo(b.AchievementID);
+    });
+}
+```
+
+排序规则直接体现了业务优先级：**让用户看到自己能领取的奖励**。`IsCompleted` 状态（已完成未领取）的成就排在最前面，这是一个典型的"留存驱动"的设计决策——让有奖励可领取的成就保持视觉显眼，促进用户返回领取。
+
+---
+
+## 三、左侧标签栏的 LoopScroll 设计
+
+成就面板用 LoopScroll 渲染左侧分类标签：
+
+```csharp
+protected override void Initialize()
+{
+    _noticeItemScroll = new YIUILoopScroll<string, Btn_Tap>(
+        u_ComLoopScrollVerticalLoopVerticalScrollRect,
+        NoticeItemRenderer);
+    InitializeData();
+}
+
+private void NoticeItemRenderer(int index, string data, Btn_Tap item, bool select)
+{
+    if (item == null) return;
+    
+    int capturedIndex = index;  // 闭包捕获
+    bool isSelected = capturedIndex == _selectedIndex;
+    
+    item.SetData(data, async (tap) =>
+    {
+        await OnTabClickEvent(capturedIndex, tap);
+    });
+    item.UpdateItem(data, isSelected);
+    
+    if (isSelected)
+        _selectedTap = item;
+
+    // 设置红点绑定
+    if (index == 0)
+    {
+        item.SetRedDot((ERedDotKeyType)IntRedDotKeyType.Key3);  // 总览红点
+    }
+    else if (index - 1 < CategoryOrder.Length)
+    {
+        var categoryId = CategoryOrder[index - 1];
+        if (CategoryConfigs.TryGetValue(categoryId, out var config))
+        {
+            item.SetRedDot((ERedDotKeyType)config.RedDotKey);  // 分类红点
+        }
+    }
+}
+```
+
+`int capturedIndex = index` 是个关键的闭包捕获技巧。Lambda 中如果直接使用 `index`，在 LoopScroll 复用时会出现闭包共享问题（所有 Lambda 都引用同一个 `index` 变量的最终值）。用 `capturedIndex` 在每次渲染时捕获当前 `index` 的值，每个 Lambda 都有独立的副本。
+
+### 红点系统与分类配置的绑定
+
+```csharp
+// 每个分类 Tab 绑定对应的红点 Key
+item.SetRedDot((ERedDotKeyType)config.RedDotKey);
+```
+
+红点 Key 存储在 `CategoryConfig` 中，渲染时从配置字典取出绑定到对应 Tab。这意味着新增分类时，只需在 `CategoryConfigs` 中指定红点 Key，红点功能就自动生效，无需单独处理。
+
+### 红点的批量刷新
+
+```csharp
+public void RedDotShow()
+{
+    foreach (var kvp in allAchievements)
+    {
+        if (CategoryConfigs.TryGetValue(kvp.Key, out var config))
+        {
+            AchievementRedPointHelper.RefreshRedPoint(config.RedDotKey, kvp.Value);
+        }
+    }
+}
+```
+
+```csharp
+// AchievementRedPointHelper.cs
+public static void RefreshRedPoint(int intRedDotKeyType, List<AchievementItemData> achievementItemDatas)
+{
+    var canGetCount = 0;
+    for (int i = 0; i < achievementItemDatas.Count; i++)
+    {
+        if (achievementItemDatas[i].Status == AchievementItemStatus.IsCompleted)
+            canGetCount++;
+    }
+    RedDotMgr.Inst.SetCount(intRedDotKeyType, canGetCount);
+}
+```
+
+红点数量 = 该分类下可领取奖励的成就数。`AchievementRedPointHelper` 是个简单的静态助手类，遍历数据列表统计可领取数量，更新到红点系统。
+
+---
+
+## 四、动态事件响应与数据增量更新
+
+成就系统的亮点之一是支持实时数据更新：
+
+```csharp
+private void OnAchievementDataChanged(Evt_AchievementDataChanged evt)
+{
+    foreach (var info in evt.AchieveList)
+    {
+        var cfg = CfgManager.tables.TbAchievement.GetOrDefault(info.AchieveId);
+        if (cfg == null) continue;
+
+        int categoryId = (int)cfg.ShowType + 1;
+        if (!allAchievements.ContainsKey(categoryId)) continue;
+
+        var list = allAchievements[categoryId];
+        bool found = false;
+        for (int i = 0; i < list.Count; i++)
+        {
+            if (list[i].AchievementID == info.AchieveId)
+            {
+                // 更新已有条目
+                list[i].Status = (AchievementItemStatus)info.State;
+                list[i].CurrentProgress = info.Progress;
+                // ...时间处理
+                found = true;
+                break;
+            }
+        }
+
+        if (!found)
+        {
+            // 新成就：加入列表
+            GetAchievementType(info);
+            achieveNum++;
+        }
+    }
+
+    // 重新排序、刷新统计、刷新红点、刷新当前视图
+    foreach (var list in allAchievements.Values)
+        AchievementItemData.SortForDisplay(list);
+    
+    RecalculateOverViewItems();
+    RedDotShow();
+    
+    if (_selectedIndex >= 0)
+        TabSelect(_selectedIndex + 1);
+}
+```
+
+这个增量更新逻辑体现了**查找-更新-新增**三路处理模式：
+
+1. 遍历服务器下发的成就列表
+2. 在本地数据中查找对应条目
+3. 找到 → 更新状态和进度；未找到 → 作为新成就加入列表
+
+更新完成后的刷新顺序也很讲究：
+1. `SortForDisplay`：保证可领取的成就仍然置顶
+2. `RecalculateOverViewItems`：更新总览统计数据
+3. `RedDotShow`：更新所有分类的红点状态
+4. `TabSelect`：刷新当前选中分类的视图
+
+这个顺序不能乱——必须先更新数据，再更新统计，再更新红点，最后刷新视图。
+
+---
+
+## 五、调查任务面板的双视图切换
+
+`CultivationSurveyPanel` 是个更复杂的任务系统，它支持"调查目标"和"目标任务"两个视图的切换：
+
+```csharp
+public enum ViewState
+{
+    Survey = 0,  // 调查目标（主线故事视图）
+    Task = 1,    // 目标任务（线索收集视图）
+}
+
+private ViewState viewState
+{
+    get => _viewState;
+    set
+    {
+        _viewState = value;
+        RefreshRender();  // 状态变化时自动刷新
+    }
+}
+```
+
+属性 `set` 中直接调用 `RefreshRender()` 是个简洁的设计——把"状态变化"和"UI刷新"绑定在一起，避免遗漏刷新的情况。
+
+```csharp
+private void RefreshRender()
+{
+    switch (_viewState)
+    {
+        case ViewState.Survey:
+            u_ComSurveyListViewRectTransform.gameObject.SetActive(true);
+            u_ComTaskListViewRectTransform.gameObject.SetActive(false);
+            u_ComText_ProgressTextMeshProUGUI.text = 
+                ZString.Format("<color=#ffff67>{0}</color>/{1}", _surveyComplete, _surveyCount);
+            u_ComTxt_TitleTextMeshProUGUI.text = u_DataSurveyName.GetValue();
+            // 标签按钮状态
+            u_ComNormalRectTransform.gameObject.SetActive(true);
+            u_ComDisRectTransform.gameObject.SetActive(false);
+            break;
+        case ViewState.Task:
+            u_ComSurveyListViewRectTransform.gameObject.SetActive(false);
+            u_ComTaskListViewRectTransform.gameObject.SetActive(true);
+            // ...
+            break;
+    }
+}
+```
+
+`ZString.Format("<color=#ffff67>{0}</color>/{1}", ...)` 是 Cysharp 的零分配字符串格式化，在每帧可能频繁调用的 UI 更新中，避免 `string.Format` 产生的 GC 压力。
+
+### 自适应高度的 LoopScroll
+
+调查任务面板有一个精巧的分组布局算法：
+
+```csharp
+private void Fill_surveyClueList()
+{
+    // 预计算每个任务项的文本高度
+    _taskHeightDic.Clear();
+    foreach (var data in _targetTasks)
+    {
+        float h = u_UITargetTaskItem.GetHeight(data.TaskDescription);
+        _taskHeightDic.Add(data.TaskID, h);
+    }
+    
+    List<TargetTaskItemData> list = new List<TargetTaskItemData>();
+    _surveyClueList.Add(list);
+    
+    for (int i = 0; i < _targetTasks.Count;)
+    {
+        if (list.Count >= _rowNumber)  // 每组最多4个
+        {
+            list = new List<TargetTaskItemData>();
+            _surveyClueList.Add(list);
+        }
+        
+        list.Add(_targetTasks[i]);
+        
+        if (!IsoverFlow(list))  // 高度未超限，接受
+        {
+            i++;
+        }
+        else  // 高度超限，这个元素放到下一组
+        {
+            list.Remove(_targetTasks[i]);
+            list = new List<TargetTaskItemData>();
+            _surveyClueList.Add(list);
+        }
+    }
+}
+
+private bool IsoverFlow(List<TargetTaskItemData> list)
+{
+    float height = 0;
+    foreach (var data in list)
+        height += _taskHeightDic[data.TaskID];
+    
+    var spaceCount = list.Count - 1 >= 0 ? list.Count - 1 : 0;
+    height += spaceCount * TaskClueSpace;
+    return height >= TaskClueHeight;  // TaskClueHeight = 320
+}
+```
+
+这是一个**装箱算法（Bin Packing）**的简化版：将高度不固定的任务项装入固定高度（320px）的"箱子"中，超出高度限制的项放到新箱子里。
+
+`u_UITargetTaskItem.GetHeight(data.TaskDescription)` 利用 TextMeshPro 的 `GetPreferredValues` 获取文本的实际渲染高度，确保多行文本的任务描述能被正确计算。
+
+---
+
+## 六、进度数据的计算架构
+
+```csharp
+public void InitializeData()
+{
+    int overviewCurrentValue = 0;
+    for (int i = 0; i < CategoryOrder.Length; i++)
+    {
+        var type = CategoryOrder[i];
+        if (!allAchievements.ContainsKey(type)) continue;
+
+        OverViewItemData overViewItem = new OverViewItemData();
+        overViewItem.Id = (int)type;
+        overViewItem.Name = GetCategoryDisplayName(type);
+        overViewItem.NeedValue = allAchievements[type].Count;
+        
+        foreach (var item in allAchievements[type])
+        {
+            if (item.Status == AchievementItemStatus.IsCompleted ||
+                item.Status == AchievementItemStatus.GetAward)
+                overViewItem.CurrentValue++;
+        }
+
+        overViewItems.Add(overViewItem);
+        overviewCurrentValue += overViewItem.CurrentValue;
+    }
+
+    // 总览条目（所有分类的汇总）
+    OverViewItemData overview = new OverViewItemData()
+    {
+        Id = 0, 
+        Name = "已获得成就", 
+        NeedValue = achieveNum, 
+        CurrentValue = overviewCurrentValue
+    };
+    overViewItems.Insert(0, overview);  // 插入到最前
+}
+```
+
+`OverViewItemData` 的设计很务实：每个分类维护自己的 `CurrentValue`/`NeedValue`，总览条目是所有分类的聚合。`Insert(0, overview)` 把总览插到列表最前，与左侧栏的"第0项 = 总览"保持一致。
+
+增量更新时的重计算：
+
+```csharp
+private void RecalculateOverViewItems()
+{
+    int overviewCurrentValue = 0;
+    for (int i = 0; i < CategoryOrder.Length; i++)
+    {
+        var type = CategoryOrder[i];
+        // overViewItems[0] 是总览，分类从 index 1 开始
+        var overViewItem = overViewItems[i + 1];
+        overViewItem.NeedValue = allAchievements[type].Count;
+        overViewItem.CurrentValue = 0;
+        
+        foreach (var item in allAchievements[type])
+        {
+            if (item.Status == AchievementItemStatus.IsCompleted ||
+                item.Status == AchievementItemStatus.GetAward)
+                overViewItem.CurrentValue++;
+        }
+        
+        overviewCurrentValue += overViewItem.CurrentValue;
+    }
+
+    overViewItems[0].NeedValue = achieveNum;
+    overViewItems[0].CurrentValue = overviewCurrentValue;
+}
+```
+
+重计算使用原地更新（修改已有 `OverViewItemData` 对象的字段），而不是创建新列表。这避免了 GC 开销，也保证了 `overViewItems[0]` 的引用稳定性（其他持有引用的地方不需要更新）。
+
+---
+
+## 七、总结：配置化设计的核心价值
+
+| 设计决策 | 解决的问题 | 具体体现 |
+|---------|-----------|---------|
+| CategoryConfigs 字典 | 新增分类不改逻辑代码 | 一行配置 = 一个完整分类 |
+| CategoryOrder 数组 | 分类顺序独立于数据 | 调整顺序不影响配置 |
+| RedDotKey in Config | 红点绑定随分类自动生效 | 新增分类自动有红点 |
+| 静态 SortForDisplay | 排序规则集中 | 所有地方用同一规则 |
+| 属性 set 触发刷新 | 状态变化不遗漏 | `viewState = x` 即刷新 |
+| 装箱算法分组 | 自适应高度布局 | 文本高度动态分组 |
+
+成就系统的核心设计理念是：**让扩展变得廉价**。任何一个正常运营的游戏，成就系统都会持续扩充内容。好的架构应该让新增成就类别、新增成就条目、修改成就显示规则的成本趋近于零。`CategoryConfigs` 字典模式做到了这一点——新增一个分类的代价，仅仅是在字典中写一行配置。
+
+这正是第一性原理在UI架构中的体现：**找到问题的本质（频繁扩充），设计天然适应这种变化的结构（配置字典）**。

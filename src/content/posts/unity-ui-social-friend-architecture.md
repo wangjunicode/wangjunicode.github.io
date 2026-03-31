@@ -1,0 +1,360 @@
+---
+title: 好友社交界面的双列表架构与实时聊天设计
+published: 2026-03-31
+description: 解析好友面板中双LoopScroll列表的协同刷新机制，以及好友关系管理与实时聊天的状态机设计
+tags: [Unity, UI系统, 社交系统]
+category: Unity技术
+draft: false
+encryptedKey: henhaoji123
+---
+
+# 好友社交界面的双列表架构与实时聊天设计
+
+## 前言
+
+好友社交界面是现代游戏中最复杂的UI之一——它需要同时管理两个独立的列表（好友列表 + 聊天记录），处理实时消息推送，支持管理模式切换，并且还要维护选中状态、红点通知等跨面板状态。如果没有清晰的架构，这个界面很容易变成一坨难以维护的耦合代码。
+
+本文基于项目中 `SocialContactPanel` 和 `YIUI_SocialContactComponent` 的实际实现，深入分析好友界面的架构设计。
+
+---
+
+## 一、数据层的职责分离
+
+### UIModel：状态仓库
+
+```csharp
+// UIModel/SocialContact/YIUI_SocialContactComponent.cs
+public partial class YIUI_SocialContactComponent : Entity, IAwake, IDestroy
+{
+    public const int MAX_FRIEND_COUNT = 100;
+    public const int PAGE_SIZE = 20;
+    public const int MAX_LOCAL_CHAT_COUNT = 10;  // 每个好友本地缓存上限
+    
+    // 好友列表
+    public List<ZoneFriendListItem> FriendList { get; set; }
+    public List<ZoneFriendListItem> RequestList { get; set; }  // 好友申请列表
+    public List<ZoneFriendListItem> BlackList { get; set; }    // 黑名单
+    
+    // 聊天状态
+    public ZoneFriendListItem CurrentChatFriend { get; set; }       // 当前聊天对象
+    public Dictionary<ulong, List<ZoneChatMsg>> ChatMessages { get; set; } // 按好友ID分组的消息
+    public Dictionary<ulong, int> UnreadMessageCount { get; set; }  // 未读数
+}
+```
+
+`YIUI_SocialContactComponent` 作为 UIModel 层的核心组件，承担三大职责：
+
+1. **常量定义**：`MAX_FRIEND_COUNT = 100`、`MAX_LOCAL_CHAT_COUNT = 10` 这类业务约束不散落在各处
+2. **状态持有**：好友列表、聊天记录、当前聊天对象的生命周期与 Component 绑定
+3. **跨面板共享**：Component 挂在 ClientScene 上，多个面板可以通过 `scene.GetComponent<>()` 访问同一份数据
+
+这解决了一个经典问题：当从好友详情页返回好友列表时，聊天状态如何保持？答案是状态在 Component 里，面板关闭不会影响数据。
+
+### UIFunction：数据适配层
+
+```csharp
+// UIFunction/VGameUI/SocialContact/SocialContactPanel.cs
+
+// 将服务器的 ZoneFriendListItem 适配成 LoopScroll 需要的格式
+public class SocialContactFriendData
+{
+    public ulong Id { get; set; }
+    public string Name { get; set; }
+    public ZoneFriendListItem RawData { get; set; }  // 原始数据引用
+}
+
+// 聊天消息适配
+public class SocialContactChatData
+{
+    public ZoneChatMsg ChatMsg { get; set; }
+    public ulong SelfPlayerId { get; set; }  // 用于区分自己和对方的消息
+}
+```
+
+这两个适配数据类的设计体现了**适配器模式**：服务器返回的 `ZoneFriendListItem` 和 `ZoneChatMsg` 是网络协议对象，直接传给 UI 控件会产生不必要的耦合。通过中间层转换，UI 只依赖自己定义的数据格式，协议变更不会扩散到 UI。
+
+`RawData` 字段保留了对原始协议对象的引用——当需要执行操作（如删除好友）时，直接把原始数据传给业务接口，不需要反查。
+
+---
+
+## 二、双 LoopScroll 的协同刷新机制
+
+### 初始化策略
+
+```csharp
+private void InitLoopScroll()
+{
+    // 好友列表 LoopScroll
+    if (u_ComU_listFriend != null)
+    {
+        _friendLoopScroll = new YIUILoopScroll<SocialContactFriendData, FriendListItem>(
+            u_ComU_listFriend, 
+            OnFriendItemRenderer);
+    }
+    
+    // 聊天记录 LoopScroll
+    if (u_ComU_listChat != null)
+    {
+        _chatLoopScroll = new YIUILoopScroll<SocialContactChatData, Item_ChatBubble>(
+            u_ComU_listChat,
+            OnChatItemRenderer);
+    }
+}
+```
+
+两个 LoopScroll 在 `Initialize` 阶段（不是 `OnOpen`）就创建，原因是 LoopScroll 本身是一个轻量对象，创建开销很小，而且多次打开面板时不需要重新创建。
+
+### 好友列表的选中状态管理
+
+```csharp
+private void OnFriendItemRenderer(int index, SocialContactFriendData data, 
+    FriendListItem item, bool select)
+{
+    if (data == null || item == null) return;
+    
+    var rawData = data.RawData ?? CreateZoneFriendListItem(data);
+    item.SetData(rawData, false, _isManageMode,
+        OnFriendItemClicked,
+        null,  
+        null, 
+        OnDeleteFriend);
+    
+    // 通过索引对比实现单选效果
+    item.SetSelected(index == _selectedFriendIndex);
+}
+```
+
+这里的选中状态管理是个值得关注的设计：用 `_selectedFriendIndex`（索引）而不是 `_selectedFriendId`（ID）来标识选中项。
+
+**为什么用索引而不是ID？**
+
+在 LoopScroll 的回收复用机制下，每次 `SetDataRefresh` 后 Item 对象会被重新分配。用索引配合渲染回调，可以在每次重新渲染时自动设置正确的选中态，无需额外的状态同步逻辑。
+
+点击时的更新逻辑：
+
+```csharp
+private void OnFriendItemClicked(ZoneFriendListItem data)
+{
+    int newIndex = _friendDataList.FindIndex(x => x.Id == data.Id);
+    if (newIndex >= 0)
+    {
+        _selectedFriendIndex = newIndex;
+        RefreshFriendLoopScroll(); // 刷新列表触发重新渲染
+    }
+    
+    SocialContact.StartChatWithFriend(data);
+    RefreshChatUI();  // 同步刷新聊天列表
+}
+```
+
+点击好友 → 更新选中索引 → 刷新好友列表（让 Renderer 重新应用选中态） → 刷新聊天列表。这是一条单向的更新链，状态流动方向清晰。
+
+### 聊天列表的滚动到底部
+
+```csharp
+private async ETTask ScrollChatToBottom()
+{
+    // 等待一帧确保列表刷新完成
+    await TimerComponent.Instance.WaitFrameAsync();
+    
+    if (u_ComU_listChat != null)
+    {
+        u_ComU_listChat.normalizedPosition = new Vector2(0, 0);
+    }
+}
+```
+
+这里 `WaitFrameAsync` 的等待一帧至关重要。`SetDataRefresh` 是同步调用，但 LoopScroll 的内部布局计算在同帧末尾才完成。如果在 `SetDataRefresh` 后立即设置 `normalizedPosition`，LoopScroll 的实际内容高度还没更新，滚动会失效。
+
+等一帧后，Unity 的布局计算已经完成，此时设置滚动位置才有效。
+
+---
+
+## 三、管理模式的状态机设计
+
+```csharp
+protected override void OnEventU_FriendSetClickAction()
+{
+    bool wasManageMode = _isManageMode;  // 记录切换前的状态
+    _isManageMode = !_isManageMode;
+    
+    // 切换按钮状态（0=退出管理，1=好友管理）
+    if (u_ComFriendSetBtn != null)
+    {
+        u_ComFriendSetBtn.ApplyState(_isManageMode ? 0 : 1);
+    }
+    
+    if (wasManageMode)
+    {
+        // 从管理模式退出：需要从服务器刷新（可能删除了好友）
+        RefreshFriendListAfterManage().Coroutine();
+    }
+    else
+    {
+        // 进入管理模式：只需显示删除按钮
+        RefreshFriendLoopScroll();
+    }
+}
+```
+
+管理模式的切换逻辑中有个巧妙的设计：**退出管理模式时才从服务器同步数据**，而进入管理模式时只更新本地显示。
+
+这个选择基于一个数据一致性的权衡：
+- 进入管理模式时，数据肯定是最新的（刚从 `OnOpen` 刷新过）
+- 在管理模式中执行的删除操作会立即同步到本地数据（`ConvertToLoopScrollData`）
+- 退出管理模式时做一次网络同步，确保与服务器数据对齐
+
+这避免了每次切换都发网络请求，又保证了最终数据的正确性。
+
+### LoopScroll 中的管理模式感知
+
+```csharp
+item.SetData(rawData, false, _isManageMode,  // _isManageMode 作为参数传入
+    OnFriendItemClicked,
+    null,  
+    null, 
+    OnDeleteFriend);
+```
+
+管理模式的状态通过 `SetData` 传入每个 Item，让 Item 自己决定是否显示删除按钮。这比在 Panel 层控制每个 Item 的按钮可见性要简洁得多，也体现了"数据驱动 UI"的思路。
+
+---
+
+## 四、实时消息的推送处理
+
+```csharp
+public void OnChatNotifyReceived(List<ZoneChatMsg> chatMsgs)
+{
+    var component = SocialContact;
+    if (component == null) return;
+    
+    // 交给 Component 处理消息存储
+    component.OnChatNotifyReceived(chatMsgs);
+    
+    // 只有当前正在聊天的对象发消息，才刷新 UI
+    if (component.CurrentChatFriend != null)
+    {
+        foreach (var msg in chatMsgs)
+        {
+            if (msg.Channel == (int)EnumChatChannel.EChatChannelFriend &&
+                (msg.Sender?.PlayerId == component.CurrentChatFriend.Id ||
+                 msg.Receiver?.PlayerId == component.CurrentChatFriend.Id))
+            {
+                RefreshChatUI();
+                break;  // 找到一条相关消息就够了
+            }
+        }
+    }
+}
+```
+
+这段消息处理逻辑体现了几个设计原则：
+
+1. **职责分离**：消息存储由 `Component.OnChatNotifyReceived` 处理，UI 刷新由 `Panel` 处理
+2. **按需刷新**：只有当前聊天对象的消息才触发 UI 刷新，其他好友的消息只存储不刷新
+3. **早退出优化**：找到第一条相关消息后 `break`，不继续遍历
+
+对于未读消息，Component 中维护了 `UnreadMessageCount` 字典，其他面板（如电话界面的未读徽标）可以通过这个数据实时更新显示。
+
+---
+
+## 五、好友申请的二次确认模式
+
+```csharp
+private void OnDeleteFriend(ZoneFriendListItem data)
+{
+    UIHelper.ShowMessageBox(
+        $"移除好友后，{data.Name}将从好友列表中消失",
+        (callbackData) => OnDeleteFriendConfirm(callbackData, data),
+        MessageBoxStyle.BTN_OK | MessageBoxStyle.BTN_CANCEL,
+        okLabel: "确定",
+        cancelLabel: "取消"
+    );
+}
+
+private async ETTask DeleteFriendRequest(ZoneFriendListItem data)
+{
+    bool success = await SocialContact.DeleteFriend(data.Id);
+    if (success)
+    {
+        ConvertToLoopScrollData(SocialContact.FriendList);
+        RefreshFriendLoopScroll();
+        
+        // 如果删除的是当前聊天对象，切换到第一个好友
+        var currentChatFriend = SocialContact?.CurrentChatFriend;
+        if (currentChatFriend != null && currentChatFriend.Id == data.Id)
+        {
+            if (_friendDataList.Count > 0)
+            {
+                _selectedFriendIndex = 0;
+                // ...切换到第一个好友
+            }
+            else
+            {
+                SocialContact?.EndCurrentChat();
+                ShowChatEmpty();
+            }
+        }
+    }
+}
+```
+
+删除好友的完整流程是：**弹窗确认 → 网络请求 → 本地数据同步 → 聊天状态迁移 → UI刷新**。
+
+其中"聊天状态迁移"是最容易被遗漏的步骤：删除的好友如果正是当前聊天对象，需要把聊天状态迁移到其他好友或清空。不处理这个边界情况，界面上会出现"正在与已删除好友聊天"的状态。
+
+---
+
+## 六、空状态的处理哲学
+
+```csharp
+private void ShowChatEmpty()
+{
+    _chatDataList.Clear();
+    RefreshChatLoopScroll();
+    
+    if (u_ComU_chatPlayerName != null)
+        u_ComU_chatPlayerName.text = string.Empty;
+    
+    // 显示空状态占位图，隐藏聊天区域
+    if (u_ComChatEmptyRectTransform != null)
+        u_ComChatEmptyRectTransform.gameObject.SetActive(true);
+    if (u_ComChatRectTransform != null)
+        u_ComChatRectTransform.gameObject.SetActive(false);
+}
+```
+
+空状态处理遵循"明确化胜于隐含化"的原则：不是把聊天列表留空，而是显式地显示一个空状态占位视图。这让用户明白"这里没有内容"而不是"界面出问题了"。
+
+好友列表同样有独立的空状态：
+
+```csharp
+private void RefreshFriendLoopScroll()
+{
+    bool isEmpty = _friendDataList.Count == 0;
+    if (u_ComEmptyPlayerRectTransform != null)
+        u_ComEmptyPlayerRectTransform.gameObject.SetActive(isEmpty);
+    if (u_ComPlayerGroupRectTransform != null)
+        u_ComPlayerGroupRectTransform.gameObject.SetActive(!isEmpty);
+    
+    _friendLoopScroll.SetDataRefresh(_friendDataList);
+}
+```
+
+空列表状态和正常列表状态是互斥的两个显示区域，通过 `SetActive` 切换，而不是让 LoopScroll 显示"暂无好友"文字。这是因为空状态通常需要特殊的视觉设计（大图、引导文字、添加按钮等），不适合放在 LoopScroll 的数据渲染中处理。
+
+---
+
+## 七、总结
+
+好友社交界面的复杂度来自于它需要同时管理**关系数据**和**聊天数据**两个独立的关注点，加上实时推送带来的异步性。项目的架构通过以下几个层次的设计化解了这种复杂度：
+
+| 层次 | 职责 | 关键设计 |
+|------|------|---------|
+| UIModel Component | 状态持有与跨面板共享 | Entity组件化，生命周期与Scene绑定 |
+| 适配数据类 | 协议与UI的解耦 | SocialContactFriendData/ChatData |
+| 双LoopScroll | 高性能列表渲染 | 索引驱动选中态，Renderer回调渲染 |
+| 管理模式状态机 | 正常/管理模式的行为切换 | 布尔标志 + 退出时网络同步 |
+| 消息推送处理 | 实时性与性能的平衡 | 按需刷新，存储与显示分离 |
+
+这套架构的核心思想是：**让数据流动的路径单向且可预测**。任何状态变化都从"触发源"经过一条明确的路径到达"最终呈现"，没有隐式的状态依赖，也没有循环触发。
