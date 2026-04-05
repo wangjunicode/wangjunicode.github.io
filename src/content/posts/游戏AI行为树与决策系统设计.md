@@ -1,9 +1,10 @@
----
+﻿---
 title: 游戏AI行为树与决策系统设计
 description: 全面解析游戏AI核心技术：行为树（Behavior Tree）、有限状态机（FSM）、效用AI（Utility AI）的原理与实现，从NPC行为设计到商业级AI框架。
 published: 2026-03-21
 category: 技术基础
 tags: [游戏AI, 行为树, 状态机, FSM, NPC设计, 人工智能]
+encryptedKey: henhaoji123
 ---
 
 # 游戏AI行为树与决策系统设计

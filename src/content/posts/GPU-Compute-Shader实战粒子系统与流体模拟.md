@@ -1,10 +1,11 @@
----
+﻿---
 title: GPU Compute Shader实战：粒子系统与流体模拟
 published: 2026-03-26
 description: 深入讲解Unity Compute Shader的工作原理与编程模型，通过百万级GPU粒子系统、SPH流体模拟、GPU布料模拟三大实战案例，系统掌握ComputeBuffer、线程组调度、数据回读、GPU排序等核心技术，附完整HLSL代码与移动端适配策略。
 tags: [Unity, Compute Shader, GPU, 粒子系统, 流体模拟, 图形编程]
 category: 渲染与图形
 draft: false
+encryptedKey: henhaoji123
 ---
 
 # GPU Compute Shader实战：粒子系统与流体模拟

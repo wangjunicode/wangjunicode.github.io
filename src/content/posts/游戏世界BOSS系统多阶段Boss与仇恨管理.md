@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏世界BOSS系统：多阶段Boss与仇恨管理
 published: 2026-03-31
 description: 全面解析游戏世界BOSS的工程设计，包含多阶段BOSS（血量触发阶段切换+特殊演出）、仇恨表（Taunt/仇恨值动态计算）、BOSS技能模式（随机/阶段性/仇恨目标）、世界BOSS参与者管理（多人共同攻击）、BOSS濒死演出（慢动作/特写镜头）、BOSS击杀奖励分配（贡献度排名奖励），以及BOSS复活定时器。
 tags: [游戏设计, Boss系统, 仇恨管理, RPG, 游戏开发]
 category: 战斗系统
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、多阶段Boss

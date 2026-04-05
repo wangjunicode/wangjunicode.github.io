@@ -1,10 +1,11 @@
----
+﻿---
 title: ECS/DOTS 架构深度入门：数据导向设计在游戏中的应用
 published: 2026-03-21
 description: "深入讲解 Unity DOTS（Data-Oriented Technology Stack）和 ECS（Entity Component System）的核心原理，包括 Archetype、Chunk 内存布局、System 设计、Job System 并行计算，以及在大型商业项目中的实践经验。"
 tags: [ECS, DOTS, Unity, 性能优化, 架构设计]
 category: 架构设计
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 为什么要学 ECS/DOTS

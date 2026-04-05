@@ -1,10 +1,11 @@
----
+﻿---
 title: 战斗FSM状态机系统深度解析
 published: 2026-04-05
 description: 深入剖析战斗单位的有限状态机实现：EFSMState状态常量池、EInputKey事件驱动、StateAction行为层设计，以及破防/格挡/闪避等核心战斗状态的底层逻辑
 tags: [Unity, 战斗系统, FSM, 状态机, UniFSM]
 category: 战斗系统
 draft: false
+encryptedKey: henhaoji123
 ---
 
 # 战斗FSM状态机系统深度解析

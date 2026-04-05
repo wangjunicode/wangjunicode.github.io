@@ -1,10 +1,11 @@
----
+﻿---
 title: 关于计算机网络-Protobuf
 published: 2018-09-17
 description: "Protocol Buffers（Protobuf）是 Google 开发的一种语言中立、平台中立的序列化数据格式，比 XML/JSON 更小、更快、更简单。"
 tags: [网络编程, Protobuf, 序列化]
 category: 网络编程
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## Protobuf 是什么

@@ -1,10 +1,11 @@
----
+﻿---
 title: 战斗帧同步与PVP帧缓冲系统深度解析
 published: 2026-04-05
 description: 深入解析PVPFrameBuffer帧缓冲算法、BattlePlayerComponent状态管理、帧同步追帧加速策略，以及帧间隔对齐机制的完整实现细节
 tags: [Unity, 战斗系统, 帧同步, LockStep, PVP, 网络同步]
 category: 战斗系统
 draft: false
+encryptedKey: henhaoji123
 ---
 
 # 战斗帧同步与PVP帧缓冲系统深度解析

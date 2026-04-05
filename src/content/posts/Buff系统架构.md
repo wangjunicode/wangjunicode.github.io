@@ -1,10 +1,11 @@
----
+﻿---
 title: 05 Buff 系统架构
 published: 2024-01-01
 description: "05 Buff 系统架构 - VGame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 战斗系统
 draft: false
+encryptedKey: henhaoji123
 ---
 
 # 05 Buff 系统架构

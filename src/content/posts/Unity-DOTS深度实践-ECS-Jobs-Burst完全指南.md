@@ -1,8 +1,9 @@
----
+﻿---
 title: "Unity DOTS深度实践：ECS + Jobs + Burst完全指南"
 description: "深入解析Unity DOTS（数据导向技术栈）的核心原理，包括ECS实体组件系统、Jobs并行计算、Burst编译器优化，以及在大型游戏项目中的实战应用"
 published: 2025-03-21
 tags: ["DOTS", "ECS", "Jobs", "Burst", "性能优化", "Unity"]
+encryptedKey: henhaoji123
 ---
 
 # Unity DOTS深度实践：ECS + Jobs + Burst完全指南

@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏寻路优化：HPA*与分层导航网格完全指南
 published: 2026-03-31
 description: 深入解析大规模游戏场景中寻路性能优化技术，从 A* 基础到层次化 A*（HPA*）算法、Nav Mesh 分区与缓存、流式导航、动态障碍物处理，以及千个 AI 同时寻路的 Unity 高性能实践方案。
 tags: [Unity, 寻路算法, HPA*, NavMesh, AI, 性能优化]
 category: 游戏AI
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、寻路系统的性能挑战

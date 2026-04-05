@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏配置热更新系统：远程配置与AB测试框架
 published: 2026-03-31
 description: 深度解析游戏运营期配置热更新系统，涵盖远程配置（Remote Config）架构设计、配置版本管理与增量更新、本地缓存策略、A/B测试框架（用户分组/指标收集/统计显著性）、特性开关（Feature Flag）、灰度发布控制，以及Firebase Remote Config和自研方案的完整实现。
 tags: [Unity, 远程配置, AB测试, Feature Flag, 游戏运营]
 category: 游戏运营
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、远程配置系统架构

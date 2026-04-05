@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏AI导航系统深度解析：NavMesh与动态障碍
 published: 2026-03-31
 description: 深度解析Unity NavMesh导航系统的高级应用，包含NavMesh Agent配置（优先级/回避/爬坡）、运行时NavMesh动态修改（NavMeshSurface重烘焙）、动态障碍物（NavMeshObstacle雕刻模式）、多层NavMesh（飞行/游泳/地面多Agent类型）、路径预计算与分摊、大世界分区NavMesh加载，以及NavMesh调试与可视化工具。
 tags: [Unity, NavMesh, 游戏AI, 寻路系统, 游戏开发]
 category: 游戏AI
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、NavMesh Agent 高级配置

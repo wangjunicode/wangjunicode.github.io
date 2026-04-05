@@ -1,9 +1,10 @@
----
+﻿---
 title: ECS架构与Data-Oriented Design实践
 description: 深入理解实体组件系统（ECS）架构思想与数据导向设计（DOD），掌握Unity DOTS技术栈，构建高性能游戏逻辑系统。
 published: 2026-03-21
 category: 架构设计
 tags: [ECS, DOTS, 数据导向设计, Unity, 高性能, 架构]
+encryptedKey: henhaoji123
 ---
 
 # ECS架构与Data-Oriented Design实践

@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏寻路系统：A*算法优化与导航网格实践
 published: 2026-03-31
 description: 深入解析游戏寻路系统的工程实现，涵盖A*算法核心实现与优化（二叉堆优先队列、Jump Point Search跳点搜索）、Unity NavMesh高级用法（动态障碍物、NavMeshAgent调优）、分层寻路架构、多Agent避障（RVO相互速度障碍）、异步寻路防卡帧，以及大地图分区寻路策略。
 tags: [Unity, 寻路系统, A星算法, NavMesh, 游戏AI]
 category: 游戏AI
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、A* 算法核心实现（带二叉堆优化）

@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏动态难度调整系统：DDA算法与玩家挫败感控制
 published: 2026-03-31
 description: 全面解析动态难度调整（Dynamic Difficulty Adjustment，DDA）系统的工程设计，包括玩家表现指标采集（死亡率/通关时间/技能命中率）、难度模型（橡皮筋效应）、基于机器学习的个性化难度、《生化危机4》风格的DDA分析、无感知调整（玩家无感）策略，以及避免DDA破坏成就感的设计底线。
 tags: [Unity, 动态难度, DDA, 游戏设计, 玩家体验]
 category: 游戏设计
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、DDA 原理与哲学

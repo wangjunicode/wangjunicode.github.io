@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏网络回滚系统深度实践：Rollback Netcode从原理到工程落地
 published: 2026-03-29
 description: 深入解析Rollback Netcode（回滚式网络代码）的完整技术体系，从预测-回滚的核心原理出发，详细讲解状态快照、输入延迟补偿、平滑插值、GGPO算法实现，以及在Unity格斗/RTS/多人竞技游戏中的工程落地实践。
 tags: [网络同步, Rollback, GGPO, 预测回滚, 多人游戏, 帧同步]
 category: 网络同步
 draft: false
+encryptedKey: henhaoji123
 ---
 
 # 游戏网络回滚系统深度实践：Rollback Netcode从原理到工程落地

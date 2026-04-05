@@ -1,8 +1,9 @@
----
+﻿---
 title: "Unity热更新完全指南：HybridCLR vs xLua方案深度对比"
 description: "深度解析移动游戏热更新技术体系，包括HybridCLR原理、xLua实践、资源热更新、版本管理策略，以及大型项目热更新架构设计"
 published: 2025-03-21
 tags: ["热更新", "HybridCLR", "xLua", "Lua", "AssetBundle", "移动端"]
+encryptedKey: henhaoji123
 ---
 
 # Unity热更新完全指南：HybridCLR vs xLua方案深度对比

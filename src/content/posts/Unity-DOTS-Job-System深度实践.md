@@ -1,10 +1,11 @@
----
+﻿---
 title: Unity DOTS Job System深度实践：数据导向多线程编程
 published: 2026-03-31
 description: 深入掌握 Unity DOTS Job System 的核心原理与实战应用，涵盖 IJob/IJobParallelFor/IJobParallelForTransform 的使用方式、NativeContainer 内存管理、Burst 编译优化、依赖链构建，以及在大规模粒子、物理检测、寻路等场景的实战案例。
 tags: [Unity, DOTS, Job System, ECS, 性能优化, C#]
 category: Unity进阶
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、为什么需要 Job System？

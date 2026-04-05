@@ -1,10 +1,11 @@
----
+﻿---
 title: Unity Addressables 高级应用：资源加载与热更深度实践
 published: 2026-03-21
 description: "深度讲解 Unity Addressables 的高级使用技巧，包括 Group 策略设计、Bundle 分包方案、依赖分析、异步加载性能优化、催更机制实现，以及大型项目中 Addressables 的架构设计和常见陷阱规避。"
 tags: [Addressables, 资源管理, 热更新, Unity, 架构设计]
 category: 架构设计
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## Addressables vs Resources vs AssetBundle

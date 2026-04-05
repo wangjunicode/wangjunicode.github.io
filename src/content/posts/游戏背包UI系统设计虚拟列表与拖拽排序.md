@@ -1,10 +1,11 @@
----
+﻿---
 title: 游戏背包UI系统设计：虚拟列表与拖拽排序
 published: 2026-03-31
 description: 全面解析游戏背包UI系统的工程设计，涵盖虚拟列表（只渲染可见格子，支持千级物品无卡顿）、物品拖拽换位与装备栏交互、物品格子对象池、右键菜单系统、物品筛选/排序、物品合并与拆分，以及多分辨率的背包格子自适应布局。
 tags: [Unity, 背包系统, 虚拟列表, UI设计, 游戏开发]
 category: 游戏UI
 draft: false
+encryptedKey: henhaoji123
 ---
 
 ## 一、虚拟列表（Virtual Scroll）
