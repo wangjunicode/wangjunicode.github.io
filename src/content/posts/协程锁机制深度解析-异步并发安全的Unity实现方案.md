@@ -1,7 +1,7 @@
----
+﻿---
 title: 协程锁机制深度解析：异步并发安全的Unity实现方案
 description: 基于ET框架源码，深度剖析CoroutineLock协程锁的设计原理、队列调度机制与超时处理，解决Unity异步环境下的并发资源竞争问题。
-pubDate: 2026-04-04
+published: 2026-04-04
 tags:
   - Unity
   - ECS
