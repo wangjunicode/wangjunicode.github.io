@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏状态效果系统：Buff/Debuff架构完全指南
 published: 2026-03-31
 description: 全面解析游戏状态效果（Buff/Debuff）系统的工程架构，涵盖效果类型设计（属性修改/周期伤害/控制效果）、效果叠加策略（叠层/刷新/独立/更高级优先）、效果优先级与相互覆盖、持续时间管理、效果可视化（图标栏/粒子效果）、效果来源追踪，以及性能优化方案。
 tags: [Unity, Buff系统, 状态效果, 战斗系统, 游戏设计]
 category: 战斗系统
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、状态效果类型设计

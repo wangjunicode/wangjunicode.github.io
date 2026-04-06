@@ -1,11 +1,10 @@
-﻿---
+---
 title: 行为树与 AI 系统设计：从 FSM 到复杂 NPC 行为
 published: 2026-03-21
 description: "深入讲解游戏 AI 系统的实现方案，从简单有限状态机（FSM）到行为树（Behavior Tree），再到实用工具节点的设计，帮助你为商业项目构建灵活可扩展的 AI 框架。"
 tags: [游戏AI, 行为树, 状态机, Unity, 架构设计]
 category: 架构设计
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## AI 系统的本质需求

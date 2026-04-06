@@ -1,85 +1,327 @@
-﻿---
-title: 关于面试
-published: 2017-09-20
-description: "当前状态离职？为什么离职？空窗期一年在干什么？"
-tags: [面试, 职业发展, 学习方法]
-category: 基础知识
+---
+title: 技能系统设计与实现（SkillComponent）
+published: 2024-01-01
+description: "技能系统设计与实现（SkillComponent） - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 战斗系统
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
-# 简历投递
+# 技能系统设计与实现（SkillComponent）
 
-当前状态离职？为什么离职？空窗期一年在干什么？
+## 1. 系统概述
 
-# 预约面试
+本项目技能系统基于 **NodeCanvas FlowCanvas（改版为 UniScript）** 可视化图驱动，每个技能是一张 `SkillGraph`（流图），技能逻辑通过节点连线定义，策划可以在不写代码的情况下配置技能行为。
 
-这边简历通过了业务部门评估，约时间面试
+**架构关键点：**
+- 每个 `Unit` 挂载一个 `SkillComponent`，持有当前所有活跃的 `SkillGraph` 实例
+- `SkillMgrComponent` 负责技能的预加载与实例池化
+- 技能执行走 FSM → SkillComponent → SkillGraph 调用链
+- 帧同步下：技能图的 `UpdateMode = Manual`，由 `LockStepComponent` 统一驱动
 
-# 项目经验考察
+---
 
-知道怎么做？知道为什么这样做？知道为什么不那样做？
+## 2. 核心类结构
 
-# 游戏客户端面经
+```
+SkillMgrComponent（技能管理器，负责加载）
+    └── SkillGraphAsset（技能资产，从 Addressables 加载）
+            └── SkillGraph（运行时实例，继承 FlowGraph）
 
-UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
+SkillComponent（挂在每个 Unit 上，负责执行）
+    ├── SkillList: List<SkillGraph>   // 当前活跃的技能图实例
+    ├── StartSkill(skillId)           // 启动技能
+    ├── StopAll()                     // 停止所有技能
+    └── EnterFrame(fixedDeltaTime)    // 帧同步驱动
+```
 
-战斗无非就是帧同步和状态同步
+---
 
-经典的笔试题也要刷一些  
+## 3. 核心代码解析
 
-# 面试的底层逻辑
+### 3.1 启动技能
 
-表层事实->深度细节->感受和观点
+```csharp
+// 位置：Hotfix/Battle/Function/GamePlay/Skill/SkillComponentSystem.cs
+[FriendOf(typeof(SkillComponent))]
+public static partial class SkillComponentSystem
+{
+    // 开启技能（await 等待技能完整执行结束）
+    public static async ETTask<bool> StartSkill(this SkillComponent self, int skillId)
+    {
+        var info = self.AddSkillInfo(skillId);  // 从池中取或新建 SkillGraph 实例
+        return await info.Start();              // 异步启动，等待技能结束
+    }
 
-经验->技能->潜力->动机
+    // 技能参数传递（链式调用，策划友好）
+    // 用法：bool result = await GetOrAddSkillInfo(skillId).AddVariable("test",0).Start();
+    public static SkillGraph AddVariable<T>(this SkillGraph skill, string key, T value)
+    {
+        var old = skill.localBlackboard.GetVariable(key);
+        if (old != null)
+        {
+            if (old.varType == typeof(T))
+            {
+                ((Variable<T>)(old)).value = value;
+                return skill;
+            }
+            old.value = value;
+            return skill;
+        }
+        // 变量不存在时，新建并添加到 Blackboard
+        var variable = new Variable<T>();
+        variable.name = key;
+        variable.value = value;
+        skill.localBlackboard.AddVariable(variable);
+        return skill;
+    }
+```
 
-举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
+### 3.2 帧同步驱动技能执行
 
-具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
+```csharp
+    // EnterFrame 由 LockStepComponent 在每个 Fixed Tick 调用
+    public static void EnterFrame(this SkillComponent self, FP fixedDeltaTime)
+    {
+        VProfiler.BeginDeepSample("SkillComponent.EnterFrame");
+        var unit = self.GetParent<Unit>();
+        
+        // Host 单元（服务端影子或AI Host）不执行技能图
+        if (unit.bHost) return;
+        
+        for (int i = 0; i < self.SkillList.Count; i++)
+        {
+            var skill = self.SkillList[i];
+            // 只驱动正在运行且 UpdateMode 为 Manual 的技能图
+            // Manual 模式：不依赖 Unity MonoBehaviour Update，完全由代码手动驱动
+            if (skill.isRunning && skill.updateMode == Graph.UpdateMode.Manual)
+            {
+                skill.UpdateGraph(fixedDeltaTime);
+            }
+        }
+        VProfiler.EndDeepSample();
+    }
+```
 
-反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
+### 3.3 技能加载与同步
 
-## 第一层：陈述事实
+```csharp
+    // 同步加载已预加载的技能（帧同步不能异步，需提前预加载）
+    private static void SyncLoadedSkil(this SkillComponent self, Evt_SyncLoadedSkill arg)
+    {
+        // 校验是否是本 Unit 的技能
+        if (arg.unit != self.GetParent<Unit>()) return;
+        self.AddSkillInfo(arg.skillId);
+    }
+```
 
-面试官：我看简历上说设计过AB打包是吧？
+### 3.4 技能停止
 
-我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
+```csharp
+    public static void StopAll(this SkillComponent self)
+    {
+        foreach (var skill in self.SkillList)
+        {
+            if (skill.isRunning)
+            {
+                skill.Stop();
+            }
+        }
+        self.SkillList.Clear();
+    }
+```
 
-此时，你不要着急说细节，你等别人问
+---
 
-解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
+## 4. SkillMgrComponent —— 技能资产管理
 
-## 第二层：深挖细节
+```csharp
+// Hotfix/Battle/Model/Framework/Skill/SkillMgrComponent.cs
+public class SkillMgrComponent : Entity, IAwake, IDestroy
+{
+    // 已加载的技能资产缓存（skillId → SkillGraphAsset）
+    public Dictionary<int, SkillGraphAsset> SkillAssetDict { get; set; }
+    
+    // 运行时技能图实例池（skillId → 空闲实例列表）
+    public Dictionary<int, List<SkillGraph>> SkillGraphPool { get; set; }
+}
 
-面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+[FriendOf(typeof(SkillMgrComponent))]
+public static partial class SkillMgrComponentSystem
+{
+    // 预加载：在战斗开始前加载所有本场战斗需要的技能资产
+    public static async ETTask PreloadSkills(this SkillMgrComponent self, List<int> skillIds)
+    {
+        foreach (int skillId in skillIds)
+        {
+            if (self.SkillAssetDict.ContainsKey(skillId)) continue;
+            
+            // 异步从 Addressables 加载技能图资产
+            var asset = await YIUILoader.LoadAssetAsync<SkillGraphAsset>(GetSkillPath(skillId));
+            if (asset != null)
+            {
+                self.SkillAssetDict[skillId] = asset;
+            }
+        }
+    }
+    
+    // 从池中获取技能图实例（避免每次 new）
+    public static SkillGraph GetOrCreateSkillGraph(this SkillMgrComponent self, int skillId)
+    {
+        if (self.SkillGraphPool.TryGetValue(skillId, out var pool) && pool.Count > 0)
+        {
+            var graph = pool[pool.Count - 1];
+            pool.RemoveAt(pool.Count - 1);
+            return graph;
+        }
+        
+        // 池中没有，克隆一份新的（从 Asset 克隆，不修改原始资产）
+        if (self.SkillAssetDict.TryGetValue(skillId, out var asset))
+        {
+            return asset.GetGraphCopy() as SkillGraph;
+        }
+        return null;
+    }
+    
+    // 用完归还
+    public static void ReturnSkillGraph(this SkillMgrComponent self, int skillId, SkillGraph graph)
+    {
+        if (!self.SkillGraphPool.ContainsKey(skillId))
+        {
+            self.SkillGraphPool[skillId] = new List<SkillGraph>();
+        }
+        graph.Reset();  // 重置图状态
+        self.SkillGraphPool[skillId].Add(graph);
+    }
+}
+```
 
-你：巴拉巴拉
+---
 
-解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+## 5. 技能图节点扩展
 
-## 第三层：感受和观点
+UniScript（FlowCanvas 定制版）允许扩展自定义节点：
 
-面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+```csharp
+// 自定义 ActionTask 节点示例：播放 Timeline
+[Category("VGame/Timeline")]
+[Name("Play Timeline")]
+public class PlayTimeline : ActionTask
+{
+    // 节点参数（可在 Inspector 中配置，或连接 Blackboard 变量）
+    [RequiredField] public BBParameter<string> timelineName;
+    [BlackboardOnly] public BBParameter<Unit> unit;
 
-你: 巴拉巴拉
+    protected override string OnInit() => null;
 
-解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+    protected override void OnExecute()
+    {
+        var u = unit.value;
+        if (u == null) { EndAction(false); return; }
+        
+        var timelineComp = u.GetComponent<TimelineComponent>();
+        timelineComp.Play(timelineName.value).Coroutine();
+        EndAction(true);
+    }
+}
+```
 
-## 对于你的启示
+---
 
-碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+## 6. Motion Warping（动作瞄准系统）
 
-因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+```csharp
+// Hotfix/Battle/Model/Framework/Skill/MotionWarpingData.cs
+// Motion Warping：在技能动画播放时，实时将角色位置"拉向"目标点
+[MemoryPackable]
+public partial class MotionWarpingData
+{
+    public FP startTime = 0;       // 从技能第几帧开始生效
+    public FP endTime = FP.MaxValue; // 结束时间
 
-大体只有两种情况会失败：
+    public bool updateTargetPoint = true;  // 每帧实时更新目标位置（追踪移动目标）
+    public bool forceAlign = false;        // 到达后强制对齐（不允许偏差）
 
-面试官觉得你不适合，水平低
+    // 移向敌人的百分比（1=完全到达，0.5=走一半距离）
+    public FP percentToEnemy = 1;
+    public TSVector offset = new TSVector(0, 0, -1);  // 最终偏移
 
-面试官不清楚你是否合适，可能你表达的太抽象
+    // 生效条件：默认闪避状态下不生效（被打断时自然停止移动）
+    public ConditionTask wrapCondition = new CT_CheckInDodge();
+}
+```
 
-所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+---
 
-# 如何寻找小而美的公司
+## 7. Root Motion 系统
 
-真格基金、红杉资本；看看一线投资机构的选择。
+```csharp
+// Hotfix/Battle/Model/Framework/Skill/RootMotionData.cs
+// 从动画文件提取的根运动数据，按帧存储位置和旋转
+[MemoryPackable]
+public partial class RootMotionData
+{
+    public List<TSVector> rootMotionPositions;     // 每帧位置偏移量（定点数）
+    public List<TSQuaternion> rootMotionRotations; // 每帧旋转
+
+    // 按时间插值获取采样数据（用于帧同步中精确驱动角色移动）
+    public void GetSampleData(FP time, ref TSVector displacement, ref TSQuaternion rotation)
+    {
+        var frameIdx = (time / EngineDefine.fixedDeltaTime_Orignal).AsInt();
+        var nextFrameIdx = frameIdx + 1;
+        
+        TSVector d1 = TSVector.zero, d2 = TSVector.zero;
+        TSQuaternion r1 = TSQuaternion.identity, r2 = TSQuaternion.identity;
+        
+        GetSampleData(frameIdx, ref d1, ref r1);
+        GetSampleData(nextFrameIdx, ref d2, ref r2);
+        
+        // 两帧之间线性插值（定点数 Lerp）
+        var t = (time - frameIdx * EngineDefine.fixedDeltaTime_Orignal) 
+                / EngineDefine.fixedDeltaTime_Orignal;
+        displacement = TSVector.Lerp(d1, d2, t);
+        rotation = TSQuaternion.Slerp(r1, r2, t);
+    }
+}
+```
+
+---
+
+## 8. FSM 与技能系统的协作
+
+```
+用户按技能键
+    ↓
+LockStepComponent.OnInputVKey(EInputKey.Skill_1)
+    ↓
+FSMComponent.TryManualCondition(EInputKey.Skill_1)
+    ↓
+UniFSM 检查当前状态是否允许触发 Skill_1 条件转移
+    ↓（允许）
+FSM 切换到 CustomSkill 状态
+    ↓
+CustomSkill 状态的 OnEnter 回调
+    ↓
+SkillComponent.StartSkill(skillId)   // 启动技能图
+    ↓
+SkillGraph 开始执行（Manual 模式，逐帧 UpdateGraph）
+    ↓
+技能图结束（EndAction）→ FSMComponent.SetIdle() → 回到 Idle 状态
+```
+
+---
+
+## 9. 常见问题与最佳实践
+
+**Q: 技能图必须 `ManualUpdate` 吗？**  
+A: 是的。帧同步游戏中，所有逻辑必须在 Fixed Tick 中按顺序执行。如果用 Unity 的 `Update` 驱动，时序无法保证，会导致不同客户端执行顺序不一致。
+
+**Q: 技能被打断如何处理？**  
+A: 调用 `SkillComponent.StopSkill(skillId)`，技能图的 `Stop()` 会触发图内所有 `OnInterrupt` 回调，做清理工作（停止移动、清除Buff等）。
+
+**Q: 技能图资产热更新后，运行时实例会更新吗？**  
+A: 不会。`SkillMgrComponent` 中池化的 `SkillGraph` 实例是 Clone，资产更新后需要清空池、重新从新资产克隆。热更新重启战斗后生效。
+
+**Q: 同一技能多实例并发怎么处理？**  
+A: `SkillGraphPool` 支持多实例。同一技能 ID 的多个并发实例，从池中取不同的 Clone 实例，各自独立执行，互不干扰。

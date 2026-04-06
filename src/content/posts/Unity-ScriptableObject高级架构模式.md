@@ -1,11 +1,10 @@
-﻿---
+---
 title: Unity脚本化对象（ScriptableObject）高级架构模式
 published: 2026-03-31
 description: 深入掌握 Unity ScriptableObject 在大型项目中的高级用法，包括事件系统、状态机、配置数据库、运行时集合、游戏架构层解耦，以及 ScriptableObject 驱动的插件化 AI 行为、技能系统等工程级设计模式。
 tags: [Unity, ScriptableObject, 架构设计, 游戏开发, C#]
 category: 游戏架构
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、为什么用 ScriptableObject

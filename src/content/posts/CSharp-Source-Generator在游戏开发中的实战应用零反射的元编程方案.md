@@ -1,11 +1,10 @@
-﻿---
+---
 title: C# Source Generator在游戏开发中的实战应用：零反射的元编程方案
 published: 2026-04-05
 description: 深入讲解C# Source Generator（源代码生成器）在Unity游戏开发中的实战应用，涵盖组件注册自动化、序列化代码生成、ECS组件绑定、网络消息分发器自动生成等场景，实现零反射、零GC的高性能元编程方案。
 tags: [Unity, C#, Source Generator, 元编程, 代码生成, 零反射, 性能优化, 游戏开发]
 category: 工程实践
 draft: false
-encryptedKey:henhaoji123
 ---
 
 # C# Source Generator在游戏开发中的实战应用：零反射的元编程方案

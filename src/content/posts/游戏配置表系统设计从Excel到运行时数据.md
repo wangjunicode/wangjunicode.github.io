@@ -1,10 +1,9 @@
-﻿---
+---
 title: 游戏配置表系统设计：从Excel到运行时数据
 description: 深入讲解游戏数值配置体系设计，包括Excel配置表规范、自动代码生成、数据验证、运行时高效查询，以及策划与程序的协作工作流程。
 published: 2026-03-21
 category: 工程效能
 tags: [配置表, 数值策划, Excel, 数据驱动, 工具链, 游戏开发]
-encryptedKey:henhaoji123
 ---
 
 # 游戏配置表系统设计：从Excel到运行时数据

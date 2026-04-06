@@ -5,7 +5,7 @@ description: 系统梳理游戏开发中超越 Unity Mathf 的常用数学扩展
 tags: [Unity, 数学工具, 游戏数学, 扩展方法]
 category: Unity技术
 draft: false
-encryptedKey:henhaoji123
+encryptedKey: henhaoji123
 ---
 
 ## 为什么需要自定义数学工具？

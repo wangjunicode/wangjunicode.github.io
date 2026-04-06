@@ -1,85 +1,420 @@
-﻿---
-title: 关于面试
-published: 2017-09-20
-description: "当前状态离职？为什么离职？空窗期一年在干什么？"
-tags: [面试, 职业发展, 学习方法]
-category: 基础知识
+---
+title: 07 协程锁 CoroutineLock 机制详解
+published: 2024-01-01
+description: "07 协程锁 CoroutineLock 机制详解 - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: ET框架
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
-# 简历投递
+# 07 协程锁 CoroutineLock 机制详解
 
-当前状态离职？为什么离职？空窗期一年在干什么？
+> 面向刚入行的毕业生 · 技术架构师出品
 
-# 预约面试
+---
 
-这边简历通过了业务部门评估，约时间面试
+## 1. 系统概述
 
-# 项目经验考察
+在异步编程中，经常会遇到"并发安全"问题：多个协程同时对同一资源进行操作时，如果没有保护机制，就会产生数据竞争（Data Race）。
 
-知道怎么做？知道为什么这样做？知道为什么不那样做？
+在传统多线程编程中，我们使用 `lock`、`Mutex`、`Semaphore` 等机制。但本框架是**单线程**的异步模型（所有协程都在主线程上按序执行），不存在真正的线程并发，却存在**逻辑并发**——多个 `async ETTask` 协程在 `await` 处交错执行，可能产生同样的竞争问题。
 
-# 游戏客户端面经
+**CoroutineLock（协程锁）** 正是为解决这个问题而设计的：它保证同一时刻，只有一个协程能持有某把"锁"，其他协程必须排队等待。
 
-UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
+### 典型应用场景
 
-战斗无非就是帧同步和状态同步
+- 玩家背包操作（同时有两个网络请求要修改背包，必须串行处理）
+- 数据库写入（同一 Entity 的多个异步写入请求需要排队）
+- 定时器回调（同一 key 的多个定时器触发时需要串行执行）
 
-经典的笔试题也要刷一些  
+---
 
-# 面试的底层逻辑
+## 2. 架构设计
 
-表层事实->深度细节->感受和观点
+### 2.1 核心组件关系
 
-经验->技能->潜力->动机
+```
+CoroutineLockComponent（单例，管理所有锁）
+  └── list: List<CoroutineLockQueueType>   ← 按 type 分组（最多 CoroutineLockType.Max 种）
+       └── CoroutineLockQueueType（某类型的所有锁）
+            └── lockQueues: Dictionary<long, CoroutineLockQueue>  ← 按 key 分组
+                 └── CoroutineLockQueue（某 key 下的等待队列）
+                      ├── currentCoroutineLock: CoroutineLock   ← 当前持有锁的协程
+                      └── queue: Queue<WaitCoroutineLock>       ← 等待中的协程列表
 
-举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
+CoroutineLock（锁令牌，IDisposable）
+  ├── type: int    ← 锁类型
+  ├── key: long    ← 锁键值
+  └── level: int   ← 当前层级（每次 Dispose 时 level+1，传给下一个等待者）
+```
 
-具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
+### 2.2 加锁/解锁流程
 
-反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
+```
+协程 A                         CoroutineLockQueue
+  │
+  ├─ await CoroutineLockComponent.Wait(type, key)
+  │         ↓
+  │   currentCoroutineLock == null?
+  │         ├─ 是：直接创建 CoroutineLock，返回给 A（A 立即持有锁）
+  │         └─ 否：创建 WaitCoroutineLock，入 queue，A 在此暂停 ────────────────┐
+  │                                                                               │
+  │   协程 A 持有锁，执行业务逻辑...                                              │
+  │                                                                               │
+  ├─ coroutineLock.Dispose()                                                      │
+  │         ↓                                                                     │
+  │   CoroutineLockComponent.RunNextCoroutine(type, key, level+1)                │
+  │         ↓（在下一帧 Update 中）                                              │
+  │   CoroutineLockQueue.Notify(level)                                           │
+  │         ↓                                                                     │
+  │   从 queue 取出下一个 WaitCoroutineLock，SetResult → 唤醒等待的协程 ────────┘
+  │
+  └─ 等待中的协程 B 被唤醒，获得锁，继续执行
+```
 
-## 第一层：陈述事实
+### 2.3 为什么要"下一帧"才通知？
 
-面试官：我看简历上说设计过AB打包是吧？
+```csharp
+// CoroutineLockComponent.cs
+public void RunNextCoroutine(int coroutineLockType, long key, int level)
+{
+    // 注意：不是立即 Notify，而是加入 nextFrameRun 队列，下帧处理
+    this.nextFrameRun.Enqueue((coroutineLockType, key, level));
+}
 
-我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
+public void Update()
+{
+    while (this.nextFrameRun.Count > 0)
+    {
+        (int type, long key, int count) = this.nextFrameRun.Dequeue();
+        this.Notify(type, key, count);
+    }
+}
+```
 
-此时，你不要着急说细节，你等别人问
+**原因**：如果在 `Dispose` 时立即唤醒下一个等待者，就会在当前协程的调用栈中继续执行下一个协程，形成深度递归，可能导致栈溢出。延迟到下一帧可以：
+1. 展平调用栈，防止栈溢出
+2. 给当前帧的其他系统一个执行机会
+3. 保证锁的释放和获取之间有明确的帧边界
 
-解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
+---
 
-## 第二层：深挖细节
+## 3. 核心代码展示
 
-面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+### 3.1 CoroutineLock —— 锁令牌
 
-你：巴拉巴拉
+```csharp
+// X:\UnityProj\Assets\Scripts\Core\CoroutineLock\CoroutineLock.cs
 
-解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+public class CoroutineLock : IDisposable
+{
+    private int type;
+    private long key;
+    private int level;  // 记录锁的当前层级（第几次被持有）
 
-## 第三层：感受和观点
+    // 从对象池创建（减少 GC）
+    public static CoroutineLock Create(int type, long k, int count)
+    {
+        CoroutineLock coroutineLock = ObjectPool.Instance.Fetch<CoroutineLock>();
+        coroutineLock.type = type;
+        coroutineLock.key = k;
+        coroutineLock.level = count;
+        return coroutineLock;
+    }
 
-面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+    // 释放锁：通知下一个等待者
+    public void Dispose()
+    {
+        // 通知 CoroutineLockComponent：下一帧唤醒 (type, key) 的下一个等待者
+        CoroutineLockComponent.Instance.RunNextCoroutine(this.type, this.key, this.level + 1);
 
-你: 巴拉巴拉
+        // 重置状态，放回对象池
+        this.type = CoroutineLockType.None;
+        this.key = 0;
+        this.level = 0;
+        ObjectPool.Instance.Recycle(this);
+    }
+}
+```
 
-解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+### 3.2 CoroutineLockQueue —— 等待队列
 
-## 对于你的启示
+```csharp
+// X:\UnityProj\Assets\Scripts\Core\CoroutineLock\CoroutineLockQueue.cs
 
-碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+public class CoroutineLockQueue
+{
+    private int type;
+    private long key;
+    private CoroutineLock currentCoroutineLock;
+    private readonly Queue<WaitCoroutineLock> queue = new();
 
-因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+    // 等待获取锁
+    public async ETTask<CoroutineLock> Wait(int time)
+    {
+        if (this.currentCoroutineLock == null)
+        {
+            // 队列空闲：立即分配锁，返回
+            this.currentCoroutineLock = CoroutineLock.Create(type, key, 1);
+            return this.currentCoroutineLock;
+        }
 
-大体只有两种情况会失败：
+        // 已有协程持锁：创建等待令牌，入队，协程在此挂起
+        WaitCoroutineLock waitCoroutineLock = WaitCoroutineLock.Create();
+        this.queue.Enqueue(waitCoroutineLock);
 
-面试官觉得你不适合，水平低
+        // 超时保护：time 毫秒后自动超时（默认 60 秒）
+        if (time > 0)
+        {
+            long tillTime = TimeHelper.ClientFrameTime() + time;
+            TimerComponent.Instance.NewOnceTimer(tillTime,
+                TimerCoreInvokeType.CoroutineTimeout, waitCoroutineLock);
+        }
 
-面试官不清楚你是否合适，可能你表达的太抽象
+        // await：协程在此暂停，等待 Notify 唤醒
+        this.currentCoroutineLock = await waitCoroutineLock.Wait();
+        return this.currentCoroutineLock;
+    }
 
-所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+    // 唤醒下一个等待者
+    public void Notify(int level)
+    {
+        // 跳过已超时（IsDisposed）的等待者
+        while (this.queue.Count > 0)
+        {
+            WaitCoroutineLock waitCoroutineLock = queue.Dequeue();
+            if (waitCoroutineLock.IsDisposed()) continue;
 
-# 如何寻找小而美的公司
+            // 创建新的锁令牌，传给等待者
+            CoroutineLock coroutineLock = CoroutineLock.Create(type, key, level);
+            waitCoroutineLock.SetResult(coroutineLock);  // 唤醒等待的协程
+            break;
+        }
+    }
+}
+```
 
-真格基金、红杉资本；看看一线投资机构的选择。
+### 3.3 CoroutineLockComponent —— 全局管理器
+
+```csharp
+// X:\UnityProj\Assets\Scripts\Core\CoroutineLock\CoroutineLockComponent.cs
+
+public class CoroutineLockComponent : Singleton<CoroutineLockComponent>, ISingletonUpdate
+{
+    private readonly List<CoroutineLockQueueType> list;
+    private readonly Queue<(int, long, int)> nextFrameRun = new();
+
+    public CoroutineLockComponent()
+    {
+        // 为每种锁类型预创建 CoroutineLockQueueType
+        for (int i = 0; i < CoroutineLockType.Max; ++i)
+            list.Add(new CoroutineLockQueueType(i));
+    }
+
+    // 每帧处理上一帧积累的"下一个协程"通知
+    public void Update()
+    {
+        while (this.nextFrameRun.Count > 0)
+        {
+            (int coroutineLockType, long key, int count) = this.nextFrameRun.Dequeue();
+            this.Notify(coroutineLockType, key, count);
+        }
+    }
+
+    // 加锁入口：等待获取 (type, key) 对应的锁
+    public async ETTask<CoroutineLock> Wait(int coroutineLockType, long key, int time = 60000)
+    {
+        CoroutineLockQueueType coroutineLockQueueType = this.list[coroutineLockType];
+        return await coroutineLockQueueType.Wait(key, time);
+    }
+
+    // 解锁时调用：延迟到下一帧通知
+    public void RunNextCoroutine(int coroutineLockType, long key, int level)
+    {
+        if (level == 100)
+            Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
+        this.nextFrameRun.Enqueue((coroutineLockType, key, level));
+    }
+}
+```
+
+---
+
+## 4. 使用方式详解
+
+### 4.1 基础用法
+
+```csharp
+// 定义锁类型常量（在 CoroutineLockType.cs 中）
+public static class CoroutineLockType
+{
+    public const int None = 0;
+    public const int Bag = 1;        // 背包操作锁
+    public const int Database = 2;   // 数据库操作锁
+    // ... 其他类型
+    public const int Max = 100;
+}
+
+// 使用协程锁保护异步操作
+public async ETTask AddItemAsync(PlayerEntity player, int itemId, int count)
+{
+    // 1. 获取锁（以玩家 Id 作为 key，同一玩家的操作串行化）
+    using CoroutineLock coroutineLock =
+        await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Bag, player.Id);
+
+    // 2. 持锁期间执行背包操作（安全区域）
+    BagComponent bag = player.GetComponent<BagComponent>();
+    if (bag.HasItem(itemId))
+    {
+        bag.AddItem(itemId, count);
+        await bag.SaveToDB();  // 即使这里有 await，锁也不会被其他协程抢走
+    }
+
+    // 3. using 块结束，coroutineLock.Dispose() 自动调用，释放锁
+}
+```
+
+### 4.2 嵌套锁（同一 key 的嵌套）
+
+```csharp
+// 协程 A 持有锁，在 A 内部可以再次获取同一把锁（会排到自己后面）
+// 注意：这不是可重入锁！A 内部 Wait 会死锁，除非先 Dispose 外层锁
+
+// ✅ 正确：不在持锁状态下再次 Wait 同一 key
+public async ETTask ProcessAsync(long entityId)
+{
+    using var lockA = await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Bag, entityId);
+    await DoWork();
+    // lockA Dispose，下一个协程才能获得锁
+}
+
+// ❌ 错误：嵌套等待同一 key（死锁！）
+public async ETTask BadProcessAsync(long entityId)
+{
+    using var lockA = await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Bag, entityId);
+    // lockA 持有锁，下面再等同一 key 会死锁（因为 A 自己就在等）
+    using var lockB = await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Bag, entityId);
+}
+```
+
+### 4.3 超时处理
+
+```csharp
+// 等待最多 5 秒，超时后抛出异常
+try
+{
+    using var lock = await CoroutineLockComponent.Instance.Wait(
+        CoroutineLockType.Database, entityId, time: 5000);
+
+    await SaveData();
+}
+catch (Exception e)
+{
+    Log.Error($"获取锁超时: {e}");
+}
+```
+
+---
+
+## 5. level 机制的作用
+
+`CoroutineLock` 中的 `level` 字段记录了锁被传递的次数：
+
+```
+level 1 → 协程 A 持有锁
+  A.Dispose() → RunNextCoroutine(type, key, level=2)
+level 2 → 协程 B 持有锁
+  B.Dispose() → RunNextCoroutine(type, key, level=3)
+level 3 → 协程 C 持有锁
+  ...
+```
+
+当 level 超过 100 时，框架会打印 Warning：
+```csharp
+if (level == 100)
+    Log.Warning($"too much coroutine level: {coroutineLockType} {key}");
+```
+
+这是一个**性能预警**：同一帧内有 100+ 个协程串行等待同一把锁，说明该业务逻辑可能存在性能瓶颈。
+
+---
+
+## 6. 与原版 ET 框架的差异
+
+| 对比项 | 原版 ET | 本项目 |
+|---|---|---|
+| 基本机制 | 相同 | 相同 |
+| 超时机制 | 有 | 相同 |
+| 对象池 | CoroutineLock 来自对象池 | 相同 |
+| level 警告阈值 | 100 | 相同 |
+| CoroutineLockType | 框架预定义 | 根据项目需求扩展 |
+| 下一帧通知 | 相同 | 相同 |
+
+---
+
+## 7. 常见问题与最佳实践
+
+### Q1：协程锁和线程锁（lock）的区别？
+
+```
+线程锁（lock）：
+  - 阻塞线程，其他线程在 lock 块外真正等待
+  - 适合多线程环境
+  - 持锁期间不能 await（会死锁！）
+
+协程锁（CoroutineLock）：
+  - 不阻塞线程，只是让协程在逻辑上暂停
+  - 单线程模型，无真实并发
+  - 持锁期间可以 await（这正是设计目的）
+```
+
+### Q2：为什么不能在同一 key 上嵌套 Wait？
+
+因为协程锁是**非重入**的（Non-Reentrant）。外层协程持有锁的状态下，内层 Wait 同一 key 会无限等待——因为只有外层释放锁，内层才能获得，但外层在等内层完成，形成死锁。
+
+### Q3：如何选择 key 的值？
+
+`key` 决定了"哪些操作需要互斥"。通常选择**业务实体的唯一 ID**：
+
+```csharp
+// 同一玩家的背包操作互斥，不同玩家可以并行
+await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Bag, player.Id);
+
+// 同一房间的战斗事件互斥
+await CoroutineLockComponent.Instance.Wait(CoroutineLockType.Battle, room.Id);
+```
+
+### Q4：using 和 try/finally 哪个更好？
+
+```csharp
+// ✅ 推荐：using 语句，简洁且保证释放
+using var lock = await CoroutineLockComponent.Instance.Wait(type, key);
+await DoWork();
+// lock.Dispose() 自动调用
+
+// ⚠️ 不推荐：手动管理，容易忘记释放
+CoroutineLock lock = null;
+try
+{
+    lock = await CoroutineLockComponent.Instance.Wait(type, key);
+    await DoWork();
+}
+finally
+{
+    lock?.Dispose();  // 必须写 finally，否则异常时锁不会释放
+}
+```
+
+---
+
+## 8. 总结
+
+CoroutineLock 是单线程异步模型下的"互斥锁"：
+
+- 通过 `Queue<WaitCoroutineLock>` 实现公平排队（FIFO）
+- 通过"延迟到下一帧通知"避免调用栈递归
+- 通过超时机制防止死锁
+- 通过 `IDisposable + using` 保证锁一定被释放
+
+理解了 CoroutineLock，你就掌握了异步场景下保护共享资源的正确姿势。

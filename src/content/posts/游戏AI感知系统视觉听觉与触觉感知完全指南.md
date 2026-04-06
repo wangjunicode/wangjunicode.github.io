@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏AI感知系统：视觉、听觉与触觉感知完全指南
 published: 2026-03-31
 description: 深入解析游戏AI感知系统的完整设计，涵盖视野锥体检测（FOV + 遮挡判断）、听觉范围感知、嗅觉足迹追踪、记忆系统（最后目击位置）、感知事件优先级，以及与行为树/状态机的整合方案。
 tags: [Unity, AI系统, 感知系统, 视野检测, 游戏AI]
 category: 游戏AI
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、感知系统架构

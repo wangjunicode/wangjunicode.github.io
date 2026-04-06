@@ -5,7 +5,7 @@ description: 深入剖析移动端手游自适应画质系统，从FPS监控到L
 tags: [Unity, 性能优化, 自适应画质]
 category: Unity技术
 draft: false
-encryptedKey:henhaoji123
+encryptedKey: henhaoji123
 ---
 
 # 手游自适应画质系统设计——基于性能分动态调节LOD等级

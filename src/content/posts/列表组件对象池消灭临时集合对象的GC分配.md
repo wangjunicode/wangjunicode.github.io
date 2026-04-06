@@ -5,7 +5,7 @@ description: 深入解析 ListComponent 对象池的设计，理解如何通过 
 tags: [Unity, 对象池, GC优化, 集合设计]
 category: Unity技术
 draft: false
-encryptedKey:henhaoji123
+encryptedKey: henhaoji123
 ---
 
 ## 临时 List 的 GC 问题

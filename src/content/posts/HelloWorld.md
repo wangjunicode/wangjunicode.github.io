@@ -5,7 +5,7 @@ description: "使用 Fuwari 主题搭建 Astro 静态博客，部署到 GitHub P
 tags: [博客搭建, Fuwari, Cloudflare, GitHub]
 category: 工具
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
 ## 技术栈

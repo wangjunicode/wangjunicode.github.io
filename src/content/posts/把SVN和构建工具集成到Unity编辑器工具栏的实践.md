@@ -1,85 +1,221 @@
-﻿---
-title: 关于面试
-published: 2017-09-20
-description: "当前状态离职？为什么离职？空窗期一年在干什么？"
-tags: [面试, 职业发展, 学习方法]
-category: 基础知识
+---
+title: 把 SVN 和构建工具集成到 Unity 编辑器工具栏的实践
+published: 2026-03-31
+description: 深入解析如何用 UnityToolbarExtender 在编辑器工具栏中集成 SVN 操作、导表按钮和运行时调试开关，打造团队专属的开发工作台。
+tags: [Unity, 编辑器工具, 构建流水线, 开发效率]
+category: Unity技术
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
-# 简历投递
+## 为什么要扩展 Unity 工具栏？
 
-当前状态离职？为什么离职？空窗期一年在干什么？
+Unity 默认工具栏只有播放/暂停/步进按钮。对于有几十人的开发团队，每个人每天都要重复做几十次的操作——SVN 提交、导表、打包——如果每次都要打开命令行或在菜单里找，积累起来是巨大的时间浪费。
 
-# 预约面试
+`UnityToolbarExtender` 是一个开源插件，允许在 Unity 工具栏中添加自定义按钮。结合 `[InitializeOnLoad]`，我们可以在 Unity 启动时自动注册这些按钮。
 
-这边简历通过了业务部门评估，约时间面试
+---
 
-# 项目经验考察
+## 核心架构
 
-知道怎么做？知道为什么这样做？知道为什么不那样做？
+```csharp
+[InitializeOnLoad]
+public class ILRuntimeBuildGameClient : AssetPostprocessor
+{
+    static ILRuntimeBuildGameClient()
+    {
+        // 注册到工具栏右侧
+        UnityToolbarExtender.ToolbarExtender.RightToolbarGUI.Add(OnToolbarGUI);
+        // 注册到工具栏左侧
+        UnityToolbarExtender.ToolbarExtender.LeftToolbarGUI.Add(OnLeftToolbarGUI);
+    }
+    
+    static void OnToolbarGUI() { /* 右侧按钮 */ }
+    static void OnLeftToolbarGUI() { /* 左侧控件 */ }
+}
+```
 
-# 游戏客户端面经
+`[InitializeOnLoad]` 是 Unity 提供的特性，标记的类在 Unity 编辑器启动、代码重新编译时都会自动调用静态构造函数。
 
-UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
+---
 
-战斗无非就是帧同步和状态同步
+## 工具栏的实际功能
 
-经典的笔试题也要刷一些  
+### SVN 集成按钮
 
-# 面试的底层逻辑
+```csharp
+if (GUILayout.Button("提交"))
+{
+    SvnCommand(EngineDefine.SvnCommitCmd, "提交");
+}
 
-表层事实->深度细节->感受和观点
+if (GUILayout.Button("更新"))
+{
+    if (EditorUtility.DisplayDialog("是否更新？", "是否更到最新版本？", "是", "否"))
+    {
+        Cmd.Run("TortoiseProc.exe", $"/command:update /path:\"{Root}\"");
+        UpdateInit();  // 更新后重新初始化（重新导表等）
+    }
+}
 
-经验->技能->潜力->动机
+if (GUILayout.Button("回退"))
+{
+    SvnCommand("revert", "回退");
+}
+```
 
-举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
+这些按钮调用 TortoiseSVN 的命令行接口，弹出 SVN 操作窗口。对于版本控制操作，保留了"是否确认"对话框（`EditorUtility.DisplayDialog`），防止误操作。
 
-具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
+### 导表功能
 
-反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
+```csharp
+if (GUILayout.Button("分组&导表"))
+{
+    UpdateInit();  // 分组 + 重新导出所有配置表
+}
+```
 
-## 第一层：陈述事实
+一键触发完整的数据生成流程：
+1. 扫描 Design/Data 目录下的所有 Excel 文件
+2. 按配置分组
+3. 批量导出为 JSON/二进制格式
+4. 刷新 Unity Asset Database
 
-面试官：我看简历上说设计过AB打包是吧？
+### 表格快速打开
 
-我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
+```csharp
+if (GUILayout.Button("开表"))
+{
+    string[] xlsFiles = Directory.GetFiles(Xls, "*.*", SearchOption.AllDirectories);
+    var source = xlsFiles
+        .Where(x => x.Contains(".xls") && !x.Contains("__") && !x.Contains("$"))
+        .ToList();
+    
+    // 使用 Odin Inspector 的泛型选择器弹出
+    var selector = new GenericSelector<string>(
+        "选择表格", 
+        false, 
+        x => Path.GetFileName(x).Replace(".xlsx", ""),
+        source);
+    
+    selector.SelectionConfirmed += OpenXls;
+    selector.ShowInPopup(new Vector2(0, EditorStyles.toolbar.fixedHeight));
+}
+```
 
-此时，你不要着急说细节，你等别人问
+不是直接打开所有表格，而是弹出一个搜索选择器，输入关键字快速定位需要的表格。`!x.Contains("__") && !x.Contains("$")` 过滤掉临时文件（Excel 打开时会生成 `~$文件名.xlsx` 临时锁定文件）。
 
-解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
+---
 
-## 第二层：深挖细节
+## 调试开关：PlayerPrefs 持久化运行时设置
 
-面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+工具栏还有大量调试开关，这些开关的状态通过 `PlayerPrefs` 持久化保存：
 
-你：巴拉巴拉
+```csharp
+var oldUseBinary = PlayerPrefs.GetInt("UseBinary", 0) == 1;
+var useBinary = GUILayout.Toggle(oldUseBinary, "启用二进制");
+if (oldUseBinary != useBinary)
+{
+    PlayerPrefs.SetInt("UseBinary", useBinary ? 1 : 0);
+    SerializeHelper.UseBinary = useBinary;  // 立即生效
+}
+```
 
-解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+**只在状态改变时才写入 PlayerPrefs**（`if (oldUseBinary != useBinary)`），避免每帧都写，提升性能。
 
-## 第三层：感受和观点
+这套模式可以扩展到任何需要"在编辑器中快速切换"的配置：
 
-面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+| 开关名 | 作用 |
+|--------|------|
+| 启用二进制 | 切换配置表读取格式 |
+| 启用 Release | 切换是否使用 Release 版配置 |
+| 禁用预加载 | 跳过启动时的资源预加载（快速测试） |
+| 关跳字 | 关闭飘字 UI（方便截图） |
+| 禁用受击框 | 关闭碰撞盒可视化 |
 
-你: 巴拉巴拉
+---
 
-解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+## 左侧工具栏：时间缩放控制
 
-## 对于你的启示
+```csharp
+static void OnLeftToolbarGUI()
+{
+    ProcessTimeScaleGUI();
+}
 
-碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+static void ProcessTimeScaleGUI()
+{
+    // 横向滑块，范围 0.1x ~ 9.9x，宽度 100 像素
+    Time.timeScale = GUILayout.HorizontalSlider(
+        Time.timeScale, 0.1f, 9.9f, GUILayout.Width(100));
+    GUILayout.Label($"TimeScale:{Time.timeScale:0.0}");
+}
+```
 
-因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+这是一个非常实用的调试工具：
+- 慢速（0.1x）：观察高速动作细节（攻击判定、粒子特效）
+- 正常（1.0x）：正常游戏速度
+- 快速（9.9x）：快速测试长时间流程（副本结算、故事演出）
 
-大体只有两种情况会失败：
+---
 
-面试官觉得你不适合，水平低
+## AssetPostprocessor：自动化资源处理
 
-面试官不清楚你是否合适，可能你表达的太抽象
+`ILRuntimeBuildGameClient` 还继承了 `AssetPostprocessor`，可以监听资源导入事件：
 
-所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+```csharp
+public class ILRuntimeBuildGameClient : AssetPostprocessor
+{
+    // 当有资源被导入时自动调用
+    static void OnPostprocessAllAssets(
+        string[] importedAssets,
+        string[] deletedAssets,
+        string[] movedAssets,
+        string[] movedFromAssetPaths)
+    {
+        // 检测到特定文件变化时自动触发构建步骤
+        foreach (var path in importedAssets)
+        {
+            if (path.EndsWith(".cs") && path.Contains("Scripts/HotFix"))
+            {
+                // Hotfix 脚本变化，触发重新编译热更新 DLL
+                BuildAssembliesHelper.BuildHotfix();
+            }
+        }
+    }
+}
+```
 
-# 如何寻找小而美的公司
+通过 `AssetPostprocessor`，可以实现"保存代码自动触发构建"的自动化流程，减少手动操作。
 
-真格基金、红杉资本；看看一线投资机构的选择。
+---
+
+## 路径管理：不硬编码的项目结构定义
+
+```csharp
+static string Path => Application.dataPath;                                // Assets 文件夹
+static string Root => Directory.GetParent(Path).Parent.ToString();         // 项目根目录
+static string Cfg  => System.IO.Path.Join(Root, "UnityProj/GameCfg");     // 配置文件目录
+static string Xls  => System.IO.Path.Join(Root, "Design/Data");           // Excel 表格目录
+```
+
+所有路径都基于 `Application.dataPath`（Assets 目录）动态计算，不硬编码绝对路径。这意味着：
+- 团队成员把项目放在不同磁盘都能正常工作
+- CI 构建机器上路径不同也没问题
+
+---
+
+## 总结
+
+这个工具文件体现了一个完整的编辑器工具开发视角：
+
+| 层次 | 工具/技术 | 目的 |
+|------|----------|------|
+| 工具栏集成 | UnityToolbarExtender + [InitializeOnLoad] | 减少菜单导航 |
+| SVN 集成 | TortoiseSVN 命令行接口 | 版本控制一键操作 |
+| 调试开关 | PlayerPrefs 持久化 + Toggle | 快速切换开发模式 |
+| 时间控制 | Time.timeScale 滑块 | 调试动作和流程 |
+| 资源监听 | AssetPostprocessor | 自动化构建触发 |
+| 路径规范 | 基于 Application.dataPath | 跨机器兼容 |
+
+好的编辑器工具是团队生产力的乘数。投入在工具上的每一小时，往往能为整个团队节省数十倍的时间。

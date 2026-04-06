@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏寻路系统扩展：动态障碍与实时NavMesh重建
 published: 2026-03-31
 description: 深度解析游戏中动态障碍物对寻路系统的影响与解决方案，涵盖NavMeshObstacle动态遮挡、局部NavMesh实时重建（NavMeshSurface）、障碍变化事件驱动重规划、网格分区局部更新优化、可破坏地形与NavMesh同步，以及大世界流式NavMesh加载。
 tags: [Unity, NavMesh, 动态寻路, AI, 游戏开发]
 category: 游戏AI
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、静态 vs 动态障碍

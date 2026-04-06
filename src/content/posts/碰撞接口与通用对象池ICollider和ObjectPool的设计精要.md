@@ -1,85 +1,301 @@
-﻿---
-title: 关于面试
-published: 2017-09-20
-description: "当前状态离职？为什么离职？空窗期一年在干什么？"
-tags: [面试, 职业发展, 学习方法]
-category: 基础知识
+---
+title: 碰撞接口与通用对象池——ICollider 和 ObjectPool 的设计精要
+published: 2026-03-31
+description: 解析确定性物理引擎的碰撞接口 ICollider 的设计，以及通用对象池 ObjectPool<T> 的线程安全实现和专用静态池（ListPool、HashSetPool 等）的便捷封装模式。
+tags: [Unity, ECS, 对象池, 物理引擎, 线程安全]
+category: Unity技术
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
-# 简历投递
+# 碰撞接口与通用对象池——ICollider 和 ObjectPool 的设计精要
 
-当前状态离职？为什么离职？空窗期一年在干什么？
+## 前言
 
-# 预约面试
+本系列的最后一篇，我们来分析两个相对独立的系统：
 
-这边简历通过了业务部门评估，约时间面试
+- `ICollider`：确定性物理引擎的碰撞体接口
+- `ObjectPool<T>`：通用对象池的完整实现
 
-# 项目经验考察
+虽然两者功能完全不同，但都体现了框架的核心设计理念：**接口隔离** 和 **资源复用**。
 
-知道怎么做？知道为什么这样做？知道为什么不那样做？
+---
 
-# 游戏客户端面经
+## 一、ICollider——确定性物理的碰撞体接口
 
-UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
+```csharp
+using TrueSync;
 
-战斗无非就是帧同步和状态同步
+namespace VGame
+{
+    public interface ICollider
+    {
+        public int ColliderType { get; set; }
+        public TSVector Center { get; set; }
+        public TSVector Size { get; set; }
+        public FP Radius { get; set; }
+        public TSQuaternion Rotation { get; set; }
+    }
+}
+```
 
-经典的笔试题也要刷一些  
+### 1.1 TrueSync 类型——确定性物理的基础
 
-# 面试的底层逻辑
+这里出现了三个 TrueSync 类型：
 
-表层事实->深度细节->感受和观点
+| 类型 | 含义 |
+|---|---|
+| `TSVector` | 确定性三维向量（替代 `Vector3`） |
+| `FP` | 固定点数（替代 `float`） |
+| `TSQuaternion` | 确定性四元数（替代 `Quaternion`） |
 
-经验->技能->潜力->动机
+为什么不用 Unity 原生的 `Vector3`、`float`、`Quaternion`？
 
-举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
+在**帧同步**游戏中，所有客户端必须产生完全相同的物理计算结果。Unity 的浮点运算在不同 CPU 上可能有微小差异，而 TrueSync 的定点数类型保证跨平台一致性。
 
-具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
+### 1.2 接口设计——统一多种碰撞形状
 
-反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
+```csharp
+public int ColliderType { get; set; }  // 碰撞体类型（盒子/球/...）
+public TSVector Center { get; set; }   // 中心点
+public TSVector Size { get; set; }     // 大小（盒子用）
+public FP Radius { get; set; }         // 半径（球/圆柱用）
+public TSQuaternion Rotation { get; set; }  // 旋转
+```
 
-## 第一层：陈述事实
+接口包含了所有碰撞形状共有的属性。不同形状会使用其中的一个子集：
 
-面试官：我看简历上说设计过AB打包是吧？
+- **球（Sphere）**：使用 `Center` + `Radius`
+- **立方体（Box）**：使用 `Center` + `Size` + `Rotation`
+- **胶囊（Capsule）**：使用 `Center` + `Radius` + `Size`（高度）
 
-我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
+`ColliderType` 是整数枚举，决定哪些字段有意义：
 
-此时，你不要着急说细节，你等别人问
+```csharp
+public static class ColliderType
+{
+    public const int Sphere = 0;
+    public const int Box = 1;
+    public const int Capsule = 2;
+}
+```
 
-解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
+### 1.3 为什么注释掉了 Height？
 
-## 第二层：深挖细节
+```csharp
+//public float Height { get; set; }
+```
 
-面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+`Height` 被注释掉了，可能是因为：
+1. `Size` 字段可以用某个分量代表高度（如 `Size.y`）
+2. 或者后来发现 Capsule 类型可以用 `Size.y` 而不是单独的 `Height`
 
-你：巴拉巴拉
+被注释的代码是"设计演化的化石"——它告诉我们曾经有这个想法，但后来被放弃了。
 
-解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+---
 
-## 第三层：感受和观点
+## 二、ObjectPool<T>——通用对象池的完整实现
 
-面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+```csharp
+public class ObjectPool<T> : IDisposable, IObjectPool<T> where T : class
+{
+    public static ObjectPool<T> Shared = new ObjectPool<T>(null, null); // 全局共享实例
+    
+    private readonly Func<T> m_CreateFunc;
+    private readonly Action<T> m_ActionOnGet;
+    private readonly Action<T> m_ActionOnRelease;
+    private readonly Action<T> m_ActionOnDestroy;
+    private readonly Stack<T> m_Stack = new();
+```
 
-你: 巴拉巴拉
+### 2.1 四个可注入的委托
 
-解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+```csharp
+public ObjectPool(
+    Func<T> actionCreate,        // 如何创建新对象
+    Action<T> actionOnGet,       // 从池中取出时的回调
+    Action<T> actionOnRelease,   // 放回池时的回调
+    Action<T> actionOnDestroy = null) // 清理池时的销毁回调
+```
 
-## 对于你的启示
+这四个委托让 `ObjectPool` 完全通用：
 
-碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+```csharp
+// 字典对象池（取出时不操作，放回时清空）
+var dictPool = new ObjectPool<Dictionary<string, int>>(
+    () => new Dictionary<string, int>(),  // 创建
+    null,                                  // 取出：不操作
+    d => d.Clear()                         // 放回：清空
+);
 
-因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+// 粒子特效对象池（取出时激活，放回时禁用）
+var particlePool = new ObjectPool<ParticleSystem>(
+    () => GameObject.Instantiate(prefab).GetComponent<ParticleSystem>(),
+    p => p.gameObject.SetActive(true),      // 取出：激活
+    p => { p.Stop(); p.gameObject.SetActive(false); } // 放回：停止并禁用
+);
+```
 
-大体只有两种情况会失败：
+### 2.2 线程安全的 Get 和 Release
 
-面试官觉得你不适合，水平低
+```csharp
+public T Get()
+{
+    T element;
+    lock (m_Stack)
+    {
+        if (m_Stack.Count == 0)
+        {
+            element = m_CreateFunc.Invoke();
+            CountAll++;
+        }
+        else
+        {
+            element = m_Stack.Pop();
+        }
+    }
+    m_ActionOnGet?.Invoke(element);
+    return element;
+}
 
-面试官不清楚你是否合适，可能你表达的太抽象
+public void Release(T element)
+{
+    lock (m_Stack)
+    {
+        if (m_Stack.Count > 0 && ReferenceEquals(m_Stack.Peek(), element))
+            Log.Error("Internal error. Trying to destroy object that is already released to pool.");
+        m_ActionOnRelease?.Invoke(element);
+        m_Stack.Push(element);
+    }
+}
+```
 
-所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+两处都有 `lock (m_Stack)` 锁，确保多线程安全。
 
-# 如何寻找小而美的公司
+### 2.3 重复释放检测
 
-真格基金、红杉资本；看看一线投资机构的选择。
+```csharp
+if (m_Stack.Count > 0 && ReferenceEquals(m_Stack.Peek(), element))
+    Log.Error("Internal error. Trying to destroy object that is already released to pool.");
+```
+
+如果被释放的对象与栈顶的对象是同一个（`ReferenceEquals`），说明对象被重复释放了。
+
+这是一个防御性检查——重复释放是严重的 Bug，会导致同一对象被同时使用两次（数据污染）。
+
+注意：只检查栈顶，而不是遍历整个栈——O(1) 开销，虽然不能检测所有的重复释放（对象可能不在栈顶），但能检测最常见的情况。
+
+### 2.4 PooledObject<T>——RAII 风格的便捷 API
+
+```csharp
+public struct PooledObject<T> : IDisposable where T : class
+{
+    private readonly T m_ToReturn;
+    private readonly IObjectPool<T> m_Pool;
+
+    void IDisposable.Dispose() => this.m_Pool.Release(this.m_ToReturn);
+}
+
+// 使用方式
+using var _ = pool.Get(out var obj);
+// 使用 obj...
+// using 块结束时自动调用 Release
+```
+
+`PooledObject<T>` 是一个 struct（不产生 GC），配合 `using`，实现了 RAII 风格的对象池使用：
+
+```csharp
+using (pool.Get(out var list))
+{
+    list.Add(item1);
+    list.Add(item2);
+    ProcessList(list);
+} // 自动 Release
+```
+
+### 2.5 统计信息
+
+```csharp
+public int CountAll { get; private set; }     // 总创建量
+public int CountActive => CountAll - CountInactive;  // 使用中
+public int CountInactive { get; }              // 池中等待
+```
+
+这些统计信息对于调试内存泄漏非常有用：
+
+```csharp
+// 如果 CountActive 持续增长，说明有对象没有被正确放回池
+Debug.Log($"池中等待: {pool.CountInactive}, 使用中: {pool.CountActive}");
+```
+
+---
+
+## 三、专用静态池——便捷的标准集合池
+
+```csharp
+public static class ListPool<T>
+{
+    private static readonly ObjectPool<List<T>> s_ListPool = new(null, l => l?.Clear());
+    
+    public static List<T> Get() => s_ListPool.Get();
+    public static PooledObject<List<T>> Get(out List<T> v) => s_ListPool.Get(out v);
+    public static void Release(List<T> toRelease) => s_ListPool.Release(toRelease);
+    public static string GetDebugInfo() => s_ListPool.GetDebugInfo();
+}
+
+// 类似的：HashSetPool<T>、DictionaryPool<T,K>、StackPool<T>、QueuePool<T>
+```
+
+**为什么用静态类而非实例？**
+
+这些是"全局共享的"标准集合池——整个程序只需要一个 `List<int>` 池。静态类提供了全局唯一的访问入口，无需管理实例：
+
+```csharp
+// 使用
+using var _ = ListPool<Entity>.Get(out var entities);
+entities.Add(entity1);
+// ... 操作 entities
+// 自动放回 ListPool<Entity>
+```
+
+与前面分析的 `ListComponent<T>` 不同，`ListPool<T>` 直接包装原生 `List<T>`，不需要子类化，适合更简单的使用场景。
+
+---
+
+## 四、两套对象池的比较
+
+框架中有两套对象池体系：
+
+| 特性 | ListComponent<T> 等 | ListPool<T> 等 |
+|---|---|---|
+| 方式 | 继承 List<T>，实现 IDisposable | 包装 List<T>，提供 Get/Release |
+| using 支持 | ✅ 直接 using var | ✅ 通过 PooledObject |
+| 集成深度 | 深（ECS 框架内置） | 浅（独立工具类） |
+| 适用场景 | ECS 系统内部临时集合 | 任意代码的临时集合 |
+
+两套系统共存，给开发者更多选择。在 ECS 系统代码中用 `ListComponent`（与框架集成），在其他代码中用 `ListPool`（更通用）。
+
+---
+
+## 五、本系列总结
+
+至此，40 篇 Unity Core 系统技术文章全部完成。回顾这段旅程：
+
+| 批次 | 主题 | 核心收获 |
+|---|---|---|
+| 批次1 | Timer & Time | 帧同步定时器、安全引用 EntityRef |
+| 批次2 | Entity 扩展 | 工厂模式、特性系统、Scene 架构 |
+| 批次3 | EventSystem 接口 | 生命周期系统、发布-订阅、元数据调度 |
+| 批次4 | Singleton & Object | 单例设计、游戏调度、IDisposable |
+| 批次5 | Handler & Define | 处理器模式、对象池集合 |
+| 批次6 | Performance & 工具 | VProfiler、拼音搜索、线程安全、对象池 |
+
+这套框架的核心设计理念：
+1. **数据与逻辑分离**（ECS）
+2. **接口驱动的松耦合**（各种接口标记）
+3. **反射驱动的自动注册**（[ObjectSystem]、[EntitySystem]）
+4. **对象复用减少 GC**（多套对象池）
+5. **确定性计算支持帧同步**（FP 定点数、TSVector）
+6. **热更新友好**（[StaticField]、ILoad）
+
+这些原则不仅适用于这个框架，也是大型游戏项目架构设计的普遍智慧。

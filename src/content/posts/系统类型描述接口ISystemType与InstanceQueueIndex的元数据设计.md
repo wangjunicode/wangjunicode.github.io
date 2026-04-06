@@ -5,7 +5,7 @@ description: 深入解析 ISystemType 接口、ObjectSystemAttribute 和 Instanc
 tags: [Unity, ECS, 元数据设计, 反射, 调度系统]
 category: Unity技术
 draft: false
-encryptedKey:henhaoji123
+encryptedKey: henhaoji123
 ---
 
 # 系统类型描述接口——ISystemType 与 InstanceQueueIndex 的元数据设计

@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏PVE副本系统设计：Boss房间与奖励机制
 published: 2026-03-31
 description: 深度解析游戏PVE副本系统工程实现，包含副本流程状态机（准备/战斗/结算）、Boss战设计（阶段切换/技能池/仇恨系统）、副本难度分级（普通/英雄/史诗）、组队匹配与副本房间管理、副本奖励分配（个人/随机/竞拍）、副本计时与每周重置，以及副本挑战成就系统。
 tags: [游戏副本, PVE设计, Boss战, 游戏设计, MMORPG]
 category: 游戏设计
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、副本流程状态机

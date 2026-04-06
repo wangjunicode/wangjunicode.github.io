@@ -1,11 +1,10 @@
-﻿---
+---
 title: 内存管理深度：从 GC 原理到零分配编程
 published: 2026-03-21
 description: "深度解析 Unity/C# 的垃圾回收机制，从 GC 代际原理到内存分配分析，讲解如何通过对象池、Span<T>、结构体优化、零分配模式消除 GC 压力，实现移动端流畅稳定的帧率。"
 tags: [内存管理, GC优化, 零分配编程, Unity, 性能优化]
 category: 性能优化
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 为什么 GC 是游戏的敌人

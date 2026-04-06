@@ -1,85 +1,299 @@
-﻿---
-title: 关于面试
-published: 2017-09-20
-description: "当前状态离职？为什么离职？空窗期一年在干什么？"
-tags: [面试, 职业发展, 学习方法]
-category: 基础知识
+---
+title: 特效系统设计与实现（EffectSystem + VFX Pool）
+published: 2024-01-01
+description: "特效系统设计与实现（EffectSystem + VFX Pool） - VGame项目技术文档"
+tags: ['Unity', '游戏开发', '技术文档']
+category: 渲染管线
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
-# 简历投递
+# 特效系统设计与实现（EffectSystem + VFX Pool）
 
-当前状态离职？为什么离职？空窗期一年在干什么？
+## 1. 系统概述
 
-# 预约面试
+本项目特效系统（`EffectSystem`）统一管理战斗中所有粒子特效的生命周期，核心能力包括：
 
-这边简历通过了业务部门评估，约时间面试
+- **GameObject 对象池复用**：特效 Prefab 通过 `GameObjectPoolHelper` 复用，避免频繁实例化
+- **挂点跟随**：特效可以挂在角色骨骼节点，跟随角色移动/旋转（带 LockMask 轴锁定）
+- **Timeline 特效**：大招/过场使用 PlayableDirector + Timeline 驱动特效序列
+- **后处理特效**：径向模糊（RadialBlur）、运动模糊（MotionBlur）、残影（Ghost）
+- **生命周期管理**：基于帧数或时间的自动销毁
 
-# 项目经验考察
+---
 
-知道怎么做？知道为什么这样做？知道为什么不那样做？
+## 2. 核心数据结构
 
-# 游戏客户端面经
+### 2.1 FxInfo（特效实例信息）
 
-UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
+```csharp
+// 每个运行中的特效实例对应一个 FxInfo
+public class FxInfo
+{
+    public GameObject go;           // 特效 GameObject（从对象池取出）
+    public Transform target;        // 跟随目标（角色挂点）
+    public Unit unitFrom;           // 施法者 Unit（Unit 销毁后自动清理特效）
+    
+    public Vector3 pos;             // 相对偏移位置
+    public Quaternion rot;          // 相对旋转
+    public Vector3 scale;           // 缩放
+    
+    public LockMask lockMask;       // 轴锁定模式（位置锁/旋转锁/全锁/无锁）
+    public Transform LookAtTarget;  // 朝向目标（自动 LookAt）
+    
+    public float expiredTime;       // 剩余寿命（秒，<=0 时销毁）
+    public int playedFrames;        // 已播放帧数
+    public int leaveFrameWhenUnLockAxis; // N 帧后解除轴锁定
+    
+    public bool isAllowInterrupt;   // 是否允许被打断（如被新技能打断）
+    public bool isStartPlay;        // 是否已开始播放
+    public bool removed;            // 标记删除（避免遍历中直接 RemoveAt）
+    public bool isLightEffect;      // 是否为灯光特效（Update策略不同）
+    
+    // Timeline 驱动的特效
+    public string timelineName;
+    
+    // 唯一 key（用于查重 / 强制单例特效）
+    public string key;
+    
+    // 销毁回调
+    public Action<FxInfo> onDestroy;
+}
+```
 
-战斗无非就是帧同步和状态同步
+### 2.2 后处理特效任务结构
 
-经典的笔试题也要刷一些  
+```csharp
+// 位置：Hotfix/ModelView/GamePlay/Rendering/Effect/EffectTask.cs
 
-# 面试的底层逻辑
+// 径向模糊（大招释放时屏幕模糊向中心收缩效果）
+public struct RadialBlurTask
+{
+    public bool radialBlurEnable;
+    public float radialBlurIntensity;   // 模糊强度
+    public Vector2 radialBlurCenter;    // 模糊中心点（屏幕坐标 0~1）
+    public int radialBlurSampleCount;   // 采样数（越高越平滑，性能消耗越大）
+    public bool radialBlurCharacterMaskEnable;  // 角色遮罩（避免人物被模糊）
+    public Ease curve;     // DOTween 缓动曲线
+    public float duration; // 持续时间
+}
 
-表层事实->深度细节->感受和观点
+// 运动模糊（高速移动时的拖尾模糊）
+public struct MotionBlurTask
+{
+    public bool motionBlurEnable;
+    public int motionBlurQuality;    // 质量档（采样数）
+    public float motionBlurIntensity; // 强度
+    public float motionBlurClamp;    // 最大模糊角度限制
+    public float duration;
+}
 
-经验->技能->潜力->动机
+// 残影（分身幻影效果）
+public struct GhostTask
+{
+    public Color ghostColor;      // 残影颜色（通常为角色主题色半透明）
+    public float initialAlpha;    // 初始透明度
+    public float survivalTime;    // 每个残影存活时间
+    public float intervalTime;    // 残影生成间隔
+    public float duration;        // 总持续时间
+}
+```
 
-举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
+---
 
-具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
+## 3. EffectSystem 核心逻辑
 
-反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
+### 3.1 初始化与播放
 
-## 第一层：陈述事实
+```csharp
+// 位置：Hotfix/ModelView/GamePlay/Rendering/Effect/EffectSystem.cs
+public class EffectSystem : Singleton<EffectSystem>
+{
+    // 运行中的特效列表
+    private List<FxInfo> effectInstances = new();
+    // 按 key 索引的特效字典（用于查找/替换单例特效）
+    private Dictionary<string, HashSet<FxInfo>> effectInstDict = new();
+    
+    // 从对象池取出特效 Prefab
+    private GameObject CreateFx(string path)
+    {
+        return GameObjectPoolHelper.GetObjectFromPool(path, autoCreate: 1);
+    }
+    
+    // 归还到对象池（不销毁，可复用）
+    private void DestroyFx(FxInfo fxInfo)
+    {
+        fxInfo.isStartPlay = false;
+        fxInfo.onDestroy?.Invoke(fxInfo);
+        
+        if (fxInfo.go != null)
+        {
+            GameObjectPoolHelper.ReturnObjectToPool(fxInfo.go);
+        }
+        fxInfo.Clear();
+    }
+```
 
-面试官：我看简历上说设计过AB打包是吧？
+### 3.2 Update 每帧更新逻辑
 
-我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
+```csharp
+    // LateUpdate（在动画 Tick 之后执行，确保挂点位置准确）
+    public void Update()
+    {
+        for (int i = effectInstances.Count - 1; i >= 0; i--)
+        {
+            var fxInfo = effectInstances[i];
+            
+            // 检查是否应该销毁
+            bool shouldDestroy = fxInfo.removed          // 被标记删除
+                || fxInfo.expiredTime <= 0               // 寿命耗尽
+                || (fxInfo.unitFrom != null && fxInfo.unitFrom.IsDisposed);  // Unit 已销毁
+            
+            if (shouldDestroy)
+            {
+                DestroyFx(fxInfo);
+                effectInstances.RemoveAt(i);
+                // 从字典索引中移除
+                if (!string.IsNullOrEmpty(fxInfo.key) && effectInstDict.ContainsKey(fxInfo.key))
+                    effectInstDict[fxInfo.key].Remove(fxInfo);
+                continue;
+            }
+            
+            // Timeline 特效不走以下位置更新逻辑（由 PlayableDirector 控制）
+            if (!string.IsNullOrEmpty(fxInfo.timelineName)) continue;
+            
+            // === 挂点跟随逻辑（按 LockMask 分类处理）===
+            
+            // 缩放跟随挂点（继承挂点的世界缩放）
+            if (fxInfo.target != null && fxInfo.go != null)
+            {
+                var scale = fxInfo.scale;
+                var lossyScale = fxInfo.target.lossyScale;
+                fxInfo.go.transform.localScale = new Vector3(
+                    scale.x * lossyScale.x, scale.y * lossyScale.y, lossyScale.z);
+            }
+            
+            fxInfo.playedFrames++;
+            
+            // N 帧后解除轴锁定（特效离开挂点后自由飞行）
+            bool isLocked = fxInfo.leaveFrameWhenUnLockAxis == 0 
+                || fxInfo.playedFrames < fxInfo.leaveFrameWhenUnLockAxis;
+            
+            if (isLocked)
+            {
+                switch (fxInfo.lockMask)
+                {
+                    case LockMask.None:
+                        // 完全跟随：位置 + 旋转都跟随挂点
+                        if (fxInfo.target != null && fxInfo.go != null)
+                        {
+                            var targetRot = fxInfo.target.rotation;
+                            var pos = fxInfo.target.position + targetRot * fxInfo.pos;
+                            var rot = fxInfo.LookAtTarget == null 
+                                ? targetRot * fxInfo.rot
+                                : Quaternion.LookRotation(fxInfo.LookAtTarget.position - pos);
+                            fxInfo.go.transform.SetPositionAndRotation(pos, rot);
+                        }
+                        break;
+                    
+                    case LockMask.Rotation:
+                        // 只跟随位置，旋转锁定（如尘烟特效，位置跟随但不旋转）
+                        if (fxInfo.target != null && fxInfo.go != null)
+                        {
+                            var pos = fxInfo.target.position + fxInfo.target.rotation * fxInfo.pos;
+                            fxInfo.go.transform.position = pos;
+                        }
+                        break;
+                    
+                    case LockMask.Position:
+                        // 只跟随旋转，位置锁定（如持续光环，位置固定但随角色旋转）
+                        if (fxInfo.target != null && fxInfo.go != null)
+                        {
+                            var rot = fxInfo.LookAtTarget == null
+                                ? fxInfo.target.rotation * fxInfo.rot
+                                : Quaternion.LookRotation(fxInfo.LookAtTarget.position - fxInfo.go.transform.position);
+                            fxInfo.go.transform.rotation = rot;
+                        }
+                        break;
+                    
+                    case LockMask.Both:
+                        // 完全锁定：发射后不再跟随（如子弹、火球飞行）
+                        break;
+                }
+            }
+            
+            // 减少寿命计时
+            fxInfo.expiredTime -= Time.deltaTime;
+        }
+    }
+```
 
-此时，你不要着急说细节，你等别人问
+---
 
-解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
+## 4. 后处理特效驱动
 
-## 第二层：深挖细节
+```csharp
+    // 触发径向模糊（大招前摇常用）
+    public void PlayRadialBlur(RadialBlurTask task)
+    {
+        m_radialBlurTask = task;
+        
+        // 通过 DOTween 驱动模糊强度变化
+        DOTween.To(
+            () => 0f,
+            v => {
+                // 设置 URP 后处理参数
+                var volume = PostProcessingManager.Instance.GetVolume("Battle");
+                if (volume.profile.TryGet<RadialBlur>(out var rb))
+                {
+                    rb.intensity.value = v;
+                    rb.center.value = task.radialBlurCenter;
+                }
+            },
+            task.radialBlurIntensity,
+            task.duration)
+            .SetEase(task.curve)
+            .OnComplete(() => {
+                // 动画完成后关闭模糊
+                DisableRadialBlur();
+            });
+    }
+    
+    // 触发残影效果（速移/位移技能常用）
+    private Dictionary<GameObject, GhostTask> m_ghostTaskDict = new();
+    
+    public void PlayGhost(Unit unit, GhostTask task)
+    {
+        var go = unit.ViewEntity.GetComponent<Renderer>()?.gameObject;
+        if (go == null) return;
+        m_ghostTaskDict[go] = task;
+    }
+    
+    // 强制打断指定 Unit 的所有可打断特效
+    public void InterruptFx(Unit unit)
+    {
+        for (int i = effectInstances.Count - 1; i >= 0; i--)
+        {
+            if (effectInstances[i].unitFrom == unit && effectInstances[i].isAllowInterrupt)
+            {
+                effectInstances[i].removed = true;  // 标记删除，Update 中统一清理
+            }
+        }
+    }
+```
 
-面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+---
 
-你：巴拉巴拉
+## 5. 常见问题与最佳实践
 
-解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+**Q: 特效 Prefab 对象池大小如何设定？**  
+A: 根据战斗中同屏最大特效数预热（如同屏最多 8 个命中特效，则预热 10 个）。特效配置表 `TbEffect` 中可设置 `poolSize` 字段，GameObjectPoolHelper 读取后自动预热。
 
-## 第三层：感受和观点
+**Q: Timeline 特效如何与帧同步对齐？**  
+A: Timeline 属于表现层，不参与帧同步逻辑。技能释放事件在逻辑层触发，通过 `EventSystem` 转发到表现层，由 `EffectSystem.PlayTimeline()` 播放。表现层可以自由使用 `Time.deltaTime`。
 
-面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+**Q: 特效在手机端帧率不稳时出现位置抖动怎么处理？**  
+A: 使用 `LateUpdate` 而非 `Update` 更新特效位置（在动画系统更新完挂点位置后再更新特效位置）。对于高频更新的特效，可以开启 `interpolation` 使位置在物理帧之间插值。
 
-你: 巴拉巴拉
-
-解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
-
-## 对于你的启示
-
-碰到意外的问题，不要意外，先想下为什么面试官问这个问题
-
-因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
-
-大体只有两种情况会失败：
-
-面试官觉得你不适合，水平低
-
-面试官不清楚你是否合适，可能你表达的太抽象
-
-所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
-
-# 如何寻找小而美的公司
-
-真格基金、红杉资本；看看一线投资机构的选择。
+**Q: 屏幕后处理特效（径向模糊等）如何做性能分级？**  
+A: 在 `AdaptiveLodMgr` 中添加后处理特效的 LOD Feature（`LodFeaturePostProcessing`），低配设备自动跳过径向模糊等高开销效果，只保留基础粒子特效。

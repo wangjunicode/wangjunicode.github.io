@@ -1,11 +1,10 @@
-﻿---
+---
 title: Unity 内存管理深度优化：GC Zero Allocation实战
 published: 2026-03-31
 description: 深度解析Unity运行时GC零分配的工程实践，涵盖GC触发原理（Gen0/1/2分代回收）、常见GC Alloc来源（字符串/装箱/Lambda/LINQ/协程）、使用Struct避免装箱、对象池的正确实现、SpanT与MemoryT零拷贝技术、NativeArray无GC压力的批量计算，以及使用Memory Profiler追踪内存快照的完整工作流。
 tags: [Unity, 内存优化, GC, 零分配, 性能优化]
 category: 性能优化
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、GC 分配来源排查

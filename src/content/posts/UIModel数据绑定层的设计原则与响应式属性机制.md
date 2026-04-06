@@ -5,7 +5,7 @@ description: 深入剖析 UIModel 中 BindableProperty、MultipleBindablePropert
 tags: [Unity, UI系统, 数据绑定]
 category: Unity技术
 draft: false
-encryptedKey:henhaoji123
+encryptedKey: henhaoji123
 ---
 
 # UIModel 数据绑定层的设计原则与响应式属性机制

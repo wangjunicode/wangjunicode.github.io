@@ -1,11 +1,10 @@
-﻿---
+---
 title: Unity资源加载优化：Async加载与进度回调
 published: 2026-03-31
 description: 深度解析Unity资源异步加载的完整方案，涵盖Addressables异步加载与引用管理、场景异步加载进度反馈、Resource.LoadAsync与AssetBundle对比、加载优先级队列、预加载策略（关卡开始前预加载下一关所需资源）、加载屏幕与进度条设计，以及防止加载闪烁的最佳实践。
 tags: [Unity, 资源加载, Addressables, 异步加载, 性能优化]
 category: 资源管理
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、Addressables 异步加载

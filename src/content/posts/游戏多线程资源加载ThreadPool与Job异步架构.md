@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏多线程资源加载：ThreadPool与Job异步架构
 published: 2026-03-31
 description: 深入解析Unity游戏中多线程资源加载的完整方案，涵盖主线程与工作线程职责划分、ThreadPool资产解析、C# async/await与Unity协程的配合、加载优先级队列、内存预算控制，以及高性能大型游戏资源调度系统设计。
 tags: [Unity, 多线程, 资源加载, 性能优化, 异步编程]
 category: 性能优化
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、Unity 线程模型

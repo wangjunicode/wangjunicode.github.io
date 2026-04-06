@@ -1,11 +1,11 @@
-﻿---
+---
 title: Mono和IL2CPP的区别
 published: 2022-05-25
 description: "Unity跨平台得益于Mono虚拟机能将IL转成对应平台机器码在该平台执行"
 tags: [Unity, Mono, IL2CPP]
 category: 架构设计
 draft: false
-encryptedKey: "henhaoji123"
+encryptedKey: henhaoji123
 ---
 
 Unity跨平台得益于Mono虚拟机能将IL转成对应平台机器码在该平台执行

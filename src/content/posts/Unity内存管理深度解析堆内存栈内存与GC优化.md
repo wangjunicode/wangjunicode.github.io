@@ -1,11 +1,10 @@
-﻿---
+---
 title: Unity内存管理深度解析：堆内存、栈内存与GC优化
 published: 2026-03-31
 description: 深度解析Unity内存管理机制，包含托管堆（Managed Heap）扩容原理、GC触发时机与影响、常见GC分配来源（装箱/字符串拼接/LINQ/闭包）、零GC编程技巧（对象池/struct代替class/StringBuilder）、Native内存（Graphics/Audio/Physics）监控、内存泄漏检测（Profiler Memory Snapshot差异分析），以及移动端内存预算与OOM防控。
 tags: [Unity, 内存管理, GC优化, 性能优化, 游戏开发]
 category: 性能优化
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、GC 分配来源分析

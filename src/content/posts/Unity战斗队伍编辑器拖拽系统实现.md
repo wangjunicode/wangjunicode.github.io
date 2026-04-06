@@ -5,7 +5,7 @@ description: 深入解析战前队伍编辑界面中的拖拽换位系统，包�
 tags: [Unity, UI系统, 拖拽系统, 战斗准备]
 category: Unity技术
 draft: false
-encryptedKey:henhaoji123
+encryptedKey: henhaoji123
 ---
 
 # Unity战斗队伍编辑器拖拽系统实现

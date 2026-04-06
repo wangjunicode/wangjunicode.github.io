@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏AI行为树高级设计：条件装饰器与服务节点
 published: 2026-03-31
 description: 深度解析游戏AI行为树的高级组件，涵盖条件装饰器（Blackboard比较/距离检测/概率触发）、服务节点（定期更新Blackboard数据）、并行节点（同时追踪与攻击）、中断优先级（高优先级子树随时打断当前执行）、行为树调试可视化，以及与感知系统/动画系统的整合方案。
 tags: [Unity, 行为树, 游戏AI, AI设计, 游戏开发]
 category: 游戏AI
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 一、行为树核心节点类型

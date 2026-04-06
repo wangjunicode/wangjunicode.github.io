@@ -1,11 +1,10 @@
-﻿---
+---
 title: 游戏特效系统：粒子系统到 VFX Graph 深度实践
 published: 2026-03-21
 description: "全面讲解 Unity 游戏特效开发，从 Shuriken 粒子系统到 VFX Graph，涵盖特效性能优化策略、对象池管理、屏幕空间特效（后处理）的实现，以及如何建立高效的特效资产管理和团队协作流程。"
 tags: [特效, 粒子系统, VFX Graph, Unity, 性能优化]
 category: 图形渲染
 draft: false
-encryptedKey:henhaoji123
 ---
 
 ## 特效开发的双重目标
