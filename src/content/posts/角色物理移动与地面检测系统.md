@@ -5,7 +5,7 @@ description: "当前状态离职？为什么离职？空窗期一年在干什么
 tags: [面试, 职业发展, 学习方法]
 category: 基础知识
 draft: false
-encryptedPassword: "henhaoji123"
+encryptedKey: "henhaoji123"
 ---
 
 # 简历投递
