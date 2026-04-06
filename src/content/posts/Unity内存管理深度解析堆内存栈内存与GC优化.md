@@ -5,7 +5,7 @@ description: 深度解析Unity内存管理机制，包含托管堆（Managed Hea
 tags: [Unity, 内存管理, GC优化, 性能优化, 游戏开发]
 category: 性能优化
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 ## 一、GC 分配来源分析

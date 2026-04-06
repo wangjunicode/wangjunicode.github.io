@@ -5,7 +5,7 @@ description: 深入解析 Object 基类和 DisposeObject 的设计，理解 IDis
 tags: [Unity, ECS, 对象设计, 对象池, IDisposable]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # 对象基类与可销毁对象——ECS 对象层次结构的设计哲学

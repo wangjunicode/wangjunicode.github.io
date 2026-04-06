@@ -5,7 +5,7 @@ description: 深入解析剧情对话面板的打字机集成、跳过/不可跳
 tags: [Unity, UI系统, 对话系统, 剧情展示]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # Unity游戏对话剧情面板的完整实现

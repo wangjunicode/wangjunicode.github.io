@@ -5,7 +5,7 @@ description: 解析 PVP 双方同角色时的材质替换系统，包含"2P颜�
 tags: [Unity, 角色材质, PVP系统, 渲染系统]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # PVP 角色颜色区分系统：同角色的材质替换策略

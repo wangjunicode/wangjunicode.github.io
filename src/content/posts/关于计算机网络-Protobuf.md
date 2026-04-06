@@ -5,7 +5,7 @@ description: "Protocol Buffers（Protobuf）是 Google 开发的一种语言中�
 tags: [网络编程, Protobuf, 序列化]
 category: 网络编程
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 ## Protobuf 是什么

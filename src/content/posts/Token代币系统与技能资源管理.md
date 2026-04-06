@@ -5,7 +5,7 @@ description: 深入解析战斗中的 Token 资源系统，理解碰撞触发的
 tags: [Unity, 战斗系统, Token系统, 资源管理]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # Token代币系统与技能资源管理

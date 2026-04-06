@@ -5,7 +5,7 @@ description: 深入解析游戏公告界面的活动/游戏公告分类管理、
 tags: [Unity, UI系统, 公告系统, SDK集成]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # Unity游戏公告系统UI的分类管理与图片公告加载实现

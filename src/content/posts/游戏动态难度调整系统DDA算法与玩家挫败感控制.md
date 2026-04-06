@@ -5,7 +5,7 @@ description: 全面解析动态难度调整（Dynamic Difficulty Adjustment，DD
 tags: [Unity, 动态难度, DDA, 游戏设计, 玩家体验]
 category: 游戏设计
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 ## 一、DDA 原理与哲学

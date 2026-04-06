@@ -5,7 +5,7 @@ description: 对比分析 ListComponent、StackComponent 和 EnumerableComponent
 tags: [Unity, ECS, 集合设计, 迭代器, GC优化]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # 集合组件大全——ListComponent、StackComponent 与 EnumerableComponent 的池化设计

@@ -5,7 +5,7 @@ description: 深度解析游戏中角色与相机的绑定机制，从Cinemachin
 tags: [Unity, 相机系统, Cinemachine]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # 角色专属相机系统设计——每个英雄都有自己的Cinemachine相机组

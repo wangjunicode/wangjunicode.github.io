@@ -5,7 +5,7 @@ description: 解析基于事件驱动的特效管理系统设计，包含 FxInfo
 tags: [Unity, 特效系统, Timeline, 游戏开发]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # 游戏特效系统设计：从事件触发到 Timeline 特效

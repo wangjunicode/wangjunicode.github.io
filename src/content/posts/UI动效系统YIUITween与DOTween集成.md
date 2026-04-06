@@ -5,7 +5,7 @@ description: "UI 动效系统（YIUITween + DOTween） - VGame项目技术文档
 tags: ['Unity', '游戏开发', '技术文档']
 category: UI系统
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 # UI 动效系统（YIUITween + DOTween）

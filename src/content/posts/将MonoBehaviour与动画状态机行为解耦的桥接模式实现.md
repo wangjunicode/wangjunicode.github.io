@@ -5,7 +5,7 @@ description: 深入解析 SceneLinkedSMB 如何通过泛型桥接类优雅地解
 tags: [Unity, 动画系统, 状态机, 设计模式]
 category: Unity技术
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 ## Unity Animator 的痛点

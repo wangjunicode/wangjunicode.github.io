@@ -5,7 +5,7 @@ description: "深入讲解 Unity DOTS（Data-Oriented Technology Stack）和 ECS
 tags: [ECS, DOTS, Unity, 性能优化, 架构设计]
 category: 架构设计
 draft: false
-encryptedKey: henhaoji123
+encryptedKey:henhaoji123
 ---
 
 ## 为什么要学 ECS/DOTS
