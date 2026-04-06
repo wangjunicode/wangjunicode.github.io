@@ -1,389 +1,85 @@
----
-title: 游戏UI面板生命周期管理详解
-published: 2026-03-31
-description: 深入讲解Unity游戏UI面板从创建、打开、关闭到销毁的完整生命周期，以及异步状态管理最佳实践。
-tags: [Unity, UI框架, 生命周期]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 游戏UI面板生命周期管理详解
+# 简历投递
 
-## 前言
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-每次面试初级 Unity 开发者，我都会问同一个问题："一个 UI 面板从点击按钮到显示在屏幕上，经历了哪些步骤？"大多数人只能答出"加载预制体、实例化、显示"——这只是冰山一角。真正的工业级 UI 框架，面板的生命周期远比这复杂，每一个环节都有踩坑的可能。
+# 预约面试
 
-本文基于我们项目实际使用的 YIUIFramework 框架，把 UI 面板的完整生命周期掰开揉碎讲清楚。
+这边简历通过了业务部门评估，约时间面试
 
----
+# 项目经验考察
 
-## 什么是面板生命周期？
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-面板生命周期（Panel Lifecycle）是指一个 UI 面板从**被请求打开**到**最终从内存中释放**的全过程状态机。它包含以下关键阶段：
+# 游戏客户端面经
 
-```
-请求打开 → 资源加载 → 实例化 → 初始化绑定 → 打开动画 → 运行中 → 关闭动画 → 隐藏/销毁
-```
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-每个阶段都有对应的回调钩子，框架和业务代码通过这些钩子完成各自的工作。
+战斗无非就是帧同步和状态同步
 
----
+经典的笔试题也要刷一些  
 
-## BasePanel 基类解析
+# 面试的底层逻辑
 
-所有面板都继承自 `BasePanel`，它是框架提供的抽象基类：
-
-```csharp
-public abstract partial class BasePanel : BaseWindow, IYIUIPanel
-{
-    // 所在层级，子类可重写
-    public virtual EPanelLayer Layer => EPanelLayer.Panel;
-
-    // 界面选项（是否全屏、是否互斥等）
-    public virtual EPanelOption PanelOption => EPanelOption.None;
-
-    // 堆栈行为（返回键如何处理）
-    public virtual EPanelStackOption StackOption => EPanelStackOption.Visible;
-
-    // 优先级，同层级内排序，大的在前
-    public virtual int Priority => 0;
-
-    // 面板所在的 Canvas（用于显示/隐藏优化）
-    [HideInInspector]
-    public Canvas OwnerCanvas;
-}
-```
-
-注意这里有几个关键设计：
-
-1. **Layer** 决定这个面板放在哪个层级容器里（Top/Tips/Popup/Panel/Scene/Bottom）
-2. **Priority** 决定同一层级内的前后排序
-3. **StackOption** 决定当新面板打开时，这个面板是否保持可见还是被隐藏
-
-### 密封生命周期方法
-
-`BasePanel` 用 `sealed` 关键字封住了部分父类方法，防止子类乱改：
-
-```csharp
-protected sealed override void SealedInitialize()
-{
-    InitPanelViewData(); // 初始化视图数据绑定
-}
-
-protected sealed override void SealedStart()
-{
-    // 空实现，面板不走 MonoBehaviour 的 Start 流程
-}
-
-protected sealed override void SealedOnDestroy()
-{
-    StopCountDownDestroyPanel(); // 清理倒计时销毁逻辑
-}
-```
-
-这告诉我们一个重要原则：**框架用 sealed 保护了它自己的初始化流程，业务逻辑应该通过框架预留的 OnOpen/OnClose 钩子接入，而不是覆盖底层生命周期**。
-
----
-
-## 打开流程详解
-
-### 泛型 Open 重载设计
-
-框架支持带参数打开面板，通过接口+泛型重载实现：
-
-```csharp
-// 无参打开
-public async ETTask<bool> Open()
-{
-    SetVisibleAndActive(true);
-    
-    if (!WindowHaveIOpenAllowOpen && this is IYIUIOpen)
-    {
-        Debug.LogError($"当前Panel有其他IOpen接口，需要参数传入，不允许直接调用Open");
-        return false;
-    }
-    
-    var success = false;
-    try
-    {
-        success = await OnOpen();
-    }
-    catch (Exception e)
-    {
-        Debug.LogError($"ResName{UIResName}, err={e.Message}{e.StackTrace}");
-    }
-
-    if (success)
-    {
-        await InternalOnWindowOpenTween(); // 播放开门动画
-    }
-    return success;
-}
-
-// 带一个参数打开
-public async ETTask<bool> Open<P1>(P1 p1)
-{
-    SetVisibleAndActive(true);
-    
-    if (this is IYIUIOpen<P1> panel)
-    {
-        try
-        {
-            success = await panel.OnOpen(p1);
-        }
-        catch (Exception e) { ... }
-    }
-    else
-    {
-        return await UseBaseOpen(); // 降级到无参打开
-    }
-    
-    if (success)
-    {
-        await InternalOnWindowOpenTween();
-    }
-    return success;
-}
-```
-
-**设计亮点解析：**
-
-- `ETTask<bool>` 是异步返回值，`bool` 表示打开是否成功，让调用方能判断失败原因
-- 接口检查（`this is IYIUIOpen<P1>`）实现了参数类型安全，错误类型在运行时立刻报错
-- 降级机制（`UseBaseOpen`）保证了向下兼容
-
-### 业务代码接入方式
-
-你的业务面板应该这样写：
-
-```csharp
-public class LoginPanel : BasePanel, IYIUIOpen<LoginData>
-{
-    public async ETTask<bool> OnOpen(LoginData data)
-    {
-        // 设置用户名显示
-        m_UsernameText.text = data.Username;
-        
-        // 异步加载头像
-        await LoadAvatarAsync(data.AvatarUrl);
-        
-        return true; // 返回 true 代表打开成功
-    }
-}
-```
-
----
-
-## 关闭流程详解
-
-关闭逻辑相对简单，但有一个关键设计值得注意：
-
-```csharp
-public void Close(bool tween = true, bool ignoreElse = false)
-{
-    CloseAsync(tween, ignoreElse).Coroutine();
-}
-
-public async ETTask CloseAsync(bool tween = true, bool ignoreElse = false)
-{
-    await m_PanelMgr.ClosePanelAsync(UIResName, tween, ignoreElse);
-}
-```
-
-**关键参数说明：**
-- `tween`：是否播放关闭动画，某些紧急关闭场景（如断网跳转）设为 false
-- `ignoreElse`：是否忽略其他面板的联动逻辑，一般用于强制关闭
-
-### Home 回退功能
-
-```csharp
-protected void Home<T>(bool tween = true) where T : BasePanel
-{
-    m_PanelMgr.HomePanel<T>(tween).Coroutine();
-}
-```
-
-`Home` 方法会关闭当前面板之后的所有堆栈面板，回退到指定面板。这对于"返回大厅"这类操作非常有用，不需要一个一个地关闭面板。
-
----
-
-## 动画生命周期
-
-动画是面板生命周期中最容易出 bug 的环节，框架对动画做了专门封装：
-
-```csharp
-protected sealed override async ETTask SealedOnWindowOpenTween()
-{
-    tweenClosing = false;
-
-    // 低品质模式跳过动画
-    if (PanelMgr.IsLowQuality || WindowBanTween)
-    {
-        OnOpenTweenEnd();
-        return;
-    }
-
-    // 打开背景遮罩
-    var panelBGCode = await PanelMgr.Inst.OpenPanelLayerBG(Layer, PanelNotFull);
-    // 临时禁止层级操作（防止动画过程中被打断）
-    var foreverCode = WindowAllowOptionByTween ? 0 : m_PanelMgr.BanLayerOptionForever();
-    
-    try
-    {
-        await OnOpenTween(); // 子类重写这里实现具体动画
-    }
-    catch (Exception e)
-    {
-        Debug.LogError($"{UIResName} 打开动画执行报错 {e}");
-    }
-    finally
-    {
-        // 无论成功失败，都要释放锁和遮罩
-        PanelMgr.Inst.ClosePanelLayerBG(panelBGCode);
-        m_PanelMgr.RecoverLayerOptionForever(foreverCode);
-        if (!tweenClosing)
-        {
-            OnOpenTweenEnd();
-        }
-    }
-}
-```
-
-**动画系统的几个重要细节：**
-
-1. **低品质降级**：`PanelMgr.IsLowQuality` 是一个全局开关，低端机可以完全跳过动画提升帧率
-2. **层级锁**：`BanLayerOptionForever` 在动画期间禁止新面板打开，防止动画被打断
-3. **tweenClosing 标志**：防止打开动画还没播完就开始播关闭动画导致的状态混乱
-4. **finally 保护**：无论动画是否报错，遮罩和锁都必须释放（否则界面会永远卡住）
-
----
-
-## 显示与激活的区别
-
-框架区分了两种"不显示"状态：
-
-```csharp
-public virtual void SetVisiblie(bool isVisible)
-{
-    if (!OwnerCanvas) return;
-    OwnerCanvas.enabled = isVisible; // 只禁用渲染，GameObject 仍然存在
-}
-
-public virtual void SetVisibleAndActive(bool isOn)
-{
-    SetVisiblie(isOn);
-    SetActive(isOn); // 完全激活/停用 GameObject
-}
-```
-
-**为什么要区分？**
-
-- **Canvas.enabled = false**（仅隐藏渲染）：GameObject 仍然运行，Update 仍然执行，但用户看不见也点不到。适合需要在后台保持逻辑运行的面板（如 HUD）。
-- **SetActive(false)**（完全停用）：GameObject 的所有组件都停止运行，彻底省去 CPU 开销。适合完全关闭的面板。
-
-这是优化 UI 性能的常见技巧，新人很容易忽视这个区别。
-
----
-
-## 生命周期完整流程图
-
-```
-PanelMgr.OpenPanel(name)
-       │
-       ▼
-  资源异步加载 (YIUILoader)
-       │
-       ▼
-  YIUIFactory.CreatePanelAsync()
-  ├── 实例化 GameObject
-  ├── 创建 UIBase 实例
-  └── InitUIBase() 绑定数据
-       │
-       ▼
-  AddToLayer() 添加到对应层级
-       │
-       ▼
-  BasePanel.Open(params)
-  ├── SetVisibleAndActive(true)
-  ├── IYIUIOpen.OnOpen(params)  ← 业务代码接入点
-  └── InternalOnWindowOpenTween()
-      ├── OpenPanelLayerBG()
-      ├── OnOpenTween()         ← 动画接入点
-      └── OnOpenTweenEnd()
-       │
-       ▼
-     运行中
-       │
-  用户触发关闭
-       ▼
-  PanelMgr.ClosePanelAsync(name)
-  ├── SealedOnWindowCloseTween()
-  │   ├── OnCloseTween()        ← 关闭动画接入点
-  │   └── OnCloseTweenEnd() → SetActive(false)
-  └── OnClose()                 ← 业务代码接入点
-       │
-  根据 PanelOption 决定：
-  ├── 销毁（默认）
-  ├── 缓存（Cache 层）
-  └── 保持引用等待复用
-```
-
----
-
-## 常见问题与解决方案
-
-### 问题一：OnOpen 里用了 await，面板显示前有闪烁
-
-**原因**：`SetVisibleAndActive(true)` 在 `await OnOpen()` 之前执行，如果 OnOpen 里有异步操作，面板会先显示出来再加载内容。
-
-**解决方案**：
-```csharp
-public async ETTask<bool> OnOpen(HeroData data)
-{
-    // 先加载数据
-    var heroInfo = await LoadHeroInfo(data.Id);
-    
-    // 数据加载完毕后再设置显示
-    m_NameText.text = heroInfo.Name;
-    m_IconImage.sprite = heroInfo.Icon;
-    
-    return true;
-}
-```
-配合 Canvas 初始透明或 Loading 状态，避免内容闪烁。
-
-### 问题二：关闭动画播放一半被强制中断
-
-**原因**：关闭面板时被其他逻辑立刻调用了 `SetActive(false)`。
-
-**解决方案**：始终通过 `PanelMgr.ClosePanelAsync()` 关闭，不要直接操作 GameObject。框架内部的 `tweenClosing` 标志和 `finally` 保护会确保流程完整执行。
-
-### 问题三：面板缓存后二次打开数据脏了
-
-**原因**：`OnClose` 没有清理数据，缓存复用时仍显示上次的内容。
-
-**解决方案**：
-```csharp
-protected override void OnClose()
-{
-    // 重置所有状态
-    m_ListView.Clear();
-    m_TitleText.text = string.Empty;
-    base.OnClose();
-}
-```
-
----
-
-## 总结
-
-UI 面板的生命周期管理是整个 UI 框架的核心，掌握以下要点：
-
-1. **用框架预留的钩子接入，不要覆盖底层方法**
-2. **Open 返回 false 代表打开失败，调用方应该处理这种情况**
-3. **区分 Canvas.enabled 和 SetActive 的使用场景**
-4. **关闭动画期间有层级锁，不要在 OnCloseTween 里打开新面板**
-5. **缓存复用的面板必须在 OnClose 里清理数据**
-
-对于刚参加工作的同学，建议先把框架的 `BasePanel_Open.cs`、`BasePanel_Close.cs`、`BasePanel_Anim.cs` 三个文件读一遍，理解了这三个文件，你就掌握了面板生命周期的 80%。
+表层事实->深度细节->感受和观点
+
+经验->技能->潜力->动机
+
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
+
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
+
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
+
+## 第一层：陈述事实
+
+面试官：我看简历上说设计过AB打包是吧？
+
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
+
+此时，你不要着急说细节，你等别人问
+
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
+
+## 第二层：深挖细节
+
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+
+你：巴拉巴拉
+
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+
+## 第三层：感受和观点
+
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+
+你: 巴拉巴拉
+
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+
+## 对于你的启示
+
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+
+大体只有两种情况会失败：
+
+面试官觉得你不适合，水平低
+
+面试官不清楚你是否合适，可能你表达的太抽象
+
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+
+# 如何寻找小而美的公司
+
+真格基金、红杉资本；看看一线投资机构的选择。

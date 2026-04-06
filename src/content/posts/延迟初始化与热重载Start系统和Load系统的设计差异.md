@@ -1,339 +1,85 @@
----
-title: 延迟初始化与热重载——Start 系统和 Load 系统的设计差异
-published: 2026-03-31
-description: 解析 IStartSystem 和 ILoadSystem 的设计区别，理解为什么需要延迟一帧初始化、Load 系统如何支持代码热重载，以及两者在 EventSystem 调度中的不同处理方式。
-tags: [Unity, ECS, 热更新, 生命周期, 延迟初始化]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 延迟初始化与热重载——Start 系统和 Load 系统的设计差异
+# 简历投递
 
-## 前言
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-在 ECS 框架的生命周期中，`Awake` 是"立即初始化"，那如果我需要"延迟一帧后初始化"呢？
+# 预约面试
 
-如果我热更新了代码，需要所有相关实体重新初始化呢？
+这边简历通过了业务部门评估，约时间面试
 
-这就是 `IStartSystem` 和 `ILoadSystem` 解决的两个完全不同的问题。虽然它们看起来都是"初始化"，但用途截然不同。
+# 项目经验考察
 
----
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-## 一、IStartSystem——延迟一帧的初始化
+# 游戏客户端面经
 
-```csharp
-public interface IStart {}
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-public interface IStartSystem : ISystemType
-{
-    void Run(object o);
-}
+战斗无非就是帧同步和状态同步
 
-[ObjectSystem]
-[EntitySystem]
-public abstract class StartSystem<T> : IStartSystem where T: Entity, IStart
-{
-    public void Run(object o)
-    {
-        this.Start((T)o);
-    }
+经典的笔试题也要刷一些  
 
-    public Type Type() => typeof(T);
-    public Type SystemType() => typeof(IStartSystem);
-    public InstanceQueueIndex GetInstanceQueueIndex() => InstanceQueueIndex.Start;
+# 面试的底层逻辑
 
-    protected abstract void Start(T self);
-}
-```
+表层事实->深度细节->感受和观点
 
-注意几个细节：
+经验->技能->潜力->动机
 
-### 1.1 Run 参数是 object 而非 Entity
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-```csharp
-void Run(object o);
-```
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-`IStartSystem` 的 `Run` 接受 `object` 而非 `Entity`（其他系统接受 `Entity`）。
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-这可能是历史遗留设计，或者是为了兼容某些特殊用途。实际使用中，传入的依然是 `Entity`，在 `StartSystem<T>.Run` 中也是把 `o` 直接转型为 `(T)o`。
+## 第一层：陈述事实
 
-### 1.2 InstanceQueueIndex.Start——专用队列
+面试官：我看简历上说设计过AB打包是吧？
 
-```csharp
-public InstanceQueueIndex GetInstanceQueueIndex() => InstanceQueueIndex.Start;
-```
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-`Start` 有自己的专用队列 `queues[InstanceQueueIndex.Start]`。
+此时，你不要着急说细节，你等别人问
 
-在 `EventSystem` 中，`Start` 的调用时机是：
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-```csharp
-public void FixedUpdate()
-{
-    Start(); // 在 FixedUpdate 开始时先处理所有待 Start 的实体
-    // ... 然后处理 FixedUpdate
-}
+## 第二层：深挖细节
 
-public void Update()
-{
-    Start(); // 在 Update 开始时也调用
-    // ...
-}
-```
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-注意 `Start()` 在每个更新阶段开始时都被调用一次，但 `Start` 队列中的实体处理完后**不会重新入队**（对比 `Update` 会重新入队）：
+你：巴拉巴拉
 
-```csharp
-public void Start()
-{
-    Queue<long> queue = this.queues[(int)InstanceQueueIndex.Start];
-    int count = queue.Count;
-    while (count-- > 0)
-    {
-        long instanceId = queue.Dequeue();
-        // ...
-        // 注意：这里没有 queue.Enqueue(instanceId)
-        foreach (IStartSystem iStartSystem in iStartSystems)
-        {
-            iStartSystem.Run(component);
-        }
-    }
-}
-```
-
-**`Start` 只执行一次，不重复。这就是它与 `Update` 的根本区别。**
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-### 1.3 为什么需要延迟的 Start？
-
-假设你有这样的逻辑：
+## 第三层：感受和观点
 
-```csharp
-// 同一帧内
-Entity player = entity.AddComponent<PlayerComponent>(); // Awake 立即调用
-Entity weapon = entity.AddComponent<WeaponComponent>(); // Awake 立即调用
-```
-
-如果 `PlayerComponent.Awake` 需要访问 `WeaponComponent`，就会失败——因为此时 `WeaponComponent` 还没加上。
-
-```csharp
-// PlayerComponent 的 Awake（有问题的写法）
-protected override void Awake(PlayerComponent self)
-{
-    WeaponComponent weapon = self.GetComponent<WeaponComponent>(); // 此时还是 null！
-}
-```
-
-用 `Start` 解决：
-
-```csharp
-// PlayerComponent 的 Start（正确写法）
-protected override void Start(PlayerComponent self)
-{
-    // Start 在第一个 FixedUpdate/Update 之前调用
-    // 此时 WeaponComponent 已经加上了
-    WeaponComponent weapon = self.GetComponent<WeaponComponent>(); // 有值了！
-}
-```
-
----
-
-## 二、ILoadSystem——热重载后的重新初始化
-
-```csharp
-public interface ILoad {}
-
-public interface ILoadSystem: ISystemType
-{
-    void Run(Entity o);
-}
-
-[ObjectSystem]
-public abstract class LoadSystem<T> : ILoadSystem where T: Entity, ILoad
-{
-    void ILoadSystem.Run(Entity o)
-    {
-        this.Load((T)o);
-    }
-
-    Type ISystemType.Type() => typeof(T);
-    Type ISystemType.SystemType() => typeof(ILoadSystem);
-    InstanceQueueIndex ISystemType.GetInstanceQueueIndex() => InstanceQueueIndex.Load;
-
-    protected abstract void Load(T self);
-}
-```
-
-注意：`LoadSystem` 只有 `[ObjectSystem]`，**没有** `[EntitySystem]`。
-
-这个区别很重要。
-
-### 2.1 [ObjectSystem] vs [EntitySystem] 的区别
-
-- `[ObjectSystem]`：系统在 `EventSystem.Add()` 时被扫描和实例化
-- `[EntitySystem]`：（额外含义）系统方法支持运行时热替换
-
-`LoadSystem` 只标记 `[ObjectSystem]`，意味着它的设计侧重于"被框架发现和调用"，而不是"热更替换方法实现"。
-
-### 2.2 Load 的触发时机
-
-在 `EventSystem.Load()` 中：
-
-```csharp
-public void Load()
-{
-    Queue<long> queue = this.queues[(int)InstanceQueueIndex.Load];
-    int count = queue.Count;
-    while (count-- > 0)
-    {
-        long instanceId = queue.Dequeue();
-        // ...
-        List<object> iLoadSystems = this.typeSystems.GetSystems(component.GetType(), typeof(ILoadSystem));
-        
-        queue.Enqueue(instanceId); // 重新入队！Load 会被循环调用
-        
-        foreach (ILoadSystem iLoadSystem in iLoadSystems)
-        {
-            iLoadSystem.Run(component);
-        }
-    }
-}
-```
-
-注意 `Load` 和 `Start` 的关键区别：`Load` 处理后**重新入队**（`queue.Enqueue(instanceId)`），意味着**每次 `EventSystem.Load()` 被调用时，所有注册了 `ILoad` 的实体都会执行 `Load`**。
-
-`Load()` 通常在以下场景被调用：
-1. **热更新后**：代码重新加载后，所有配置/资源依赖的缓存需要重建
-2. **场景切换后**：某些需要重新初始化的缓存数据
-3. **程序集重新加载**：`EventSystem.Add(newTypes)` 后，通知相关实体重新加载
-
-### 2.3 Load 的典型用途
-
-```csharp
-// 配置管理器实现 ILoad
-public class ConfigManager: Entity, ILoad
-{
-    private Dictionary<int, SkillConfig> skillConfigs;
-    
-    // 每次代码热更新后都会被调用
-    protected override void Load(ConfigManager self)
-    {
-        // 重新加载配置（因为热更新后配置类型可能改变）
-        self.skillConfigs = new Dictionary<int, SkillConfig>();
-        // ... 从资源文件重新加载
-    }
-}
-```
-
-如果不用 `Load` 而用 `Awake`：热更新后，配置管理器的内部状态（缓存的配置数据）不会更新，可能导致游戏使用旧的配置数据。
-
-用 `Load`，每次热更新后自动重新加载所有依赖的配置，保证数据最新。
-
----
-
-## 三、Start 与 Load 的对比
-
-| 特性 | IStartSystem | ILoadSystem |
-|---|---|---|
-| 触发时机 | 第一帧（Update/FixedUpdate 前） | 显式调用 `EventSystem.Load()` |
-| 执行次数 | 只执行一次 | 每次调用 `Load()` 都执行 |
-| 典型用途 | 延迟初始化，处理组件间依赖 | 热更新后重新加载配置/缓存 |
-| 特性标记 | `[ObjectSystem][EntitySystem]` | 只有 `[ObjectSystem]` |
-| 类比 | Unity 的 Start | 配置刷新/热重载 |
-
----
-
-## 四、完整示例——Start 处理组件依赖
-
-```csharp
-// 角色组件——创建时立即初始化自己的基础属性
-public class CharacterComponent: Entity, IAwake<string>, IStart
-{
-    public string Name;
-    public WeaponComponent MainWeapon;
-}
-
-[ObjectSystem]
-public class CharacterAwakeSystem: AwakeSystem<CharacterComponent, string>
-{
-    protected override void Awake(CharacterComponent self, string name)
-    {
-        // 立即执行的初始化
-        self.Name = name;
-    }
-}
-
-[ObjectSystem]
-public class CharacterStartSystem: StartSystem<CharacterComponent>
-{
-    protected override void Start(CharacterComponent self)
-    {
-        // 延迟一帧，此时其他组件已经 Awake 完毕
-        self.MainWeapon = self.GetComponent<WeaponComponent>();
-        if (self.MainWeapon == null)
-        {
-            Log.Warning($"{self.Name} 没有武器组件！");
-        }
-    }
-}
-```
-
----
-
-## 五、完整示例——Load 处理热重载
-
-```csharp
-// 技能配置缓存——支持热重载
-public class SkillConfigCache: Entity, ILoad
-{
-    // 这个字典会在每次热更新后重建
-    public Dictionary<int, SkillData> Configs = new();
-}
-
-[ObjectSystem]
-public class SkillConfigCacheLoadSystem: LoadSystem<SkillConfigCache>
-{
-    protected override void Load(SkillConfigCache self)
-    {
-        self.Configs.Clear();
-        // 重新从资源加载所有技能配置
-        foreach (var config in Resources.LoadAll<SkillData>("Configs/Skills"))
-        {
-            self.Configs[config.Id] = config;
-        }
-        Log.Info($"技能配置重新加载完成，共 {self.Configs.Count} 个");
-    }
-}
-```
-
----
-
-## 六、不同初始化方式的选择指南
-
-```
-需要初始化逻辑？
-│
-├── 只需执行一次？
-│   ├── 不依赖其他组件 → Awake（立即执行）
-│   └── 依赖同一帧添加的其他组件 → Start（延迟一帧）
-│
-└── 需要重复执行？
-    ├── 热更新/程序集重载后需要刷新 → Load
-    └── 每帧都需要 → Update/FixedUpdate
-```
-
----
-
-## 七、写给初学者
-
-`Start` 解决的是**时序问题**：多个组件同时创建时，初始化顺序不确定，延迟一帧可以保证所有组件都已就绪。
-
-`Load` 解决的是**热更新问题**：代码修改后重新加载，某些缓存数据需要用新的类型/逻辑重新生成。
-
-这两个问题在大型游戏项目中都很真实：
-
-- 角色有10个组件，它们的初始化互相依赖——`Start` 解决这个问题
-- 游戏上线后发现技能配置有误，热更修复后需要重新加载——`Load` 解决这个问题
-
-在项目中合理运用这两种初始化方式，能让代码更健壮、热更体验更顺畅。
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+
+你: 巴拉巴拉
+
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+
+## 对于你的启示
+
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+
+大体只有两种情况会失败：
+
+面试官觉得你不适合，水平低
+
+面试官不清楚你是否合适，可能你表达的太抽象
+
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+
+# 如何寻找小而美的公司
+
+真格基金、红杉资本；看看一线投资机构的选择。

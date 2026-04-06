@@ -1,430 +1,85 @@
 ﻿---
-title: 游戏配置热更新系统：远程配置与AB测试框架
-published: 2026-03-31
-description: 深度解析游戏运营期配置热更新系统，涵盖远程配置（Remote Config）架构设计、配置版本管理与增量更新、本地缓存策略、A/B测试框架（用户分组/指标收集/统计显著性）、特性开关（Feature Flag）、灰度发布控制，以及Firebase Remote Config和自研方案的完整实现。
-tags: [Unity, 远程配置, AB测试, Feature Flag, 游戏运营]
-category: 游戏运营
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-## 一、远程配置系统架构
+# 简历投递
 
-```
-Remote Config 流程：
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-游戏启动
-    ↓
-本地加载缓存配置（立即可用）
-    ↓
-异步请求服务端最新配置
-    ↓
-合并/替换配置
-    ↓
-触发配置更新事件（各系统响应）
-```
+# 预约面试
 
----
+这边简历通过了业务部门评估，约时间面试
 
-## 二、远程配置管理器
+# 项目经验考察
 
-```csharp
-using System;
-using System.Collections.Generic;
-using UnityEngine;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-/// <summary>
-/// 远程配置管理器
-/// </summary>
-public class RemoteConfigManager : MonoBehaviour
-{
-    private static RemoteConfigManager instance;
-    public static RemoteConfigManager Instance => instance;
+# 游戏客户端面经
 
-    [Header("配置服务器")]
-    [SerializeField] private string configUrl = "https://config.example.com/game-config";
-    [SerializeField] private float fetchInterval = 3600f;       // 拉取间隔（1小时）
-    [SerializeField] private int maxCacheAgeHours = 24;          // 本地缓存最大有效时间
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-    private const string CACHE_KEY = "remote_config_cache";
-    private const string CACHE_TIME_KEY = "remote_config_time";
-    private const string CONFIG_VERSION_KEY = "remote_config_version";
+战斗无非就是帧同步和状态同步
 
-    private JObject currentConfig = new JObject();
-    private string configVersion = "0";
-    private bool isInitialized;
+经典的笔试题也要刷一些  
 
-    public event Action<JObject> OnConfigUpdated;
-    public event Action<string> OnConfigFetchFailed;
+# 面试的底层逻辑
 
-    void Awake()
-    {
-        instance = this;
-        LoadFromCache();
-    }
+表层事实->深度细节->感受和观点
 
-    void Start()
-    {
-        _ = FetchConfigAsync();
-        InvokeRepeating(nameof(PeriodicFetch), fetchInterval, fetchInterval);
-    }
+经验->技能->潜力->动机
 
-    void PeriodicFetch() => _ = FetchConfigAsync();
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-    /// <summary>
-    /// 异步拉取远程配置
-    /// </summary>
-    public async System.Threading.Tasks.Task FetchConfigAsync()
-    {
-        try
-        {
-            using var req = UnityEngine.Networking.UnityWebRequest.Get(
-                $"{configUrl}?v={configVersion}&platform={Application.platform}");
-            req.SetRequestHeader("X-App-Version", Application.version);
-            req.SetRequestHeader("X-Player-Id", PlayerDataService.GetLocalPlayerData()?.PlayerId ?? "");
-            req.timeout = 15;
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-            var op = req.SendWebRequest();
-            while (!op.isDone)
-                await System.Threading.Tasks.Task.Yield();
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-            if (req.result != UnityEngine.Networking.UnityWebRequest.Result.Success)
-            {
-                Debug.LogWarning($"[Config] Fetch failed: {req.error}");
-                OnConfigFetchFailed?.Invoke(req.error);
-                return;
-            }
+## 第一层：陈述事实
 
-            ParseAndApplyConfig(req.downloadHandler.text);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[Config] Exception: {e.Message}");
-        }
-    }
+面试官：我看简历上说设计过AB打包是吧？
 
-    void ParseAndApplyConfig(string json)
-    {
-        try
-        {
-            var newConfig = JObject.Parse(json);
-            string newVersion = newConfig["version"]?.ToString() ?? "0";
-            
-            // 版本未变则跳过
-            if (newVersion == configVersion && isInitialized)
-            {
-                Debug.Log("[Config] Config up to date");
-                return;
-            }
-            
-            configVersion = newVersion;
-            
-            // 合并配置（新版本覆盖旧版本）
-            MergeConfig(newConfig);
-            
-            // 缓存到本地
-            SaveToCache(json);
-            
-            Debug.Log($"[Config] Config updated to v{configVersion}");
-            OnConfigUpdated?.Invoke(currentConfig);
-        }
-        catch (Exception e)
-        {
-            Debug.LogError($"[Config] Parse error: {e.Message}");
-        }
-    }
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-    void MergeConfig(JObject newConfig)
-    {
-        // 增量合并：新配置中有的覆盖旧的
-        foreach (var property in newConfig.Properties())
-        {
-            currentConfig[property.Name] = property.Value;
-        }
-        
-        isInitialized = true;
-    }
+此时，你不要着急说细节，你等别人问
 
-    void LoadFromCache()
-    {
-        string cached = PlayerPrefs.GetString(CACHE_KEY, "");
-        if (string.IsNullOrEmpty(cached)) return;
-        
-        // 检查缓存是否过期
-        if (long.TryParse(PlayerPrefs.GetString(CACHE_TIME_KEY, "0"), out long cacheTime))
-        {
-            long age = DateTimeOffset.UtcNow.ToUnixTimeSeconds() - cacheTime;
-            if (age > maxCacheAgeHours * 3600)
-            {
-                Debug.Log("[Config] Cache expired, will fetch fresh config");
-                return;
-            }
-        }
-        
-        try
-        {
-            currentConfig = JObject.Parse(cached);
-            configVersion = PlayerPrefs.GetString(CONFIG_VERSION_KEY, "0");
-            isInitialized = true;
-            Debug.Log("[Config] Loaded from cache");
-        }
-        catch { }
-    }
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-    void SaveToCache(string json)
-    {
-        PlayerPrefs.SetString(CACHE_KEY, json);
-        PlayerPrefs.SetString(CACHE_TIME_KEY, 
-            DateTimeOffset.UtcNow.ToUnixTimeSeconds().ToString());
-        PlayerPrefs.SetString(CONFIG_VERSION_KEY, configVersion);
-    }
+## 第二层：深挖细节
 
-    // ============ 配置读取接口 ============
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-    public string GetString(string key, string defaultValue = "")
-    {
-        return currentConfig[key]?.ToString() ?? defaultValue;
-    }
+你：巴拉巴拉
 
-    public int GetInt(string key, int defaultValue = 0)
-    {
-        return currentConfig[key]?.Value<int>() ?? defaultValue;
-    }
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-    public float GetFloat(string key, float defaultValue = 0f)
-    {
-        return currentConfig[key]?.Value<float>() ?? defaultValue;
-    }
+## 第三层：感受和观点
 
-    public bool GetBool(string key, bool defaultValue = false)
-    {
-        return currentConfig[key]?.Value<bool>() ?? defaultValue;
-    }
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-    public T GetObject<T>(string key) where T : class
-    {
-        var token = currentConfig[key];
-        if (token == null) return null;
-        return token.ToObject<T>();
-    }
-}
-```
+你: 巴拉巴拉
 
----
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-## 三、A/B测试框架
+## 对于你的启示
 
-```csharp
-/// <summary>
-/// A/B 测试管理器
-/// </summary>
-public class ABTestManager : MonoBehaviour
-{
-    private static ABTestManager instance;
-    public static ABTestManager Instance => instance;
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-    [System.Serializable]
-    public class Experiment
-    {
-        public string ExperimentId;
-        public string AssignedVariant;  // "control" / "variant_a" / "variant_b"
-        public long AssignmentTime;
-        public bool IsEnabled;
-    }
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-    private Dictionary<string, Experiment> experiments 
-        = new Dictionary<string, Experiment>();
-    
-    private const string EXPERIMENTS_KEY = "ab_experiments";
+大体只有两种情况会失败：
 
-    void Awake()
-    {
-        instance = this;
-        LoadExperiments();
-        
-        // 订阅远程配置更新
-        RemoteConfigManager.Instance.OnConfigUpdated += ApplyABConfig;
-    }
+面试官觉得你不适合，水平低
 
-    void ApplyABConfig(Newtonsoft.Json.Linq.JObject config)
-    {
-        var abTests = config["ab_tests"];
-        if (abTests == null) return;
-        
-        foreach (var test in abTests.Children())
-        {
-            string expId = test["id"]?.ToString();
-            if (string.IsNullOrEmpty(expId)) continue;
-            
-            if (!experiments.TryGetValue(expId, out var experiment))
-            {
-                // 新实验，分配变体
-                experiment = new Experiment
-                {
-                    ExperimentId = expId,
-                    AssignedVariant = AssignVariant(expId, test),
-                    AssignmentTime = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                    IsEnabled = test["enabled"]?.Value<bool>() ?? false
-                };
-                experiments[expId] = experiment;
-                
-                // 上报分配事件
-                TrackExperimentAssignment(experiment);
-            }
-        }
-        
-        SaveExperiments();
-    }
+面试官不清楚你是否合适，可能你表达的太抽象
 
-    /// <summary>
-    /// 为用户分配实验变体（确保同一用户始终分配到同一组）
-    /// </summary>
-    string AssignVariant(string expId, Newtonsoft.Json.Linq.JToken test)
-    {
-        // 使用 PlayerId + ExperimentId 的哈希值确保稳定分配
-        string playerId = PlayerDataService.GetLocalPlayerData()?.PlayerId ?? "anonymous";
-        string seed = $"{expId}_{playerId}";
-        int hash = Mathf.Abs(seed.GetHashCode());
-        
-        // 获取变体权重配置
-        var variants = test["variants"];
-        if (variants == null) return "control";
-        
-        int totalWeight = 0;
-        var variantList = new List<(string name, int weight)>();
-        
-        foreach (var v in variants)
-        {
-            string name = v["name"]?.ToString() ?? "control";
-            int weight = v["weight"]?.Value<int>() ?? 50;
-            totalWeight += weight;
-            variantList.Add((name, totalWeight));
-        }
-        
-        int pick = hash % totalWeight;
-        foreach (var (name, cumWeight) in variantList)
-        {
-            if (pick < cumWeight) return name;
-        }
-        
-        return "control";
-    }
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-    /// <summary>
-    /// 获取当前实验变体
-    /// </summary>
-    public string GetVariant(string experimentId)
-    {
-        if (experiments.TryGetValue(experimentId, out var exp) && exp.IsEnabled)
-            return exp.AssignedVariant;
-        return "control";
-    }
+# 如何寻找小而美的公司
 
-    public bool IsInVariant(string experimentId, string variantName)
-    {
-        return GetVariant(experimentId) == variantName;
-    }
-
-    void TrackExperimentAssignment(Experiment exp)
-    {
-        AnalyticsManager.Instance?.Track("experiment_assigned", 
-            new Dictionary<string, object>
-            {
-                ["experiment_id"] = exp.ExperimentId,
-                ["variant"] = exp.AssignedVariant
-            });
-    }
-
-    void LoadExperiments()
-    {
-        string json = PlayerPrefs.GetString(EXPERIMENTS_KEY, "");
-        if (!string.IsNullOrEmpty(json))
-        {
-            // 从缓存恢复实验分配
-        }
-    }
-
-    void SaveExperiments()
-    {
-        // 持久化实验分配，确保用户不会在会话间切组
-        string json = JsonConvert.SerializeObject(
-            new List<Experiment>(experiments.Values));
-        PlayerPrefs.SetString(EXPERIMENTS_KEY, json);
-    }
-}
-```
-
----
-
-## 四、Feature Flag（特性开关）
-
-```csharp
-/// <summary>
-/// 特性开关管理器
-/// 用于控制功能的灰度发布
-/// </summary>
-public static class FeatureFlags
-{
-    // 特性开关定义
-    public static readonly FeatureFlag NewBattleSystem = new FeatureFlag("new_battle_system");
-    public static readonly FeatureFlag NewUI = new FeatureFlag("new_ui_v2");
-    public static readonly FeatureFlag SeasonalEvent = new FeatureFlag("seasonal_event_2026");
-    public static readonly FeatureFlag AdvancedGraphics = new FeatureFlag("advanced_graphics");
-    
-    public class FeatureFlag
-    {
-        public string Key { get; }
-        
-        public FeatureFlag(string key) { Key = key; }
-        
-        /// <summary>
-        /// 是否启用该特性
-        /// </summary>
-        public bool IsEnabled => RemoteConfigManager.Instance?.GetBool(Key, false) ?? false;
-        
-        /// <summary>
-        /// 在 A/B 测试中是否分配到实验组
-        /// </summary>
-        public bool IsInExperiment(string variant = "treatment") =>
-            ABTestManager.Instance?.IsInVariant(Key, variant) ?? false;
-    }
-}
-
-// 使用示例
-public class GameInitializer : MonoBehaviour
-{
-    void Start()
-    {
-        // 根据特性开关决定使用哪个战斗系统
-        if (FeatureFlags.NewBattleSystem.IsEnabled)
-            ServiceLocator.Register<IBattleSystem>(new NewBattleSystem());
-        else
-            ServiceLocator.Register<IBattleSystem>(new LegacyBattleSystem());
-        
-        // 季节活动开关
-        if (FeatureFlags.SeasonalEvent.IsEnabled)
-            SeasonalEventManager.Instance?.StartEvent();
-    }
-}
-```
-
----
-
-## 五、灰度发布策略
-
-| 策略 | 描述 | 适用场景 |
-|------|------|----------|
-| 百分比发布 | 10% → 30% → 100% 逐步放量 | 高风险功能 |
-| 地区发布 | 先日本测试，再全球发布 | 地区适配需求 |
-| 用户段发布 | 先内测用户，再付费用户，再全量 | 需要专业反馈 |
-| A/B测试 | 随机50%测试新功能 | 不确定是否更好 |
-| 特定设备 | 仅高端机型启用 | 图形特效 |
-
-**A/B测试指导原则：**
-1. 一次只测试一个变量（控制变量法）
-2. 测试周期至少2周（消除周期性偏差）
-3. 样本量足够大（统计显著性 p < 0.05）
-4. 明确主指标（不要追太多指标）
-5. 测试结束后及时清理临时代码
+真格基金、红杉资本；看看一线投资机构的选择。

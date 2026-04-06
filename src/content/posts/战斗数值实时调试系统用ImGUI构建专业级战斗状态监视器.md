@@ -1,255 +1,85 @@
----
-title: 战斗数值实时调试系统——用ImGUI构建专业级战斗状态监视器
-published: 2026-03-31
-description: 详解在Unity战斗游戏中实现一套实时数值调试HUD，包括布局设计、日志筛选、数值快照与帧文件写入
-tags: [Unity, 战斗系统, 调试工具]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 战斗数值实时调试系统——用ImGUI构建专业级战斗状态监视器
+# 简历投递
 
-游戏开发中最痛苦的事情之一，是战斗数值不对，但你不知道是哪一帧、哪个单位出了问题。
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-打日志？日志太多，翻半天。加断点？战斗实时运行，断了就没法测。写Inspector面板？每次打开Editor很慢，Inspector数据也不够实时。
+# 预约面试
 
-VGame项目的`BattleNumericScreenDisplay`给出了一个优雅的解决方案：一个直接叠加在游戏画面上的实时战斗状态调试HUD，用Unity的`OnGUI`实现，性能开销只在显示时计算。
+这边简历通过了业务部门评估，约时间面试
 
-## 一、系统的整体布局设计
+# 项目经验考察
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│  [顶部] Turn: 5  Frame: 240  |  我方HP: 850 AP: 30  |  敌方HP: 420  │
-├──────────────────┬───────────────────┬─────────────────────┤
-│  [左下] 我方3人   │  [中下] 战斗日志   │  [右下] 敌方3人       │
-│  英雄A: HP/AP/PP │  F240 Damage 350  │  Boss: HP/AP/PP     │
-│  英雄B: HP/AP/PP │  F239 Token +2    │  小兵A: HP/AP/PP    │
-│  英雄C: HP/AP/PP │  F238 Guard -100  │  小兵B: HP/AP/PP    │
-└──────────────────┴───────────────────┴─────────────────────┘
-```
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-代码注释清晰描述了这套布局：
+# 游戏客户端面经
 
-```csharp
-/// 布局：
-///   [顶部]   全局(Turn/Frame) + 己方Team HP/AP/PP | 敌方Team HP/AP/PP
-///   [左下]   己方3人单位数据（右对齐）
-///   [中下]   战斗日志（可筛选，最新在最上方，带Frame前缀）
-///   [右下]   敌方3人单位数据（左对齐）
-///
-/// 快捷键：
-///   Ctrl+T   显示/隐藏
-///   Space    暂停/恢复（仅显示时有效）
-```
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-这套布局的设计思路是：让数值调试人员一眼看到双方全局状态（顶部），同时能看到单位详情（左下、右下），并实时追踪事件日志（中下）。
+战斗无非就是帧同步和状态同步
 
-## 二、GUIStyle的缓存设计
+经典的笔试题也要刷一些  
 
-```csharp
-public class BattleNumericScreenDisplay
-{
-    // GUIStyle 缓存，避免每帧重新创建
-    private GUIStyle _bgStyle;
-    private GUIStyle _styleLeft;    // 左侧单位：左对齐
-    private GUIStyle _styleRight;   // 右侧单位：左对齐（布局负责左右放置）
-    private GUIStyle _styleTop;     // 顶部：居中
-    private GUIStyle _styleLog;     // 日志：上对齐左
-    private GUIStyle _btnOn;        // 激活状态按钮
-    private GUIStyle _btnOff;       // 非激活状态按钮
-    private GUIStyle _btnFold;      // 折叠展开按钮
-}
-```
+# 面试的底层逻辑
 
-`GUIStyle`对象的创建有一定的开销。在`OnGUI`里（每帧调用2次以上）重复创建是非常浪费的。将样式缓存起来，首次调用时初始化一次，后续直接使用。
+表层事实->深度细节->感受和观点
 
-**字号设计**：
+经验->技能->潜力->动机
 
-```csharp
-private const int FontBase   = 24;
-private const int FontMain   = (int)(FontBase * 1.1f); // 一号位角色放大10%
-private const int FontTopHp  = FontBase * 2;           // 顶部HP放大到48
-private const int FontLog    = (int)(16 * 1.5f);       // 日志字体缩小但更密集
-```
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-通过相对倍数而非绝对值定义字体大小，便于统一调整整体大小。
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-**颜色设计**：
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-```csharp
-private const string ColHp    = "#FFD700"; // 金黄色——HP（重要数值）
-private const string ColGuard = "#FF8C00"; // 深橙色——护盾（次要数值）
-```
+## 第一层：陈述事实
 
-不同数值类型用不同颜色区分，快速识别。
+面试官：我看简历上说设计过AB打包是吧？
 
-## 三、日志缓冲与滚动控制
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-```csharp
-// 日志缓冲（新日志插入头部，index 0 = 最新）
-private readonly List<string> _logLines = new List<string>();
-private const int MaxLogLines = 30;
+此时，你不要着急说细节，你等别人问
 
-// 日志滚动位置
-private Vector2 _logScrollPos = Vector2.zero;
-private bool    _logNewArrived = false; // 有新日志时自动滚到顶部
-```
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-两个关键设计：
+## 第二层：深挖细节
 
-**新日志插入头部**：最新的日志在列表最上方，不需要滚动就能看到最新事件。（对比游戏内聊天是新消息在底部——这里是调试工具，需要立刻看到最新事件）
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-**自动滚到顶部**：收到新日志时设置`_logNewArrived = true`，OnGUI绘制时自动将滚动条滚到顶部。调试时不需要手动滚动。
+你：巴拉巴拉
 
-```csharp
-// 最多保留30条日志
-private const int MaxLogLines = 30;
-```
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-限制日志条数防止内存无限增长，同时30条足够看到最近的战斗事件序列。
+## 第三层：感受和观点
 
-## 四、日志筛选系统
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-```csharp
-private struct LogFilter
-{
-    public string   Label;    // 筛选器名称（显示在按钮上）
-    public string[] Keywords; // 关键词列表（任意匹配）
-    public bool     Enabled;  // 是否启用
-}
+你: 巴拉巴拉
 
-private LogFilter[] _logFilters;
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-private void EnsureLogFilters()
-{
-    if (_logFilters != null) return;
-    _logFilters = new LogFilter[]
-    {
-        new LogFilter { 
-            Label = "Damage",   
-            Keywords = new[]{ "Damage", "damage", "伤害", "Dmg" },
-            Enabled = true  
-        },
-        new LogFilter { 
-            Label = "Token",    
-            Keywords = new[]{ "Token", "token", "Focus", "Dodge", "Critical" },
-            Enabled = true  
-        },
-        // 更多筛选器...
-    };
-}
-```
+## 对于你的启示
 
-战斗日志非常密集，如果全部显示会信息过载。筛选器让调试人员只看关心的内容：
-- 看伤害问题 → 只开启"Damage"筛选器
-- 看资源（Token）问题 → 只开启"Token"筛选器
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-**Keywords数组支持中英文关键词**，兼容代码中中英文混用的日志。
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-## 五、FriendOf特性与组件访问控制
+大体只有两种情况会失败：
 
-```csharp
-[FriendOf(typeof(BattleNumericScreenDisplayHolder))]
-[FriendOf(typeof(BattleScriptComponent))]
-[FriendOf(typeof(TeamEntity))]
-public static partial class BattleNumericScreenDisplaySystem
-{
-    // 封装受保护字段的访问（通过FriendOf获取权限）
-    public static int GetCurTurn(BattleScriptComponent bsComp) => bsComp.CurTurn;
-    public static int GetCurFrame(BattleScriptComponent bsComp) => bsComp.curFrame;
-    public static Dictionary<long, Dictionary<EStateTag, int>> GetStateList(BattleScriptComponent bsComp) 
-        => bsComp.StateList;
-}
-```
+面试官觉得你不适合，水平低
 
-ET框架的`[FriendOf]`特性类似C++的`friend class`声明，允许一个系统类访问另一个组件的私有/保护字段。
+面试官不清楚你是否合适，可能你表达的太抽象
 
-**为什么要用FriendOf而不是直接改成public？**
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-`BattleScriptComponent.CurTurn`这样的字段如果改成public，所有代码都能随意读写，容易出现乱改导致的bug。通过`[FriendOf]`，只有被授权的系统才能访问，既保持了接口整洁，又允许特定的跨组件访问。
+# 如何寻找小而美的公司
 
-## 六、数值快照机制
-
-```csharp
-private int _snapshotIntervalFrames = 20; // 每20帧快照一次
-private int _lastSnapshotFrame = -1;       // 上次快照的帧号
-
-public int SnapshotIntervalFrames
-{
-    get => _snapshotIntervalFrames;
-    set => _snapshotIntervalFrames = Mathf.Max(1, value); // 最少1帧快照一次
-}
-```
-
-不是每帧都记录全量数值（太多了），而是每20帧拍一次"快照"，记录当前所有单位的完整状态。
-
-快照的用途：
-- 战斗复盘：出了问题，可以看某一帧的完整状态
-- 性能数值对比：每20帧的快照可以发现数值缓慢变化的趋势
-
-## 七、日志文件写入
-
-```csharp
-private StreamWriter _logFileWriter   = null;
-private string       _logFileTempPath = null;
-private bool         _wasInBattle     = false;
-
-// 日志路径：Application.dataPath/../../battlelogs/（与UnityProj同级）
-```
-
-除了屏幕显示，还支持将战斗日志写入文件。路径在`UnityProj`同级目录（不在Assets内），避免Unity因为发现新文件而触发不必要的资源导入。
-
-`_wasInBattle`用来检测"新战斗开始"：当从非战斗状态转为战斗状态时，打开一个新的日志文件，避免多次战斗的日志混在一起。
-
-## 八、系统注册/注销的Event设计
-
-```csharp
-[Event(SceneType.Current)]
-public class NumericDisplay_InitEvent : AEvent<Evt_InitLogShowrOnGUI>
-{
-    protected override void Run(Scene scene, Evt_InitLogShowrOnGUI argv)
-    {
-        var bsComp = scene.GetComponent<BattleScriptComponent>();
-        var display = new BattleNumericScreenDisplay(bsComp);
-        var holder = scene.GetOrAddComponent<BattleNumericScreenDisplayHolder>();
-        SetupDisplay(holder, display);
-        
-        // 注册到OnGUI回调
-        OnGuiTransponder.Instance.ShowLogToScreenEvent += display.OnGUI;
-    }
-}
-
-[Event(SceneType.Current)]
-public class NumericDisplay_UnInitEvent : AEvent<Evt_UnInitLogShowrOnGUI>
-{
-    protected override void Run(Scene scene, Evt_UnInitLogShowrOnGUI argv)
-    {
-        var holder = scene.GetComponent<BattleNumericScreenDisplayHolder>();
-        var display = GetDisplay(holder);
-        OnGuiTransponder.Instance.ShowLogToScreenEvent -= display.OnGUI;
-        scene.RemoveComponent<BattleNumericScreenDisplayHolder>();
-    }
-}
-```
-
-**注释里有一句关键话**：`不修改任何已有代码，独立新增`。
-
-这是一个很好的扩展性设计思路。通过监听已有的`Evt_InitLogShowrOnGUI`事件，在战斗初始化时自动注入调试HUD，完全不需要修改战斗的核心代码。如果以后要移除调试HUD，删除这两个Event类就够了，不会影响战斗逻辑。
-
-## 九、性能开销控制
-
-调试工具不应该影响游戏性能。这套系统的性能设计：
-
-1. **默认不显示**：`_visible = false`，OnGUI里不可见就不绘制
-2. **样式缓存**：GUIStyle只初始化一次
-3. **日志上限**：最多30条，不无限增长
-4. **按帧率快照**：不是每帧全量记录
-
-完整代码接近1000行，但在非调试状态下（`_visible=false`），每帧的OnGUI代价只有一次bool检查，可以忽略不计。
-
-## 十、总结
-
-这套调试HUD体现了"调试工具第一公民"的工程文化。好的游戏团队不会因为"这只是调试工具不重要"就草率实现，而是花精力设计好用的工具，这样节省的调试时间远超工具开发时间。
-
-对新手的建议：**工具开发是投资，不是成本**。一个好的调试工具可以让一个问题从"排查3天"变成"10分钟定位"。
+真格基金、红杉资本；看看一线投资机构的选择。

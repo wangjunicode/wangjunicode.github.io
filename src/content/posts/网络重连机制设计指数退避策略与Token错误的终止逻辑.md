@@ -1,267 +1,85 @@
----
-title: 网络重连机制设计——指数退避策略与Token错误的终止逻辑
-published: 2026-03-31
-description: 深度解析游戏网络重连组件的设计，包括GCloud长连接断线回调、重试次数上限、延迟重连间隔与Token失效的特殊处理
-tags: [Unity, 网络编程, 断线重连]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 网络重连机制设计——指数退避策略与Token错误的终止逻辑
+# 简历投递
 
-手机游戏中，断线重连是用户体验的关键。用户信号短暂丢失后，游戏应该自动尝试重连，而不是直接弹出"连接失败"让用户手动操作。但重连不是无限重试，需要有退出条件。
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-VGame项目的`ReconnectorSystem`实现了一套完整的重连策略，本文分析其设计思路。
+# 预约面试
 
-## 一、重连的三种结局
+这边简历通过了业务部门评估，约时间面试
 
-```csharp
-private static void _OnConnected(this Reconnector self, GCloudConnection conn)
-{
-    // 结局1：连接成功，结束重连流程
-    self._EndReconnect((int)ConnectorErrorCode.Success);
-}
+# 项目经验考察
 
-private static void _OnConnectTimeout(this Reconnector self)
-{
-    // 结局2：超时，继续尝试重连
-    self._DelayReconnect((int)ConnectorErrorCode.InnerError);
-}
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-private static void _OnConnectError(this Reconnector self, 
-    GCloudConnection connection, int errorNum, NET_ERROR_TYPE errorType, OperationType operation)
-{
-    if (NetWorkUtils.IsTokenError((ConnectorErrorCode)errorNum))
-    {
-        // 结局3：Token失效，直接结束，不再重连
-        self._EndReconnect(errorNum);
-    }
-    else
-    {
-        // 其他错误，继续尝试重连
-        self._DelayReconnect(errorNum);
-    }
-}
-```
+# 游戏客户端面经
 
-**Token错误的特殊处理**：
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-Token失效（登录凭据过期）是一种特殊情况：重连100次也没用，因为Token已经无效了。必须让玩家重新登录获取新Token。
+战斗无非就是帧同步和状态同步
 
-`NetWorkUtils.IsTokenError`检查是否是Token相关的错误码，是则立刻调用`_EndReconnect`（最终会触发返回登录界面），而不是无意义地重试。
+经典的笔试题也要刷一些  
 
-## 二、延迟重连：每次等待1秒
+# 面试的底层逻辑
 
-```csharp
-private const float RECONNECT_INTERVAL = 1.0f; // 1秒后重试
+表层事实->深度细节->感受和观点
 
-private static void _DelayReconnect(this Reconnector self, int errorCode)
-{
-    // 检查是否已达到最大重连次数
-    if (self._retrytimes >= self._maxretrytimes)
-    {
-        Log.Warning(ZString.Concat(
-            "[Reconnector] 重连次数已达上限(", self._maxretrytimes, "次)，结束重连"));
-        self._EndReconnect((int)ConnectorErrorCode.InnerError);
-    }
-    else if (!self._isWaiting)
-    {
-        Debug.Log(ZString.Concat("[Reconnector] 重连", self._connName, "失败，等待 错误码 = ", errorCode));
-        
-        self._isWaiting = true;
-        self._waitingtime = Game.realtimeSinceStartup; // 记录等待开始时间
-        
-        // 注册Update事件，等待1秒后触发重连
-        self.RootDispatcher().RegisterEvent<Evt_UnityUpdate>(self._OnTimeupdate);
-    }
-}
+经验->技能->潜力->动机
 
-private static void _OnTimeupdate(this Reconnector self, Evt_UnityUpdate e)
-{
-    if (Game.realtimeSinceStartup - self._waitingtime > RECONNECT_INTERVAL)
-    {
-        Log.Info(ZString.Concat("OnTimeUpdate in reconnecting:", 
-            Game.realtimeSinceStartup, " _retryTimes", self._retrytimes));
-        
-        self._isWaiting = false;
-        self.RootDispatcher().UnRegisterEvent<Evt_UnityUpdate>(self._OnTimeupdate);
-        
-        self.Reconnect(); // 发起实际的重连请求
-    }
-}
-```
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-**用Update事件计时而不是协程**：
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-为什么用`Evt_UnityUpdate`（每帧事件）+ 时间差判断，而不是`await TimerComponent.Instance.WaitAsync(1000)`？
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-因为`Reconnector`可能不是MonoBehaviour，不能直接启动协程。同时，`Evt_UnityUpdate`是ET框架的统一Update事件，可以在任何Entity上使用，更通用。
+## 第一层：陈述事实
 
-**`!self._isWaiting`的防重入**：
+面试官：我看简历上说设计过AB打包是吧？
 
-如果`_DelayReconnect`被多次快速调用（比如同时收到多个连接错误回调），`_isWaiting`标志防止重复注册Update事件，避免同时进行多个"等待计时"。
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-## 三、结束重连的处理
+此时，你不要着急说细节，你等别人问
 
-```csharp
-public static void _EndReconnect(this Reconnector self, int code)
-{
-    // 1. 隐藏重连中的Loading界面
-    self.HideConnectReconnectingLoading();
-    
-    if (code != (int)ConnectorErrorCode.Success)
-    {
-        // 2. 失败：清理回调，弹出错误弹窗让用户手动处理
-        if (self._conn != null)
-        {
-            self._conn.OnConnectedCallback -= self._OnConnected;
-            self._conn.OnConnectTimeout -= self._OnConnectTimeout;
-            self._conn.OnConnectError -= self._OnConnectError;
-        }
-        
-        // 弹出"断线"弹窗（会有"重试"或"返回登录"按钮）
-        self.ShowDisconnectDialog();
-    }
-    else
-    {
-        // 3. 成功：执行连接成功回调
-        self._callBack?.Invoke((int)ConnectorErrorCode.Success);
-        self._callBack = null;
-    }
-    
-    self._retrytimes = 0; // 重置重试计数
-}
-```
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-**清理回调的重要性**：
+## 第二层：深挖细节
 
-注销`_conn`上的所有事件回调（`OnConnectedCallback`、`OnConnectTimeout`、`OnConnectError`），防止旧的`Reconnector`实例仍然接收新连接的回调。
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-如果不清理：重连失败后用户手动点了"重试"，新的连接成功了，但旧的Reconnector还在监听，会收到成功回调并执行一些已经不应该执行的逻辑。
+你：巴拉巴拉
 
-## 四、重连中的Loading界面
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-```csharp
-private static readonly int ConnectReconnectingLoadingCode = "ConnectReconnecting".GetHashCode();
+## 第三层：感受和观点
 
-public static void ShowConnectReconnectingLoading(this Reconnector self)
-{
-    var code = ConnectReconnectingLoadingCode;
-    // 显示全局Loading（带文字"网络重连中..."）
-    UILoadingMgr.Instance.ShowLoading(code, "网络重连中...");
-}
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-public static void HideConnectReconnectingLoading(this Reconnector self)
-{
-    UILoadingMgr.Instance.HideLoading(ConnectReconnectingLoadingCode);
-}
-```
+你: 巴拉巴拉
 
-重连期间显示一个半透明的Loading遮罩，防止用户误操作，同时给用户反馈"系统正在自动重连"。
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-**哈希Code作为Loading标识**：`"ConnectReconnecting".GetHashCode()`生成一个固定的整数，用于精确控制这个Loading的显示/隐藏，不影响其他Loading。
+## 对于你的启示
 
-## 五、消息队列的批量分发
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-```csharp
-// MessageQueueSystem.cs
-public static void AddMessage(this MessageQueue self, uint cmdId, uint serial, object message)
-{
-    self._msgSize++;
-    
-    // 对象重用：优先复用已有UnroutedMessage对象
-    UnroutedMessage routeMessage = null;
-    if (self._messages.Count < self._msgSize)
-    {
-        self._messages.Add(routeMessage = new UnroutedMessage());
-    }
-    else
-    {
-        int index = self._msgSize - 1;
-        routeMessage = self._messages[index]; // 复用已有对象
-    }
-    
-    routeMessage.cmdId = cmdId;
-    routeMessage.serial = serial;
-    routeMessage.message = message;
-}
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-public static void Distribute(this MessageQueue self)
-{
-    if (self._msgSize > self._msgIndex)
-    {
-        while (self._msgSize > self._msgIndex)
-        {
-            UnroutedMessage message = self._messages[self._msgIndex];
-            self._msgIndex++;
-            
-            object msg = message.message;
-            message.message = null; // 清空对象（不持有引用，允许GC回收消息对象）
-            
-            if (self._msgRouter != null)
-                self._msgRouter.Route(message.cmdId, message.serial, msg);
-        }
-        
-        self._msgIndex = 0;
-        self._msgSize = 0; // 批量分发完成，重置计数
-    }
-}
-```
+大体只有两种情况会失败：
 
-**`_messages`列表的对象重用**：
+面试官觉得你不适合，水平低
 
-`_messages`列表只增不减：第一次收到5条消息，列表有5个UnroutedMessage。分发完后`_msgSize=0`，但列表对象还在。下次收到3条消息，直接复用前3个对象，不创建新的。
+面试官不清楚你是否合适，可能你表达的太抽象
 
-这消除了高频消息接收时反复创建/销毁`UnroutedMessage`对象的GC开销。
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-**`message.message = null`的GC友好处理**：
+# 如何寻找小而美的公司
 
-分发完后将引用置null，允许GC回收消息对象（如Proto消息）。如果不置null，`_messages`列表会持有所有已处理消息的引用，阻止GC。
-
-## 六、敏感词过滤的自动重连
-
-`TextUtils.SensitiveWordFilter`展示了另一种重连模式：
-
-```csharp
-public static async ETTask<string> SensitiveWordFilter(string text, bool connectFirst = false)
-{
-    var connector = SceneUtil.FirstClientScene().GetComponent<ConnectorComponent>();
-    if (!connector.IsConnected())
-        connectFirst = true; // 未连接时强制先连接
-    
-    if (connectFirst)
-    {
-        await ReConnect(null); // 先重连
-        if (!connector.IsConnected())
-            return null; // 重连失败，返回null（上层决定如何处理）
-    }
-    
-    // ... 发送敏感词过滤请求
-    
-    if (!nr.IsCompleteSuccess)
-    {
-        if (connectFirst && connector.IsConnected())
-            text = nr.Data.FilterText;
-        else
-            text = await SensitiveWordFilter(text, true); // 递归重试（最多一次）
-    }
-    
-    return text;
-}
-```
-
-**递归重试**：第一次失败时，`connectFirst=true`递归调用自身，尝试重连后再次发送请求。但只递归一次（第二次`connectFirst=true`且`IsConnected()`失败才彻底放弃），避免无限递归。
-
-## 七、总结
-
-重连机制的设计展示了：
-
-1. **错误分类**：Token错误立刻停止（无意义重试），其他错误继续重试
-2. **等待间隔**：1秒间隔避免频繁无效重连
-3. **重连上限**：最大重试次数防止无限等待
-4. **Loading反馈**：重连期间显示Loading，防止误操作
-5. **回调清理**：结束时注销所有回调，防止状态泄露
-6. **消息队列复用**：UnroutedMessage对象池消除GC压力
-
-对新手来说，网络重连设计的核心思路：**把"连接状态"和"业务逻辑"分离**——Reconnector只管重连，不管重连成功后要做什么（那是回调的工作），职责单一，代码清晰。
+真格基金、红杉资本；看看一线投资机构的选择。

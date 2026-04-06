@@ -1,223 +1,85 @@
----
-title: 数据传输对象（DTO）模式：分离传输结构与领域模型的工程实践
-published: 2026-03-31
-description: 深入解析 DTO 在游戏开发中的应用场景，理解为什么要将网络传输数据与游戏领域对象分离，以及如何设计易于序列化的数据结构。
-tags: [Unity, 设计模式, 网络编程, 数据设计]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-## DTO 是什么？
+# 简历投递
 
-**DTO（Data Transfer Object，数据传输对象）** 是一种用于在不同层之间传输数据的简单对象。它的特点是：
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-- 只有数据字段，没有业务方法
-- 专门为数据传输（序列化）优化
-- 不包含业务逻辑
+# 预约面试
 
-在游戏开发中，DTO 主要用于：
-1. **网络消息**：客户端与服务器之间的数据交换
-2. **存档数据**：游戏进度序列化到磁盘
-3. **配置数据**：从 JSON/二进制读取的配置表数据
+这边简历通过了业务部门评估，约时间面试
 
----
+# 项目经验考察
 
-## 为什么需要 DTO？直接用领域对象不行吗？
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-假设你的角色类（领域对象）是这样的：
+# 游戏客户端面经
 
-```csharp
-public class Character : Entity
-{
-    public int Id;
-    public string Name;
-    public int Hp;
-    public int MaxHp;
-    
-    // 大量引用类型字段
-    public List<Skill> Skills;         // 技能列表（技能对象很重）
-    public Dictionary<int, Item> Items; // 背包（每个道具有 Sprite 等资源）
-    public Animator Animator;          // Unity 组件（不可序列化）
-    public Transform Transform;        // Unity 组件（不可序列化）
-    
-    // 大量业务方法
-    public void Attack(Character target) { ... }
-    public void TakeDamage(int damage) { ... }
-    public void LevelUp() { ... }
-}
-```
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-如果直接序列化这个对象：
-1. 无法序列化 `Animator`、`Transform`（Unity 组件）
-2. 序列化整个 `Skill` 对象树太大了
-3. 客户端不需要发送所有字段给服务器
+战斗无非就是帧同步和状态同步
 
----
+经典的笔试题也要刷一些  
 
-## 定义角色 DTO
+# 面试的底层逻辑
 
-```csharp
-// 网络传输用 DTO（精简、序列化友好）
-[MemoryPackable]
-public partial class CharacterDTO
-{
-    public int Id;
-    public string Name;
-    public int Hp;
-    public int MaxHp;
-    public int Level;
-    public long UserId;
-    
-    // 技能只传 ID，不传完整对象
-    public int[] SkillIds;
-    
-    // 装备只传 ID
-    public int[] EquipItemIds;
-    
-    // 位置（帧同步用定点数）
-    public long PositionX;
-    public long PositionY;
-    public long PositionZ;
-}
+表层事实->深度细节->感受和观点
 
-// 存档 DTO（包含更多数据，但仍然精简）
-[MemoryPackable]
-public partial class CharacterSaveDTO
-{
-    public int Id;
-    public int Level;
-    public int Exp;
-    public int Hp;
-    
-    // 背包（只存 ID 和数量）
-    public ItemSaveDTO[] Items;
-    
-    // 任务进度
-    public QuestProgressDTO[] Quests;
-    
-    // 最后登出时间
-    public long LastLogoutTime;
-}
+经验->技能->潜力->动机
 
-[MemoryPackable]
-public partial class ItemSaveDTO
-{
-    public int ItemId;
-    public int Count;
-    public int EquipSlot;  // -1 = 背包, 0-5 = 装备槽
-}
-```
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
----
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-## DTO 与领域对象的转换
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-DTO 只是数据容器，需要转换为领域对象才能使用：
+## 第一层：陈述事实
 
-```csharp
-// 转换器（Mapper）
-public static class CharacterMapper
-{
-    // DTO → 领域对象
-    public static void Apply(Character character, CharacterDTO dto)
-    {
-        character.Name = dto.Name;
-        character.Hp = dto.Hp;
-        character.MaxHp = dto.MaxHp;
-        character.Level = dto.Level;
-        
-        // 根据 SkillId 从配置表创建技能对象
-        character.Skills.Clear();
-        foreach (var skillId in dto.SkillIds)
-        {
-            var skillConfig = ConfigManager.GetSkill(skillId);
-            character.Skills.Add(new Skill(skillConfig));
-        }
-    }
-    
-    // 领域对象 → DTO
-    public static CharacterDTO ToDTO(Character character)
-    {
-        return new CharacterDTO
-        {
-            Id = character.Id,
-            Name = character.Name,
-            Hp = character.Hp,
-            MaxHp = character.MaxHp,
-            Level = character.Level,
-            SkillIds = character.Skills.Select(s => s.SkillId).ToArray(),
-            EquipItemIds = character.GetEquippedItemIds()
-        };
-    }
-}
-```
+面试官：我看简历上说设计过AB打包是吧？
 
----
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-## 配置表 DTO
+此时，你不要着急说细节，你等别人问
 
-配置表数据通常是只读的，直接用 DTO 作为配置对象：
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-```csharp
-// 技能配置（从 JSON/二进制读取）
-[MemoryPackable]
-public partial class SkillConfig
-{
-    public int Id;
-    public string Name;
-    public string Description;
-    public int Damage;
-    public int ManaCost;
-    public float CooldownSeconds;
-    public int[] EffectIds;     // 特效 ID 列表
-    public int[] BuffIds;       // 施加的 Buff 列表
-    public string IconPath;     // 图标资源路径
-    public string AnimationName; // 动画状态名
-}
+## 第二层：深挖细节
 
-// 配置管理器：加载并缓存
-public class ConfigManager : Singleton<ConfigManager>
-{
-    private Dictionary<int, SkillConfig> _skillConfigs = new();
-    
-    public void LoadAll()
-    {
-        var configs = SerializeHelper.Deserialize<List<SkillConfig>>("Configs/Skills");
-        foreach (var config in configs)
-        {
-            _skillConfigs[config.Id] = config;
-        }
-    }
-    
-    public SkillConfig GetSkill(int id)
-    {
-        return _skillConfigs.TryGetValue(id, out var config) ? config : null;
-    }
-}
-```
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
----
+你：巴拉巴拉
 
-## DTO 设计的核心原则
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-| 原则 | 说明 |
-|------|------|
-| 精简字段 | 只包含传输所需的字段 |
-| 值类型优先 | int/float/string 比引用类型好序列化 |
-| 用 ID 替代引用 | `int skillId` 而不是 `Skill skill` |
-| 无业务方法 | DTO 不处理业务逻辑 |
-| 序列化友好 | `[MemoryPackable]` 或 `[Serializable]` |
+## 第三层：感受和观点
 
----
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-## 总结
+你: 巴拉巴拉
 
-DTO 模式在游戏中的价值：
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-1. **解耦**：网络结构变化不影响领域模型，反之亦然
-2. **安全**：只传必要字段，不泄露服务器内部结构
-3. **性能**：精简的 DTO 序列化更快，包更小
-4. **清晰**：明确区分"传输数据"和"游戏数据"
+## 对于你的启示
 
-DTO 看似简单，但在大型项目中是维护代码清洁度的重要工具。掌握 DTO 模式，是从"能跑起来"到"工程师代码"的重要一步。
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+
+大体只有两种情况会失败：
+
+面试官觉得你不适合，水平低
+
+面试官不清楚你是否合适，可能你表达的太抽象
+
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+
+# 如何寻找小而美的公司
+
+真格基金、红杉资本；看看一线投资机构的选择。

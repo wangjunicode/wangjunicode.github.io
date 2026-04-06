@@ -1,230 +1,85 @@
----
-title: 定时器常量与脚本初始化——TimerCoreCallbackId 和 UniScriptInitializationData 解析
-published: 2026-03-31
-description: 解析 TimerCoreCallbackId 和 UniScriptInitializationData 的设计，理解常量类在防止魔法数字中的价值，以及 partial 类和 static 属性在跨程序集脚本系统初始化中的应用。
-tags: [Unity, ECS, 常量设计, 脚本系统, 代码质量]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 定时器常量与脚本初始化——TimerCoreCallbackId 和 UniScriptInitializationData 解析
+# 简历投递
 
-## 前言
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-有两个看似简单但设计思想深刻的小类：`TimerCoreCallbackId` 和 `UniScriptInitializationData`。
+# 预约面试
 
-它们本身代码量极少，但体现了两个重要的工程原则：**消除魔法数字** 和 **跨程序集的数据共享**。
+这边简历通过了业务部门评估，约时间面试
 
----
+# 项目经验考察
 
-## 一、TimerCoreCallbackId——消灭魔法数字的常量类
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-```csharp
-namespace ET
-{
-    public static class TimerCoreCallbackId
-    {
-        public const int CoroutineTimeout = 1;
-    }
-}
-```
+# 游戏客户端面经
 
-一个静态类，只有一个常量，定义值为 `1`。
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-### 1.1 为什么需要这个类？
+战斗无非就是帧同步和状态同步
 
-在代码库中，会有这样的调用：
+经典的笔试题也要刷一些  
 
-```csharp
-// 没有 TimerCoreCallbackId 时的写法（魔法数字）
-TimerComponent.Instance.NewOnceTimer(timeout, 1, coroutineInfo);
-// Q: 这个 1 是什么意思？为什么是 1？
+# 面试的底层逻辑
 
-// 有 TimerCoreCallbackId 时的写法
-TimerComponent.Instance.NewOnceTimer(timeout, TimerCoreCallbackId.CoroutineTimeout, coroutineInfo);
-// 一目了然：这是协程超时定时器
-```
+表层事实->深度细节->感受和观点
 
-**魔法数字（Magic Number）** 是指代码中直接出现的没有名字的数字，比如 `if (status == 3)` 或 `timer.type = 1`。
+经验->技能->潜力->动机
 
-魔法数字的问题：
-1. **可读性差**：看不出这个数字代表什么
-2. **维护困难**：如果需要修改这个值，要找遍所有用到它的地方
-3. **容易出错**：在不同地方手写同一个数字，容易写错
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-用命名常量（Named Constant）替代魔法数字，是代码质量的基本要求。
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-### 1.2 为什么是独立的类，而不是放在 TimerComponent 里？
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-```csharp
-// 可以这样放
-public class TimerComponent
-{
-    public const int CoroutineTimeout = 1;
-}
+## 第一层：陈述事实
 
-// 但分离到独立类更好
-public static class TimerCoreCallbackId
-{
-    public const int CoroutineTimeout = 1;
-}
-```
+面试官：我看简历上说设计过AB打包是吧？
 
-独立的类有几个优势：
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-1. **可见性**：不需要了解 `TimerComponent` 就能找到这些 ID 定义
-2. **扩展性**：可以无限添加新的 CallbackId，不影响 `TimerComponent` 的大小
-3. **跨引用**：即使在服务端（不引用 `TimerComponent` 的所在程序集），也可以引用这些常量
+此时，你不要着急说细节，你等别人问
 
-### 1.3 只有 CoroutineTimeout——框架约束
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-目前只定义了 `CoroutineTimeout = 1`，表示"协程超时"。
+## 第二层：深挖细节
 
-这说明框架中的定时器大多数是通过 `ATimer<T>` 系统处理的（每种定时器有自己的 Handler 类，通过类型 ID 区分），只有少数特殊情况（协程超时）用到了这个数字 ID 机制。
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
----
+你：巴拉巴拉
 
-## 二、UniScriptInitializationData——跨程序集的脚本类型注册
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-```csharp
-namespace UniScript
-{
-    public partial class UniScriptInitializationData
-    {
-        public static List<Type> s_blackboardTypes;
-        
-        public static List<Type> Basic { get; set; }
-    }
-}
-```
+## 第三层：感受和观点
 
-### 2.1 partial 类的跨文件设计
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-`UniScriptInitializationData` 是 `partial` 类，在多个文件中定义，每个文件负责注册不同的类型。
+你: 巴拉巴拉
 
-这种设计常见于需要在多个程序集中注入数据的场景：
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-```
-UniScript/UniScriptInitializationData.cs（基础定义）
-CoreGame/UniScriptInitializationData.Logic.cs（游戏逻辑的脚本类型）
-CoreGame/UniScriptInitializationData.UI.cs（UI 的脚本类型）
-```
+## 对于你的启示
 
-每个程序集的 `partial` 部分可以添加自己的静态构造函数，在类加载时注册各自的类型：
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-```csharp
-// 在某个程序集的 partial 部分
-public partial class UniScriptInitializationData
-{
-    static UniScriptInitializationData()
-    {
-        Basic = new List<Type>
-        {
-            typeof(MoveToScript),
-            typeof(WaitScript),
-            // ...
-        };
-    }
-}
-```
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-### 2.2 s_blackboardTypes 和 Basic 的语义
+大体只有两种情况会失败：
 
-- **`s_blackboardTypes`**：黑板类型列表。"黑板"（Blackboard）是 AI 行为树中的共享数据存储，存储各种 AI 可以读写的数据
-- **`Basic`**：基础脚本类型列表，可能包含所有"基础"的可视化脚本节点类型
+面试官觉得你不适合，水平低
 
-这些类型列表用于：
-1. 在可视化脚本编辑器中显示可用的脚本节点
-2. 在反序列化时，知道哪些类型需要被加载（`EventMap` 类似的功能）
+面试官不清楚你是否合适，可能你表达的太抽象
 
-### 2.3 为什么用 static 属性而非字段？
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-```csharp
-public static List<Type> Basic { get; set; }
-```
+# 如何寻找小而美的公司
 
-属性（而非公有字段）允许：
-1. 未来添加验证逻辑（如 `set` 时检查不允许为 null）
-2. 添加懒加载逻辑
-3. 保持 API 兼容性（即使内部实现改变，调用方代码不需要修改）
-
----
-
-## 三、两个类的共同主题——减少代码中的"隐式约定"
-
-这两个类解决的是同一类问题：**减少代码中隐式的、不明确的"约定"**。
-
-`TimerCoreCallbackId`：把"定时器回调 ID 是 1"这个约定，变成显式的命名常量。
-
-`UniScriptInitializationData`：把"哪些类型需要注册到脚本系统"这个约定，变成显式的类型列表。
-
-**隐式约定的危险**：
-
-```csharp
-// 隐式约定：不同地方都写 1，代表同一件事
-timer.New(delay, 1, args);    // A 文件
-if (timer.type == 1) { ... }  // B 文件
-// Q: A 和 B 的 1 一定是同一件事吗？
-
-// 显式约定：通过同一个常量连接
-timer.New(delay, TimerCoreCallbackId.CoroutineTimeout, args);
-if (timer.type == TimerCoreCallbackId.CoroutineTimeout) { ... }
-// 毫无疑问，两处是同一件事
-```
-
----
-
-## 四、更多常量类设计的例子
-
-在游戏项目中，常量类的使用场景非常广：
-
-```csharp
-// 层级定义
-public static class LayerConst
-{
-    public const int UI = 5;
-    public const int Player = 8;
-    public const int Enemy = 9;
-}
-
-// 标签定义
-public static class TagConst
-{
-    public const string Player = "Player";
-    public const string Ground = "Ground";
-}
-
-// 动画参数
-public static class AnimParamConst
-{
-    public static readonly int Speed = Animator.StringToHash("Speed");
-    public static readonly int Attack = Animator.StringToHash("Attack");
-}
-```
-
-**Animator.StringToHash** 的例子很有意思：
-
-```csharp
-// 每次调用都要做字符串哈希运算
-animator.SetFloat("Speed", 5f);
-
-// 预计算哈希，运行时直接用整数
-animator.SetFloat(AnimParamConst.Speed, 5f);
-```
-
-通过常量缓存哈希值，既避免了魔法字符串，也提高了性能。
-
----
-
-## 五、写给初学者
-
-**消除魔法数字和魔法字符串** 是写出可维护代码的基础：
-
-1. 代码中所有 `if (type == 1)`、`layer == 5`、`tag == "Player"` 都是候选的魔法数字/字符串
-2. 将它们提取到常量类（或枚举），用有意义的名字替代
-3. 这样做：代码可读性提升，修改时只改一处，不容易出错
-
-这个习惯看起来是小事，但在大型项目中，维护"所有地方的 5 都是 UI Layer"是极为困难的。常量类让这个约定变得明确且易于维护。
-
-`TimerCoreCallbackId` 只有一行代码，但它代表了一种优秀的编程意识——**不要让数字裸露在代码中，给它一个名字**。
+真格基金、红杉资本；看看一线投资机构的选择。

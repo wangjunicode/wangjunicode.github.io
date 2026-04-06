@@ -1,321 +1,85 @@
----
-title: 游戏UI层级管理系统设计与实现
-published: 2026-03-31
-description: 详解Unity游戏中UI层级划分策略、层管理器的实现原理，以及多面板共存时的排序与遮挡处理。
-tags: [Unity, UI框架, 层级管理]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 游戏UI层级管理系统设计与实现
-
-## 前言
-
-你有没有遇到过这样的问题：确认弹窗被游戏HUD覆盖住了；新手引导箭头出现在了全屏界面的背后；关闭按钮被Toast提示遮住了点不到？
-
-这些都是 UI 层级管理不当导致的。一个成熟的游戏 UI 框架，层级系统是它最基础也最重要的基础设施之一。本文通过分析 YIUIFramework 的源码，深入讲解层级管理系统的设计与实现。
-
----
-
-## 为什么需要层级系统？
-
-在 Unity 中，UGUI 的渲染顺序由以下因素决定：
-1. Canvas 的 `sortingOrder`
-2. 同一 Canvas 下，Hierarchy 里的先后顺序（后面的在前面）
-3. Canvas 组件的 `renderMode`
-
-如果没有统一的层级管理，每个面板都自己设置 `sortingOrder`，很快就会出现冲突。游戏有几十甚至上百个界面，靠约定"主界面用100，弹窗用200"这样的方式根本不可靠。
-
-**层级系统的本质**：把 UI 按功能优先级分组，同组内按动态规则排序。
-
----
-
-## EPanelLayer：层级枚举定义
-
-```csharp
-public enum EPanelLayer
-{
-    Top    = 0,  // 最高层：新手引导、强制弹窗
-    Tips   = 1,  // 提示层：Toast、确认弹窗、跑马灯
-    Popup  = 2,  // 弹窗层：非全屏界面，可并存
-    Panel  = 3,  // 面板层：全屏界面，受返回键影响
-    Scene  = 4,  // 场景层：血条、飘字等2D场景UI
-    Bottom = 5,  // 最低层：背景、底部装饰
-    Cache  = 6,  // 缓存层：不显示，用于预加载缓存
-    Count  = 7,  // 用于计数
-    Any    = 8,  // 匹配所有层
-}
-```
-
-**层级设计的第一性原理**：层级数字越小，显示越靠前。这个顺序反映了业务优先级：
-- 新手引导（Top）必须盖住一切，否则玩家看不到引导箭头
-- 提示文字（Tips）要在弹窗上面，否则弹窗关闭时的 Toast 会被遮住
-- 全屏面板（Panel）是游戏主要内容
-- 场景 UI（Scene）在全屏面板下面，游戏进战斗后才显示
-
-⚠️ **重要警告**：枚举的数值不能修改！代码注释明确写了"只能新增，不允许修改"。因为这些数值可能被序列化存储，修改会导致已有数据错乱。
-
----
-
-## PanelMgr Root：层级容器初始化
-
-层级系统的物理基础是一组 GameObject 容器：
-
-```csharp
-private async ETTask<bool> InitRoot()
-{
-    // 加载 UIRoot 预制体（挂载了 Canvas 和 Camera）
-    UIRoot = await YIUILoader.Instance.InstantiateGameObjectAsync(UIRootLoadPath, "UIRoot");
-    Object.DontDestroyOnLoad(UIRoot); // 跨场景不销毁
-    
-    // 关键：UIRoot 偏移到远离 3D 场景的位置，防止与世界坐标叠加
-    UIRoot.transform.position = new Vector3(RootPosOffset, RootPosOffset, 0);
-
-    // 创建各层级的 RectTransform 容器
-    const int len = (int)EPanelLayer.Count;
-    for (var i = len - 1; i >= 0; i--)
-    {
-        var layer = new GameObject($"Layer{i}-{(EPanelLayer)i}");
-        var rect = layer.AddComponent<RectTransform>();
-        rect.SetParent(UILayerRoot);
-        
-        // 全屏覆盖设置
-        rect.anchorMax = Vector2.one;
-        rect.anchorMin = Vector2.zero;
-        rect.sizeDelta = Vector2.zero;
-        
-        // Z 轴偏移：每层间隔 1000 单位，用于 3D 模型穿插的深度隔离
-        rect.localPosition = new Vector3(0, 0, i * LayerDistance);
-        
-        m_AllPanelLayer.Add((EPanelLayer)i, rectDic);
-    }
-}
-```
-
-**关键设计点分析：**
-
-### 1. UIRoot 坐标偏移
-```csharp
-UIRoot.transform.position = new Vector3(RootPosOffset, RootPosOffset, 0);
-// RootPosOffset = 1000
-```
-
-这个 1000 的偏移看起来奇怪，但有重要意义：游戏场景中的 3D 物体在世界坐标 (0,0,0) 附近，如果 UI 根节点也在原点，编辑器里调整 UI 时很容易误选到 3D 对象。偏移后，UI 和 3D 场景在空间上分开，不互相干扰。
-
-### 2. Z 轴层级隔离
-```csharp
-rect.localPosition = new Vector3(0, 0, i * LayerDistance);
-// LayerDistance = 1000
-```
-
-每层之间的 Z 轴间距是 1000 个单位。这解决了什么问题？
-
-当 UI 中有 3D 模型（如角色立绘、道具展示）时，模型的深度测试可能穿透不同层级的 UI。通过 Z 轴物理隔离，确保上层的 UI 内容永远遮盖下层，即使里面有 3D 模型也不会穿帮。
-
-### 3. 数据结构设计
-```csharp
-private Dictionary<EPanelLayer, Dictionary<RectTransform, List<PanelInfo>>> m_AllPanelLayer;
-```
-
-三层嵌套：
-- 外层 `Dictionary<EPanelLayer, ...>`：按层级分类
-- 中层 `Dictionary<RectTransform, ...>`：层级容器（当前每层只有一个，但支持扩展）
-- 内层 `List<PanelInfo>`：该层内的面板列表，**顺序即渲染顺序**
-
----
+# 简历投递
 
-## 层级内的排序规则
-
-同一层级内，面板的前后顺序由 `Priority` 属性和添加时机共同决定：
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-```csharp
-// BasePanel 中的优先级定义
-public virtual int Priority => 0;
+# 预约面试
 
-// 排序规则（来自 PanelMgr_AddRemove.cs）：
-// 1. Priority 大的在前面（靠近屏幕）
-// 2. 相同 Priority 时，后添加的在前面
-```
-
-这个设计让面板能主动声明自己的重要程度。例如：
+这边简历通过了业务部门评估，约时间面试
 
-```csharp
-// 普通战斗 UI
-public class BattleHUDPanel : BasePanel
-{
-    public override EPanelLayer Layer => EPanelLayer.Scene;
-    public override int Priority => 0; // 默认优先级
-}
+# 项目经验考察
 
-// 技能释放特效 UI
-public class SkillEffectPanel : BasePanel
-{
-    public override EPanelLayer Layer => EPanelLayer.Scene;
-    public override int Priority => 10; // 比 HUD 高，显示在前面
-}
-```
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
----
+# 游戏客户端面经
 
-## 层级的显示与隐藏控制
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-```csharp
-public void SetLayerActive(EPanelLayer panelLayer, bool isActive)
-{
-    var rect = GetLayerRect(panelLayer);
-    if (rect == null) return;
-    rect.gameObject.SetActive(isActive);
-}
-```
+战斗无非就是帧同步和状态同步
 
-这个 API 允许批量控制一整层的显示状态。典型使用场景：
+经典的笔试题也要刷一些  
 
-```csharp
-// 进入战斗时，隐藏 Scene 层以外的所有层
-PanelMgr.Inst.SetLayerActive(EPanelLayer.Bottom, false);
-PanelMgr.Inst.SetLayerActive(EPanelLayer.Panel, false);
+# 面试的底层逻辑
 
-// 退出战斗，恢复
-PanelMgr.Inst.SetLayerActive(EPanelLayer.Bottom, true);
-PanelMgr.Inst.SetLayerActive(EPanelLayer.Panel, true);
-```
+表层事实->深度细节->感受和观点
 
----
+经验->技能->潜力->动机
 
-## 特殊层：Cache 缓存层
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-```csharp
-public RectTransform UICache
-{
-    get
-    {
-        if (m_UICache == null)
-            m_UICache = GetLayerRect(EPanelLayer.Cache);
-        return m_UICache;
-    }
-}
-```
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-Cache 层的面板：
-- **强制隐藏**（SetActive(false) 或 Canvas.enabled = false）
-- **不参与任何 UI 交互**
-- **保持在内存中，避免重复加载开销**
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-哪些面板适合缓存？
-- **频繁打开关闭的面板**：如背包、地图
-- **加载耗时的面板**：如包含大量资源的商城
-- **需要保持状态的面板**：如正在上传图片的面板
+## 第一层：陈述事实
 
-哪些面板不应该缓存？
-- **每次打开都需要新数据的面板**（虽然可以在 OnOpen 里刷新，但要注意清理）
-- **包含大量 Texture 资源的面板**（缓存会占用大量内存）
-- **只使用一次的面板**：如新手引导完成提示
+面试官：我看简历上说设计过AB打包是吧？
 
----
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-## 屏蔽层（Block）机制
+此时，你不要着急说细节，你等别人问
 
-框架还实现了一个屏蔽层：
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-```csharp
-// 初始化时在所有层上方添加屏蔽层
-InitAddUIBlock();
-```
+## 第二层：深挖细节
 
-屏蔽层是一个透明的全屏遮挡物，激活后阻止所有 UI 交互。使用场景：
-- **网络请求等待中**：防止用户重复点击
-- **场景过渡动画**：过渡期间禁止任何操作
-- **面板动画播放中**：`BanLayerOptionForever` 会临时激活它
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-```csharp
-// 临时禁止操作（动画期间调用）
-var foreverCode = m_PanelMgr.BanLayerOptionForever();
+你：巴拉巴拉
 
-// 动画结束后恢复
-m_PanelMgr.RecoverLayerOptionForever(foreverCode);
-```
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-返回的 `foreverCode` 是一个令牌，用于配对禁用和恢复操作，支持嵌套调用（多个地方同时禁用，全部恢复后才真正解锁）。
+## 第三层：感受和观点
 
----
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-## UI Camera 配置
+你: 巴拉巴拉
 
-```csharp
-UICamera.clearFlags = CameraClearFlags.Depth; // 只清除深度，保留背景渲染
-UICamera.orthographic = true; // 正交投影
-UICamera.transform.localPosition = new Vector3(
-    UILayerRoot.localPosition.x,
-    UILayerRoot.localPosition.y,
-    -LayerDistance  // 摄像机在所有层的后面
-);
-```
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-**为什么用正交投影？**
+## 对于你的启示
 
-正交投影下，物体的大小不随距离变化。UI 元素的位置在像素坐标系里是固定的，不需要透视效果。用正交投影避免了近大远小导致的层级 UI 大小错误。
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-**设计分辨率**：
-```csharp
-public const int DesignScreenWidth = 1920;
-public const int DesignScreenHeight = 1080;
-```
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-框架锁定了 1920×1080 的设计分辨率。所有 UI 都按这个分辨率设计，然后通过 Canvas Scaler 缩放到实际屏幕分辨率。
+大体只有两种情况会失败：
 
----
+面试官觉得你不适合，水平低
 
-## 实际开发中的常见错误
+面试官不清楚你是否合适，可能你表达的太抽象
 
-### 错误 1：随意设置面板 Layer
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-新人常犯的错误：
-```csharp
-// 错误！Tips 层的弹窗应该放在 Popup 层
-public class ItemDetailPanel : BasePanel
-{
-    public override EPanelLayer Layer => EPanelLayer.Tips; // 不对！
-}
-```
+# 如何寻找小而美的公司
 
-正确做法：根据面板的功能语义选择层级。物品详情是弹窗，应该用 `Popup` 层。`Tips` 层留给 Toast 和确认框。
-
-### 错误 2：直接操作 Hierarchy 改变顺序
-
-```csharp
-// 错误！不要直接操作 Transform 父子关系
-transform.SetAsLastSibling(); // 绕过了 PanelMgr 的管理
-```
-
-所有层级操作必须通过 `PanelMgr` 的接口，否则内部的 `m_AllPanelLayer` 数据结构就和实际 GameObject 层级不一致了。
-
-### 错误 3：忘记检查 Cache 层的面板状态
-
-```csharp
-// 从缓存取出面板时，记得重新激活
-public override EPanelOption PanelOption => EPanelOption.Cache; // 启用缓存
-
-public async ETTask<bool> OnOpen(ItemData data)
-{
-    // ⚠️ 缓存的面板 GameObject 是 active=false 状态进来的
-    // 框架会自动 SetActive(true)，但你的数据要手动刷新
-    m_ItemNameText.text = data.Name; // 正确：每次打开都刷新
-    return true;
-}
-```
-
----
-
-## 总结
-
-层级系统的核心价值是**把 UI 的显示优先级从"程序员脑子里的约定"变成"代码里的强制约束"**。
-
-关键设计总结：
-1. **枚举值不可修改**，只能追加，保护已有数据
-2. **Z 轴物理隔离**，解决含 3D 模型的 UI 穿帮问题
-3. **Cache 层实现内存复用**，减少频繁加载开销
-4. **Block 层实现操作锁**，防止并发交互
-5. **Priority 属性**让面板声明自己的排序优先级
-
-对于初学者，记住一条原则：**UI 的任何层级操作，都要通过 PanelMgr 的接口进行，永远不要直接操作 GameObject 的 Hierarchy 位置**。
+真格基金、红杉资本；看看一线投资机构的选择。

@@ -1,326 +1,85 @@
----
-title: 自定义特性标记系统——用 Attribute 驱动代码自动化注册
-published: 2026-03-31
-description: 深度解析 EntitySystemAttribute 的设计原理，理解 C# 特性（Attribute）如何与反射配合实现代码自动化发现和注册，掌握 ECS 框架的元编程基础。
-tags: [Unity, ECS, 反射, 特性, 元编程]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 自定义特性标记系统——用 Attribute 驱动代码自动化注册
+# 简历投递
 
-## 前言
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-你有没有见过这种代码：
+# 预约面试
 
-```csharp
-[EntitySystem]
-private static void Awake(this Player self)
-{
-    // 初始化逻辑
-}
-```
+这边简历通过了业务部门评估，约时间面试
 
-那个 `[EntitySystem]` 标签是什么？它怎么起作用的？
+# 项目经验考察
 
-今天我们来深入分析 `EntitySystemAttribute`，理解 C# 特性（Attribute）的工作原理，以及它如何让框架实现"写了方法，系统自动知道并调用它"的魔法。
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-```csharp
-using System;
+# 游戏客户端面经
 
-namespace ET
-{
-    [AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-    public class EntitySystemAttribute: BaseAttribute
-    {
-    }
-}
-```
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
----
+战斗无非就是帧同步和状态同步
 
-## 一、什么是 C# 特性（Attribute）？
+经典的笔试题也要刷一些  
 
-特性（Attribute）是 C# 的**元编程**工具——它允许你在代码上附加额外的描述信息，这些信息可以在运行时通过反射读取。
+# 面试的底层逻辑
 
-**类比**：想象你是仓库管理员，货物上贴了不同的标签：
-- "易碎" → 搬运时要小心
-- "冷藏" → 放冷藏区
-- "急件" → 优先处理
+表层事实->深度细节->感受和观点
 
-这些标签不改变货物本身，但告诉管理系统"该怎么对待这个货物"。
+经验->技能->潜力->动机
 
-C# 的 Attribute 就是给代码贴标签，告诉框架"该怎么对待这段代码"。
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
----
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-## 二、EntitySystemAttribute 的定义
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-```csharp
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-public class EntitySystemAttribute: BaseAttribute
-{
-}
-```
+## 第一层：陈述事实
 
-虽然只有三行，但每一部分都很重要。
+面试官：我看简历上说设计过AB打包是吧？
 
-### 2.1 继承 BaseAttribute
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-```csharp
-public class EntitySystemAttribute: BaseAttribute
-```
+此时，你不要着急说细节，你等别人问
 
-`EntitySystemAttribute` 继承自 `BaseAttribute`，而不是直接继承 `System.Attribute`。
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-这说明框架有自己的特性基类体系。`BaseAttribute` 可能添加了一些通用功能，或者仅仅是为了在框架的反射扫描中快速过滤（只扫描继承自 `BaseAttribute` 的特性，而不是所有 `System.Attribute`）。
+## 第二层：深挖细节
 
-### 2.2 AttributeUsage 限制使用范围
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-```csharp
-[AttributeUsage(AttributeTargets.Class | AttributeTargets.Method)]
-```
+你：巴拉巴拉
 
-`[AttributeUsage]` 本身也是一个特性，用来描述"这个特性可以用在哪里"：
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-- `AttributeTargets.Class`：可以标记类
-- `AttributeTargets.Method`：可以标记方法
-- `|`：或运算，两者都允许
+## 第三层：感受和观点
 
-如果你尝试把 `[EntitySystem]` 标记在字段或属性上，编译器会报错：
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-```csharp
-[EntitySystem]
-public int Health; // 编译错误！EntitySystem 不能用于字段
-```
-
-这是一种**编译期保护**，防止特性被错误使用。
-
-**所有可用的 AttributeTargets**：
-```
-Class       - 类
-Method      - 方法
-Property    - 属性
-Field       - 字段
-Interface   - 接口
-Struct      - 结构体
-Assembly    - 程序集
-Event       - 事件
-Parameter   - 方法参数
-ReturnValue - 返回值
-All         - 所有目标
-```
-
-### 2.3 空的类体
-
-```csharp
-public class EntitySystemAttribute: BaseAttribute
-{
-    // 空的！
-}
-```
-
-特性类体是空的，没有任何字段或方法。
-
-这说明 `[EntitySystem]` 纯粹是一个**标记**（Marker），只表示"我是 EntitySystem 方法/类"，不携带任何额外信息。
-
-与携带数据的特性对比：
-
-```csharp
-// 携带数据的特性
-[SerializeField]                    // 标记型，无数据
-[Range(0, 100)]                     // 携带数据：最小值0，最大值100
-[Tooltip("这是玩家的生命值")]         // 携带数据：提示文本
-[EntitySystem]                      // 标记型，无数据
-```
-
----
-
-## 三、框架如何使用这个特性？
-
-`EntitySystemAttribute` 本身只是一个标记，它的价值在于框架在**启动时扫描所有程序集**，找到标有 `[EntitySystem]` 的方法，然后自动注册它们。
-
-伪代码示意：
-
-```csharp
-// 框架启动时的扫描逻辑（伪代码）
-public static void ScanAndRegister()
-{
-    foreach (Assembly assembly in AppDomain.CurrentDomain.GetAssemblies())
-    {
-        foreach (Type type in assembly.GetTypes())
-        {
-            foreach (MethodInfo method in type.GetMethods())
-            {
-                // 检查方法是否有 EntitySystemAttribute 标记
-                if (method.GetCustomAttribute<EntitySystemAttribute>() != null)
-                {
-                    // 将这个方法注册到对应的 System 中
-                    EventSystem.Register(method);
-                }
-            }
-        }
-    }
-}
-```
-
-这就是**反射驱动注册**的核心思路：
-
-1. 框架扫描程序集
-2. 找到带有特定特性的代码
-3. 自动完成注册/初始化
+你: 巴拉巴拉
 
-开发者只需要在方法上加一个 `[EntitySystem]`，框架就会自动处理剩下的事情。
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
----
+## 对于你的启示
 
-## 四、实际使用示例
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-```csharp
-// 在自己的系统文件中
-public static partial class PlayerSystem
-{
-    [EntitySystem]
-    private static void Awake(this Player self)
-    {
-        self.health = 100;
-        self.name = "玩家";
-        Log.Info("Player 创建完成");
-    }
-    
-    [EntitySystem]
-    private static void Update(this Player self)
-    {
-        // 每帧更新逻辑
-        self.UpdateMovement();
-    }
-    
-    [EntitySystem]
-    private static void Destroy(this Player self)
-    {
-        Log.Info("Player 被销毁");
-    }
-}
-```
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-框架扫描后，会自动在 `Player` 实体的 `Awake`、`Update`、`Destroy` 生命周期回调这些方法。
+大体只有两种情况会失败：
 
-开发者不需要手动注册："框架，请在 Player Awake 时调用 PlayerSystem.Awake"——打上标签，框架自动知道。
+面试官觉得你不适合，水平低
 
----
+面试官不清楚你是否合适，可能你表达的太抽象
 
-## 五、与静态扩展方法的配合
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-注意上面的方法签名：
+# 如何寻找小而美的公司
 
-```csharp
-private static void Awake(this Player self)
-```
-
-这是 C# 的**扩展方法**（Extension Method）：
-- `static` 表示是静态方法
-- `this Player self` 表示这是 `Player` 类型的扩展方法
-
-扩展方法 + `[EntitySystem]` 特性，构成了 ECS 框架的核心模式：
-
-1. **数据与逻辑分离**：`Player` 类只包含数据（字段）
-2. **扩展方法**：在不修改 `Player` 类的情况下，为其添加逻辑
-3. **特性标记**：告诉框架这些扩展方法是系统方法，需要在特定生命周期调用
-
-这种设计极大地提高了代码的可维护性：添加新功能只需要新建文件，不需要修改核心类。
-
----
-
-## 六、`[EntitySystem]` vs `[EnableMethod]`
-
-代码中还出现了另一个特性 `[EnableMethod]`（在 `Scene.cs` 中）：
-
-```csharp
-[EnableMethod]
-[DebuggerDisplay("ViewName,nq")]
-[ChildOf]
-public sealed class Scene: Entity, IDestroy
-```
-
-`[EnableMethod]` 和 `[EntitySystem]` 的作用范围不同：
-- `[EntitySystem]` 用于**方法**，标记具体的系统处理函数
-- `[EnableMethod]` 用于**类**，可能告诉框架"这个类的方法可以被热更新动态替换"
-
-这体现了特性系统的灵活性：不同的特性类服务于不同的框架功能，但它们遵循相同的使用方式（方括号标记）。
-
----
-
-## 七、特性的工作原理——深入反射机制
-
-```csharp
-// 特性在编译后，会作为元数据保存在程序集中
-// 运行时通过反射可以读取
-
-MethodInfo method = typeof(PlayerSystem).GetMethod("Awake");
-EntitySystemAttribute attr = method.GetCustomAttribute<EntitySystemAttribute>();
-
-if (attr != null)
-{
-    Console.WriteLine("这是一个 EntitySystem 方法，需要注册到框架中");
-}
-```
-
-**反射的性能注意事项**：
-
-反射操作（`GetType()`、`GetMethods()`、`GetCustomAttribute()`）比直接代码调用慢很多，因为它需要动态查询类型信息。
-
-但注意：**框架扫描通常只在启动时执行一次**，扫描结果缓存在字典中。运行时实际调用时，使用的是缓存的结果（委托或方法指针），没有反射开销。
-
----
-
-## 八、特性的命名约定
-
-C# 约定：特性类名以 `Attribute` 结尾，但使用时可以省略 `Attribute`：
-
-```csharp
-// 完整名称
-[EntitySystemAttribute]
-
-// 简写（等价，更常用）
-[EntitySystem]
-```
-
-编译器会自动尝试补全 `Attribute` 后缀。
-
----
-
-## 九、框架中的特性体系
-
-从本文分析的特性来看，框架中有一整套特性体系：
-
-```
-BaseAttribute（基类）
-├── EntitySystemAttribute  - 标记 ECS 系统方法
-├── EventAttribute         - 标记事件处理方法
-├── InvokeAttribute        - 标记调用处理器
-├── ObjectSystemAttribute  - 标记对象系统
-└── ...更多
-```
-
-这套特性体系构成了框架的"声明式编程接口"：
-
-开发者通过声明特性来表达意图，框架通过扫描特性来自动执行注册和调用。这是一种**约定优于配置**（Convention over Configuration）的设计哲学。
-
----
-
-## 十、写给初学者
-
-特性（Attribute）是 C# 高级特性中最重要的之一，很多框架都大量使用它：
-
-- Unity 的 `[SerializeField]`、`[Range]`、`[Header]`
-- ASP.NET 的 `[HttpGet]`、`[Authorize]`、`[Route]`
-- Entity Framework 的 `[Table]`、`[Column]`、`[Key]`
-
-理解特性的关键认知转变：
-
-**从"代码告诉计算机做什么"，到"代码描述自己是什么，框架决定如何处理它"。**
-
-这就是**元编程**的本质——用代码来描述代码，让框架根据描述自动生成行为。
-
-掌握了这个思维，你会发现很多看起来"很神奇"的框架行为，其实都是反射 + 特性在背后工作。
+真格基金、红杉资本；看看一线投资机构的选择。

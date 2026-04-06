@@ -1,282 +1,85 @@
----
-title: 单例更新接口体系——ISingletonUpdate、FixedUpdate 和 LateUpdate 的职责划分
-published: 2026-03-31
-description: 解析三个单例更新接口的设计，理解 ISingletonFixedUpdate 的三阶段更新流程，以及 Game 类如何通过接口检测自动调度所有单例的帧更新。
-tags: [Unity, ECS, 单例, 更新循环, 接口设计]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 单例更新接口体系——ISingletonUpdate、FixedUpdate 和 LateUpdate 的职责划分
+# 简历投递
 
-## 前言
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-ECS 框架中的单例（Singleton）不只是"全局唯一的对象"，它们还需要参与游戏的帧循环——每帧更新状态、处理逻辑、进行物理计算。
+# 预约面试
 
-三个更新接口 `ISingletonUpdate`、`ISingletonFixedUpdate`、`ISingletonLateUpdate` 就是为此而设计的。
+这边简历通过了业务部门评估，约时间面试
 
----
+# 项目经验考察
 
-## 一、三个更新接口的定义
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-```csharp
-// 普通帧更新
-public interface ISingletonUpdate
-{
-    void Update();
-}
+# 游戏客户端面经
 
-// 固定帧更新（物理帧）
-public interface ISingletonFixedUpdate
-{
-    void BeforeFixedUpdate(); // 物理帧之前
-    void FixedUpdate();       // 物理帧中
-    void LateFixedUpdate();   // 物理帧之后
-}
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-// 延后帧更新
-public interface ISingletonLateUpdate
-{
-    void LateUpdate();
-}
-```
+战斗无非就是帧同步和状态同步
 
-### 1.1 ISingletonFixedUpdate 的三阶段设计
+经典的笔试题也要刷一些  
 
-注意 `ISingletonFixedUpdate` 定义了三个方法，而不是一个：
+# 面试的底层逻辑
 
-- `BeforeFixedUpdate()`：物理帧开始前
-- `FixedUpdate()`：物理帧主体
-- `LateFixedUpdate()`：物理帧结束后
+表层事实->深度细节->感受和观点
 
-**为什么需要三个阶段？**
+经验->技能->潜力->动机
 
-以 `LogicTimerComponent` 的使用为例：
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-```csharp
-// TimeInfo 实现 ISingletonFixedUpdate
-public void BeforeFixedUpdate()
-{
-    Update(); // 在物理帧开始前更新帧时间快照
-}
-```
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-```csharp
-// LogicTimerComponent 实现 ISingletonFixedUpdate
-public void BeforeFixedUpdate()
-{
-    if (!EngineRuntime.Pause)
-    {
-        Update(); // 在时间快照更新后，处理定时器
-    }
-}
-```
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
-执行顺序：
-1. `TimeInfo.BeforeFixedUpdate()` → 更新 `FrameTime`
-2. `LogicTimerComponent.BeforeFixedUpdate()` → 使用已更新的 `FrameTime` 处理定时器
-3. `EventSystem.FixedUpdate()` → 处理所有实体的物理帧逻辑
+## 第一层：陈述事实
 
-这种顺序依赖通过注册顺序来保证（先注册的先执行）。
+面试官：我看简历上说设计过AB打包是吧？
 
----
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-## 二、Game 中的自动调度机制
+此时，你不要着急说细节，你等别人问
 
-```csharp
-public static void AddSingleton(ISingleton singleton)
-{
-    // ... 注册到字典和栈
-    
-    if (singleton is ISingletonUpdate)
-    {
-        updates.Enqueue(singleton);
-    }
-    
-    if (singleton is ISingletonFixedUpdate)
-    {
-        beforeFixedUpdates.Enqueue(singleton);
-        fixedUpdates.Enqueue(singleton);
-        lateFixedUpdates.Enqueue(singleton);
-    }
-    
-    if (singleton is ISingletonLateUpdate)
-    {
-        lateUpdates.Enqueue(singleton);
-    }
-}
-```
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-注册单例时，框架自动检测它实现了哪些接口，分别加入对应的更新队列。
+## 第二层：深挖细节
 
-**这是编程中的"鸭子类型"思想**：不是说"你必须是 X 类型"，而是说"只要你能做 Y 这件事（实现接口），就进入 Y 的队列"。
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-单例自己决定参与哪些更新阶段，框架不需要知道具体类型——只需要检查接口。
+你：巴拉巴拉
 
-### 2.1 四个独立队列
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-```csharp
-private static readonly Queue<ISingleton> updates = new Queue<ISingleton>();
-private static readonly Queue<ISingleton> beforeFixedUpdates = new Queue<ISingleton>();
-private static readonly Queue<ISingleton> fixedUpdates = new Queue<ISingleton>();
-private static readonly Queue<ISingleton> lateFixedUpdates = new Queue<ISingleton>();
-private static readonly Queue<ISingleton> lateUpdates = new Queue<ISingleton>();
-```
+## 第三层：感受和观点
 
-一个实现了 `ISingletonFixedUpdate` 的单例会被加入三个队列（beforeFixed, fixed, lateFixed）。
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-这意味着执行顺序完全分离——不同阶段的单例可以以不同顺序执行（虽然注册顺序通常保持一致）。
+你: 巴拉巴拉
 
----
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-## 三、更新方法的实现模式
+## 对于你的启示
 
-```csharp
-public static void Update()
-{
-    int count = updates.Count;
-    while (count-- > 0)
-    {
-        ISingleton singleton = updates.Dequeue();
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-        if (singleton.IsDisposed())
-        {
-            continue; // 跳过已销毁的单例（不重新入队）
-        }
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-        if (singleton is not ISingletonUpdate update)
-        {
-            continue;
-        }
-        
-        updates.Enqueue(singleton); // 重新入队，下帧继续执行
-        
-        try
-        {
-            update.Update();
-        }
-        catch (Exception e)
-        {
-            Log.Error(e);
-        }
-    }
-}
-```
+大体只有两种情况会失败：
 
-这个模式与 `EventSystem` 中的实体更新完全一致：
-1. 先锁定 count，本帧只处理已有的单例
-2. 跳过已销毁的（不重新入队，自然从队列中消失）
-3. 重新入队，保持持续更新
-4. try-catch 异常隔离
+面试官觉得你不适合，水平低
 
-### 3.1 已销毁单例的自然淘汰
+面试官不清楚你是否合适，可能你表达的太抽象
 
-```csharp
-if (singleton.IsDisposed())
-{
-    continue; // 不 Enqueue，自然从队列中消失
-}
-```
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-当单例被销毁时，不需要从队列中主动移除——下次轮到它时，检测到 `IsDisposed()` 就跳过，且不重新入队。下下次，它就不在队列里了。
+# 如何寻找小而美的公司
 
-这比维护"需要移除的列表"然后主动删除更简单，避免了"在遍历中修改集合"的问题。
-
----
-
-## 四、BeforeFixedUpdate 的特殊逻辑
-
-```csharp
-public static void BeforeFixedUpdate()
-{
-    FixedFrames++;
-    FixedTime = FixedFrames * EngineDefine.fixedDeltaTime_Orignal;
-    
-    int count = beforeFixedUpdates.Count;
-    while (count-- > 0)
-    {
-        // ... 调用所有 singleton.BeforeFixedUpdate()
-    }
-}
-```
-
-注意 `BeforeFixedUpdate` 开头做了两件事：
-1. 递增全局帧计数 `FixedFrames`
-2. 计算当前逻辑时间 `FixedTime = FixedFrames * fixedDeltaTime`
-
-这是**游戏时间的主驱动**：每次 `BeforeFixedUpdate` 被调用，逻辑时间前进一帧。
-
-`FixedTime` 是用定点数（`FP`）计算的，配合 `fixedDeltaTime_Orignal`（也是定点数），确保帧同步场景下的精确时间计算。
-
----
-
-## 五、实际使用——为单例添加更新能力
-
-```csharp
-// 只需要 Update 的单例（如 UI 动画管理器）
-public class UIAnimationManager: Singleton<UIAnimationManager>, ISingletonUpdate
-{
-    private List<UIAnimation> runningAnimations = new();
-    
-    public void Update()
-    {
-        for (int i = runningAnimations.Count - 1; i >= 0; i--)
-        {
-            if (runningAnimations[i].Tick(Game.deltaTime))
-            {
-                runningAnimations.RemoveAt(i); // 动画完成，移除
-            }
-        }
-    }
-}
-
-// 需要 FixedUpdate 的单例（如物理逻辑管理器）
-public class PhysicsManager: Singleton<PhysicsManager>, ISingletonFixedUpdate
-{
-    public void BeforeFixedUpdate()
-    {
-        // 收集输入
-    }
-    
-    public void FixedUpdate()
-    {
-        // 执行物理模拟
-    }
-    
-    public void LateFixedUpdate()
-    {
-        // 同步物理结果到渲染
-    }
-}
-
-// 注册时自动加入相应队列
-Game.AddSingleton<UIAnimationManager>(); // 自动加入 updates 队列
-Game.AddSingleton<PhysicsManager>();     // 自动加入三个 fixedUpdate 队列
-```
-
----
-
-## 六、单例更新 vs 实体更新的对比
-
-| 特性 | 单例更新 | 实体更新 |
-|---|---|---|
-| 注册方式 | 实现接口自动加入队列 | 实现接口+注册到 EventSystem |
-| 数量 | 少（框架级服务） | 多（游戏对象） |
-| 生命周期 | 进程级别，通常不销毁 | 游戏逻辑级别，频繁创建销毁 |
-| 管理者 | Game 静态类 | EventSystem 单例 |
-| 调用方式 | 直接接口调用 | 通过 typeSystems 查找系统 |
-
----
-
-## 七、设计总结
-
-单例更新接口体系的精妙之处：
-
-1. **零配置自动注册**：实现接口就会被调度，不需要手动注册
-2. **三阶段物理更新**：BeforeFixed/Fixed/LateFixed 精确控制执行顺序
-3. **自然淘汰机制**：销毁的单例自动从队列中消失，无需手动清理
-4. **异常隔离**：单个单例的 Bug 不影响其他单例的更新
-5. **顺序保证**：注册顺序决定执行顺序，满足依赖要求
-
-这套设计将"框架管理者"（Game 类）与"具体逻辑"（各单例）完全解耦——Game 类不需要知道任何具体单例，只需要管理接口。
+真格基金、红杉资本；看看一线投资机构的选择。

@@ -1,278 +1,85 @@
----
-title: 框架基础特性与组件调试视图——BaseAttribute、BaseInvokeArg 和 ComponentView 解析
-published: 2026-03-31
-description: 解析 ECS 框架中三个辅助类的设计：特性基类 BaseAttribute 的过滤作用、资源加载参数 BaseInvokeArg 的热更设计，以及编辑器专用的 ComponentView 可视化组件。
-tags: [Unity, ECS, 编辑器工具, 特性系统, 热更新]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 框架基础特性与组件调试视图——BaseAttribute、BaseInvokeArg 和 ComponentView 解析
-
-## 前言
-
-ECS 框架中有一些"辅助性"的类，它们本身不实现复杂逻辑，但对整个框架的运转起到关键的支撑作用。
-
-今天我们来分析三个这样的辅助类：
-- `BaseAttribute`：所有框架特性的基类
-- `BaseInvokeArg`（StartLoadDependentCodeHelper）：资源加载依赖的参数定义
-- `ComponentView`：编辑器可视化工具
-
----
+# 简历投递
 
-## 一、BaseAttribute——特性过滤的基础
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-```csharp
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-public class BaseAttribute: Attribute
-{
-}
-```
+# 预约面试
 
-### 1.1 为什么需要这个基类？
+这边简历通过了业务部门评估，约时间面试
 
-`BaseAttribute` 是所有框架自定义特性的基类：
+# 项目经验考察
 
-```
-BaseAttribute
-├── EntitySystemAttribute
-├── ObjectSystemAttribute
-├── EventAttribute
-├── InvokeAttribute
-└── ...更多框架特性
-```
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
-它的作用是**提供一个统一的过滤点**。
+# 游戏客户端面经
 
-在 `EventSystem.Add()` 中：
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-```csharp
-private static List<Type> GetBaseAttributes(Dictionary<string, Type> addTypes)
-{
-    List<Type> attributeTypes = new List<Type>();
-    foreach (Type type in addTypes.Values)
-    {
-        if (type.IsAbstract) continue;
-        
-        if (type.IsSubclassOf(typeof(BaseAttribute))) // 只扫描 BaseAttribute 的子类
-        {
-            attributeTypes.Add(type);
-        }
-    }
-    return attributeTypes;
-}
-```
+战斗无非就是帧同步和状态同步
 
-扫描时只需要检查 `IsSubclassOf(typeof(BaseAttribute))`，一次性过滤出所有框架相关的特性，不会遗漏任何新增的特性（只要继承 `BaseAttribute` 就会被自动纳入扫描）。
+经典的笔试题也要刷一些  
 
-**相比如果没有基类**：
+# 面试的底层逻辑
 
-```csharp
-// 没有基类，需要逐一检查每种特性
-if (type.IsSubclassOf(typeof(EntitySystemAttribute)) ||
-    type.IsSubclassOf(typeof(ObjectSystemAttribute)) ||
-    type.IsSubclassOf(typeof(EventAttribute)) ||
-    // ... 每次新增特性都要加这里
-```
+表层事实->深度细节->感受和观点
 
-有了 `BaseAttribute`，扩展特性系统只需要继承它，无需修改扫描代码。
+经验->技能->潜力->动机
 
-### 1.2 AllowMultiple = true
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-```csharp
-[AttributeUsage(AttributeTargets.Class, AllowMultiple = true)]
-```
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-`BaseAttribute` 本身允许同一个类标记多次（`AllowMultiple = true`）。这个配置会被子类继承，确保所有框架特性都支持多次标记（如 `[Event(SceneType.Client)]` + `[Event(SceneType.Current)]`）。
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
----
+## 第一层：陈述事实
 
-## 二、StartLoadDependentCodeHelper——资源热加载的参数体系
+面试官：我看简历上说设计过AB打包是吧？
 
-```csharp
-public class StartLoadDependentCodeHelper
-{
-    static int uniqueCode;
-    
-    public static int GetCode()
-    {
-        return uniqueCode++;
-    }
-}
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-public struct StartLoadDependentResourcesArg
-{
-    public int UniqueCode;
-}
+此时，你不要着急说细节，你等别人问
 
-public struct EndLoadDependentResourcesArg
-{
-    public int UniqueCode;
-}
-```
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-这段代码（文件名为 `BaseInvokeArg.cs`）定义了两个事件参数和一个唯一码生成器。
+## 第二层：深挖细节
 
-### 2.1 StartLoadDependentResourcesArg 和 EndLoadDependentResourcesArg
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
 
-从名字可以推断：
-- `StartLoadDependentResourcesArg`："开始加载依赖资源"事件的参数
-- `EndLoadDependentResourcesArg`："结束加载依赖资源"事件的参数
+你：巴拉巴拉
 
-这两个事件配对使用，表示一个异步加载流程的开始和结束：
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
 
-```csharp
-// 开始加载热更代码依赖的资源
-int code = StartLoadDependentCodeHelper.GetCode(); // 生成唯一标识
-EventSystem.Instance.Publish(scene, new StartLoadDependentResourcesArg { UniqueCode = code });
+## 第三层：感受和观点
 
-// ... 异步加载资源 ...
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
 
-// 加载完成
-EventSystem.Instance.Publish(scene, new EndLoadDependentResourcesArg { UniqueCode = code });
-```
+你: 巴拉巴拉
 
-`UniqueCode` 用于匹配开始和结束事件（当有多个并发加载时，用 code 区分是哪次加载的结束）。
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
 
-### 2.2 为什么用 struct？
+## 对于你的启示
 
-```csharp
-public struct StartLoadDependentResourcesArg { ... }
-```
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
 
-与 `IInvoke` 的设计一致——事件参数用 struct，减少 GC 分配。
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
 
-### 2.3 uniqueCode 的线程安全
+大体只有两种情况会失败：
 
-```csharp
-static int uniqueCode;
+面试官觉得你不适合，水平低
 
-public static int GetCode()
-{
-    return uniqueCode++; // 非线程安全！
-}
-```
+面试官不清楚你是否合适，可能你表达的太抽象
 
-`uniqueCode++` 不是原子操作，在多线程环境下可能产生重复值。
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
 
-但在游戏主线程中（单线程），这没有问题。如果需要在多线程中使用，应该改用 `Interlocked.Increment(ref uniqueCode)`。
+# 如何寻找小而美的公司
 
-这是一个有意识的简化——游戏的大部分逻辑运行在主线程，不必过度工程化。
-
----
-
-## 三、ComponentView——编辑器可视化工具
-
-```csharp
-#if ENABLE_VIEW && UNITY_EDITOR
-using UnityEngine;
-
-namespace ET
-{
-    public class ComponentView: MonoBehaviour
-    {
-        public Entity Component
-        {
-            get;
-            set;
-        }
-    }
-}
-#endif
-```
-
-### 3.1 双重条件编译
-
-```csharp
-#if ENABLE_VIEW && UNITY_EDITOR
-```
-
-两个条件必须同时满足：
-1. `ENABLE_VIEW`：需要开发者手动定义这个编译符号才启用
-2. `UNITY_EDITOR`：只在 Unity 编辑器中编译
-
-**为什么需要双重条件？**
-
-- 只有 `UNITY_EDITOR`：在编辑器中确实有这个类，但如果始终启用，在 Profile 游戏时会有开销
-- 加上 `ENABLE_VIEW`：给开发者控制权——需要调试时开启，平时关闭
-
-### 3.2 ComponentView 的作用
-
-`ComponentView` 是一个 `MonoBehaviour`，附加到 Unity 的 GameObject 上。
-
-在 ECS 框架中，实体（Entity）是纯 C# 对象，不直接对应 Unity 的 GameObject。这带来一个问题：**如何在 Unity Inspector 中查看和调试实体的状态？**
-
-`ComponentView` 解决了这个问题：
-
-```csharp
-// 框架在创建实体时（仅编辑器）
-#if ENABLE_VIEW && UNITY_EDITOR
-var view = new GameObject(entity.ViewName).AddComponent<ComponentView>();
-view.Component = entity; // 把实体挂到 MonoBehaviour 上
-```
-
-然后在 Inspector 的自定义绘制器（CustomEditor）中，可以读取 `ComponentView.Component` 显示实体的所有字段。
-
-### 3.3 为什么不直接在 Entity 上继承 MonoBehaviour？
-
-这是 ECS 架构的核心原则：**实体不依赖 Unity 引擎**。
-
-如果 Entity 继承 MonoBehaviour：
-- 就无法在非 Unity 环境（服务端）使用
-- MonoBehaviour 有大量 Unity 特有的生命周期方法，会干扰 ECS 的生命周期
-- GC 行为不可控（Unity 负责 MonoBehaviour 的生命周期）
-
-`ComponentView` 作为"桥接层"，只在编辑器中存在，不影响运行时行为。
-
----
-
-## 四、三者之间的联系
-
-这三个类都在服务于**框架的可维护性和开发体验**：
-
-| 类 | 作用 | 影响范围 |
-|---|---|---|
-| BaseAttribute | 统一特性扫描入口 | 所有运行时 |
-| StartLoadDependentCodeHelper | 资源热加载协调 | 运行时（热更场景） |
-| ComponentView | 编辑器可视化调试 | 仅编辑器 |
-
----
-
-## 五、条件编译的最佳实践
-
-`ComponentView` 的设计展示了条件编译的好实践：
-
-```csharp
-#if ENABLE_VIEW && UNITY_EDITOR
-// 只在开发时存在的代码
-#endif
-```
-
-**游戏开发中常见的条件编译符号**：
-- `UNITY_EDITOR`：编辑器专用代码
-- `UNITY_ANDROID` / `UNITY_IOS`：平台特定代码
-- `DEBUG`：调试版本专用
-- `ONLY_CLIENT`：客户端专用（本框架定义的）
-- `ENABLE_VIEW`：视觉调试工具（本框架定义的）
-
-通过条件编译，可以：
-1. 完全消除发布包中的调试代码（不是注释，是真的不编译）
-2. 针对不同平台编写不同代码
-3. 控制功能的开关
-
----
-
-## 六、写给初学者
-
-这三个辅助类体现了几个重要的工程思维：
-
-1. **正交设计**：`BaseAttribute` 的唯一目的是"成为所有框架特性的基类"，不承担额外责任。职责越单一，代码越健壮。
-
-2. **显式开关**：`ENABLE_VIEW` 给开发者控制调试工具的能力。不要假设"调试代码无害"——在 Profile 时，意外开启的调试代码会干扰测试结果。
-
-3. **渐进式开销**：`ComponentView` 默认不存在（两个 `#if` 都满足才编译），保证了生产环境的干净性。
-
-4. **实用主义**：`uniqueCode++` 不线程安全，但在单线程游戏环境下没问题。工程中要知道"够用就行"和"必须完美"的边界。
-
-养成这些思维习惯，你会写出既实用又可维护的代码。
+真格基金、红杉资本；看看一线投资机构的选择。

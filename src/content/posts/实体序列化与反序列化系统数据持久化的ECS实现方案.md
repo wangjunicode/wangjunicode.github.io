@@ -1,275 +1,85 @@
----
-title: 实体序列化与反序列化系统——数据持久化的 ECS 实现方案
-published: 2026-03-31
-description: 解析 ISerializeToEntity 接口和 IDeserializeSystem 的设计，理解序列化在游戏中的作用、反序列化后初始化的时机选择，以及 ECS 框架如何通过接口标记实现数据持久化。
-tags: [Unity, ECS, 序列化, 数据持久化, 存档]
-category: Unity技术
+﻿---
+title: 关于面试
+published: 2017-09-20
+description: "当前状态离职？为什么离职？空窗期一年在干什么？"
+tags: [面试, 职业发展, 学习方法]
+category: 基础知识
 draft: false
-encryptedKey: henhaoji123
+encryptedPassword: "henhaoji123"
 ---
 
-# 实体序列化与反序列化系统——数据持久化的 ECS 实现方案
+# 简历投递
 
-## 前言
+当前状态离职？为什么离职？空窗期一年在干什么？
 
-游戏数据的持久化是每个游戏必须面对的问题：玩家关闭游戏后，角色数据、背包物品、游戏进度应该如何保存？下次进入时如何恢复？
+# 预约面试
 
-在 ECS 框架中，这通过**序列化**和**反序列化**系统来实现。今天我们来分析 `ISerializeToEntity` 和 `IDeserializeSystem` 的设计。
+这边简历通过了业务部门评估，约时间面试
 
-```csharp
-// ISerializeToEntity.cs
-public interface ISerializeToEntity { }
+# 项目经验考察
 
-// IDeserializeSystem.cs
-public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity, IDeserialize
-{
-    void IDeserializeSystem.Run(Entity o)
-    {
-        this.Deserialize((T)o);
-    }
-    protected abstract void Deserialize(T self);
-}
-```
+知道怎么做？知道为什么这样做？知道为什么不那样做？
 
----
+# 游戏客户端面经
 
-## 一、ISerializeToEntity——标记可序列化的实体
+UI和框架是基础，性能优化、渲染、多线程以及算法是进阶，然后再加上大厂背书
 
-```csharp
-public interface ISerializeToEntity { }
-```
+战斗无非就是帧同步和状态同步
 
-这是一个**空标记接口**，没有任何方法。
+经典的笔试题也要刷一些  
 
-实现这个接口的实体，表示"我可以被序列化保存"。
+# 面试的底层逻辑
 
-**为什么是空接口？**
+表层事实->深度细节->感受和观点
 
-序列化的具体过程（把字段转成什么格式、用什么协议）由序列化框架处理（比如 MessagePack、Protobuf、JSON）。`ISerializeToEntity` 只是标记"这个类参与序列化"，不定义序列化如何进行。
+经验->技能->潜力->动机
 
-**与 `[Serializable]` 的区别**：
+举个例子，实现了活动xx，核心战斗，框架设计，设计AB打包，优化性能等
 
-.NET 有 `[System.Serializable]` 特性，但它是用于内置序列化（BinaryFormatter）的，不够灵活，且有安全问题。
+具体业务逻辑？核心战斗设计？目前的瓶颈？优缺点？框架难点细节？如何优化性能？分哪几个方面？打包规则？依赖？内存占用？验证真实性
 
-ECS 框架用接口标记替代特性标记，因为接口可以通过反射更方便地过滤（`typeof(ISerializeToEntity).IsAssignableFrom(type)`）。
+反思优化空间，成长性，技术深度和广度，靠谱度，沟通效率，潜力等等
 
----
-
-## 二、IDeserialize 与 DeserializeSystem——反序列化后的初始化
-
-```csharp
-public interface IDeserialize { }
-
-[ObjectSystem]
-[EntitySystem]
-public abstract class DeserializeSystem<T> : IDeserializeSystem where T: Entity, IDeserialize
-{
-    void IDeserializeSystem.Run(Entity o)
-    {
-        this.Deserialize((T)o);
-    }
+## 第一层：陈述事实
 
-    Type ISystemType.SystemType() => typeof(IDeserializeSystem);
-    InstanceQueueIndex ISystemType.GetInstanceQueueIndex() => InstanceQueueIndex.None;
-    Type ISystemType.Type() => typeof(T);
+面试官：我看简历上说设计过AB打包是吧？
 
-    protected abstract void Deserialize(T self);
-}
-```
+我：是的，设计过，整理了打包规则和加载卸载处理，优化了依赖和冗余问题
 
-### 2.1 为什么需要反序列化系统？
+此时，你不要着急说细节，你等别人问
 
-**序列化保存的是"数据快照"，但不是"运行时状态"。**
+解析这个环节：这个环节面试官就是跟着简历上问一下，来扫一下你的知识面和经验范围，还不着急进入细节。而你这层问题的回答，就要简洁精炼，不要有过多的细节，否则你会显得抓不住重点，另外，你可以用技术词汇，体现你的专业性，不用担心对方听不懂，而且，你还可以顺便扩展一下回答的范围，这有利于面试官全面了解你
 
-举个例子：
+## 第二层：深挖细节
 
-```csharp
-public class SkillComponent: Entity, ISerializeToEntity, IDeserialize
-{
-    // 序列化字段（持久化的数据）
-    public int SkillId;
-    public int Level;
-    
-    // 运行时字段（不序列化）
-    [NonSerialized]
-    public SkillConfig Config; // 技能配置，从配置表加载
-    [NonSerialized]
-    public bool IsReady;       // 运行时状态，每次启动重新计算
-}
-```
-
-数据从磁盘加载后，`Config` 和 `IsReady` 是空的——因为它们没有被序列化。
-
-这时需要 `DeserializeSystem` 来重建这些运行时状态：
-
-```csharp
-[ObjectSystem]
-public class SkillComponentDeserializeSystem: DeserializeSystem<SkillComponent>
-{
-    protected override void Deserialize(SkillComponent self)
-    {
-        // 从配置表重新加载配置
-        self.Config = ConfigManager.GetSkillConfig(self.SkillId);
-        
-        // 重新计算初始状态
-        self.IsReady = true;
-        
-        Log.Info($"技能 {self.SkillId} 反序列化完成");
-    }
-}
-```
-
-### 2.2 Deserialize vs Awake 的区别
-
-初看起来，`Deserialize` 和 `Awake` 很像——都是初始化。区别在于：
-
-- **Awake**：全新创建实体时调用，通常需要传入初始参数
-- **Deserialize**：从已有数据（存档、网络同步数据）重建实体时调用，参数已经在实体字段中
-
-```csharp
-// 全新创建（走 Awake）
-SkillComponent skill = entity.AddComponent<SkillComponent, int>(101); // 传 skillId
-
-// 从存档恢复（走 Deserialize）
-SkillComponent skill = Deserialize<SkillComponent>(savedData); // 数据已在字段中
-EventSystem.Instance.Deserialize(skill); // 触发 Deserialize 系统
-```
-
-### 2.3 EventSystem.Deserialize 的调用
-
-```csharp
-// EventSystem 中
-public void Deserialize(Entity component)
-{
-    List<object> iDeserializeSystems = 
-        this.typeSystems.GetSystems(component.GetType(), typeof(IDeserializeSystem));
-    if (iDeserializeSystems == null) return;
-
-    foreach (IDeserializeSystem deserializeSystem in iDeserializeSystems)
-    {
-        try
-        {
-            deserializeSystem.Run(component);
-        }
-        catch (Exception e)
-        {
-            Log.Error(e);
-        }
-    }
-}
-```
-
-这是直接调用（不经过队列），说明反序列化是**立即同步**的操作。
-
----
-
-## 三、序列化的完整流程
-
-```
-保存：
-实体字段 → 序列化框架（MessagePack/Protobuf）→ 二进制数据 → 磁盘/数据库
-
-恢复：
-磁盘/数据库 → 二进制数据 → 序列化框架 → 实体字段（数据恢复）
-                                    ↓
-                           EventSystem.Deserialize(entity)（运行时状态重建）
-```
-
----
-
-## 四、实际游戏中的应用场景
-
-### 4.1 玩家存档
-
-```csharp
-// 保存
-void SavePlayer(PlayerEntity player)
-{
-    byte[] data = Serializer.Serialize(player); // ISerializeToEntity 标记的字段被序列化
-    File.WriteAllBytes("save/player.dat", data);
-}
-
-// 加载
-PlayerEntity LoadPlayer()
-{
-    byte[] data = File.ReadAllBytes("save/player.dat");
-    PlayerEntity player = Deserializer.Deserialize<PlayerEntity>(data);
-    EventSystem.Instance.Deserialize(player); // 重建运行时状态
-    return player;
-}
-```
-
-### 4.2 网络同步
-
-在多人游戏中，服务端维护权威状态，客户端从服务端接收数据：
-
-```csharp
-// 客户端接收到服务端的角色数据
-void OnReceiveUnitData(UnitData data)
-{
-    UnitEntity unit = entityManager.GetUnit(data.UnitId);
-    if (unit == null)
-    {
-        // 新实体，反序列化创建
-        unit = Deserializer.Deserialize<UnitEntity>(data.Bytes);
-        EventSystem.Instance.Deserialize(unit);
-    }
-    else
-    {
-        // 已有实体，更新数据
-        Deserializer.MergeDeserialize(unit, data.Bytes);
-        EventSystem.Instance.Deserialize(unit); // 重建可能改变的运行时状态
-    }
-}
-```
-
----
-
-## 五、[ObjectSystem][EntitySystem] 双标记的意义
-
-```csharp
-[ObjectSystem]
-[EntitySystem]
-public abstract class DeserializeSystem<T>
-```
-
-- `[ObjectSystem]`：系统类在框架启动时被扫描和实例化
-- `[EntitySystem]`：系统方法支持热更新替换
-
-特别是 `[EntitySystem]` 对反序列化很重要：如果游戏热更新了，数据格式或初始化逻辑可能改变，需要能替换 `Deserialize` 的实现。
-
----
-
-## 六、InstanceQueueIndex.None 的含义
-
-```csharp
-InstanceQueueIndex ISystemType.GetInstanceQueueIndex() => InstanceQueueIndex.None;
-```
-
-反序列化不加入任何更新队列。它是按需触发的（显式调用 `EventSystem.Instance.Deserialize(entity)`），而非每帧自动调用。
-
----
-
-## 七、与其他序列化方案的对比
-
-| 方案 | 适用场景 | 优缺点 |
-|---|---|---|
-| `[SerializeField]` (Unity) | 编辑器序列化 | 简单，但只用于 Inspector |
-| `[System.Serializable]` (.NET) | BinaryFormatter | 简单，但不安全、不灵活 |
-| `ISerializeToEntity` + 自定义框架 | 游戏数据持久化 | 灵活、性能好，但复杂度高 |
-| JSON (Newtonsoft) | 配置文件 | 可读性好，但性能差 |
-
-大型游戏通常使用 Protobuf 或 MessagePack 配合自定义标记（如 `ISerializeToEntity`），在性能和灵活性之间取得平衡。
-
----
-
-## 八、写给初学者
-
-序列化是游戏开发中不可避免的话题，关键是理解两个概念：
-
-1. **持久化数据**：需要跨会话保存的（角色等级、背包物品）
-2. **运行时数据**：每次启动重新计算的（配置缓存、AI状态机）
-
-`ISerializeToEntity` 标记哪些数据需要持久化，`DeserializeSystem` 负责启动时重建运行时数据。
-
-两者配合，实现了"保存你需要保存的，重新计算你能重新计算的"——这是高效游戏存档系统的核心原则。
+面试官：那你能说说你是怎么设计的规则吗？具体卸载细节，ab的内存占用？等等
+
+你：巴拉巴拉
+
+解析这个环节：绝大多数人是挂在了这里，面试官目的就是验证你简历的真假，不断的探技术深度和一些网上都搜不到的细节；还有就是看你抗压不，比如，毫不留情地指出你地错误做法和不良影响，考查你在被挑战地情况下，能否保持冷静，理性作答；还可能故意装作没听懂或者没记住的样子，让你重新再讲一遍，验证你的表达有没有进步，前后说法是否一致；很多情况下，面试官为了真正测试出你某项技能的极限，会一直问到你没回答上来，并不表示你不合格，这知识正常的能力测试而已。
+
+## 第三层：感受和观点
+
+面试官：你对这个方案有什么感受？还有优化空间吗？假如引入xxx，会不会更好？当初为什么没选xxx，你学会了什么？
+
+你: 巴拉巴拉
+
+解析这个环节：感受和观点。这也是考察你的潜力和动机，包含事后的总结和改进有没有到位，是否具有成长型思维，看你是不是有自驱力，是不是高潜选手。 这类问题很难回答，你的回答会包含大量的价值观，性格品质等信息，如果之前没有总结过的华，你的回答可能没有深度，而且如果只是表态的内容，就显得一般，所以你最好是准备下。
+
+## 对于你的启示
+
+碰到意外的问题，不要意外，先想下为什么面试官问这个问题
+
+因为面试官不会天马行空，肯定是前面哪里还是表示怀疑，再次验证下
+
+大体只有两种情况会失败：
+
+面试官觉得你不适合，水平低
+
+面试官不清楚你是否合适，可能你表达的太抽象
+
+所以，你需要有意识地寻找机会，向面试官展示自己的能力，而不要仅以面试官的提问为纲
+
+# 如何寻找小而美的公司
+
+真格基金、红杉资本；看看一线投资机构的选择。
