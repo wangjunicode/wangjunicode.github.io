@@ -1,8 +1,9 @@
 ---
 title: 三类ID结构体的位运算编码设计：IdGenerater中的IdStruct、InstanceIdStruct与UnitIdStruct深度解析
-date: 2026-04-07
+published: 2026-04-07
 tags: [Unity, ECS, ID生成, 位运算, 游戏框架]
 category: 游戏框架
+draft: false
 encryptedKey: henhaoji123
 ---
 
