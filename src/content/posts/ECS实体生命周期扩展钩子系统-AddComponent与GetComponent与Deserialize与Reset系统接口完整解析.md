@@ -67,7 +67,7 @@ public abstract class AddComponentSystem<T> : IAddComponentSystem where T : Enti
 
 ### 工作原理
 
-当某个实体调用 `entity.AddComponent<XXX>()` 时，EventSystem 会检查该实体类型是否实现了 `IAddComponent` 接口，如果有对应注册的 `AddComponentSystem`，则自动触发 `AddComponent` 回调。
+当某个实体调用 `entity.AddComponent<T>()` 时（此处 `T` 为组件类型泛型参数），EventSystem 会检查该实体类型是否实现了 `IAddComponent` 接口，如果有对应注册的 `AddComponentSystem`，则自动触发 `AddComponent` 回调。
 
 **触发时机：** 子组件刚被挂载到父实体之后，此时子组件已初始化完成。
 
