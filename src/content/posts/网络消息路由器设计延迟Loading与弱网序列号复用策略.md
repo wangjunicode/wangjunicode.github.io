@@ -1,4 +1,4 @@
----
+﻿---
 title: 网络消息路由器设计——0.5秒延迟Loading与弱网序列号复用策略
 published: 2026-03-31
 description: 深入解析MessageRouter的智能Loading显示机制，分析延迟0.5秒再显示、多请求并发时最旧请求计时、弱网序列号缓存复用的完整设计
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 一个常被忽视的用户体验问题：当玩家点击了某个按钮触发网络请求，如果立刻显示Loading界面，快速响应的请求（50ms返回）会让Loading一闪而过，视觉体验很差。但如果不显示Loading，慢速请求（2秒返回）又会让界面看起来"卡死"。
 
-VGame项目的`MessageRouterSystem`用一个**0.5秒延迟显示**的策略完美解决了这个问题。
+xgame项目的`MessageRouterSystem`用一个**0.5秒延迟显示**的策略完美解决了这个问题。
 
 ## 一、智能Loading显示策略
 

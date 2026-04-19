@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏登录界面SDK集成与多渠道登录实现
 published: 2026-03-31
 description: 深度解析微信/QQ双渠道SDK登录、防连点保护、登录状态机、错误码处理、新玩家引导流程和断线重连机制的完整实现。
@@ -260,8 +260,8 @@ else if (retCode == (int)SvrErrorCode.ZoneErrLoginNotRegist)
 
 ```csharp
 #if UNITY_EDITOR
-    VGame.Define.directLogin = ET.Define.directLogin;  // 无鉴权模式
-    VGame.Define.editorOpenId = ET.Define.editorOpenId;
+    xgame.Define.directLogin = ET.Define.directLogin;  // 无鉴权模式
+    xgame.Define.editorOpenId = ET.Define.editorOpenId;
     // 编辑器下直接显示登录按钮，跳过自动登录
     ShowLoginReadyView();
 #else

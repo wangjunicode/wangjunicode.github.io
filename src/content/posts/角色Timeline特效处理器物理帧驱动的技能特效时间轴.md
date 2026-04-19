@@ -1,4 +1,4 @@
----
+﻿---
 title: 角色Timeline特效处理器——物理帧驱动的技能特效时间轴
 published: 2026-03-31
 description: 深入解析游戏技能特效与Timeline的联动机制，从物理帧事件到StartTimePointer遍历的完整特效触发流程
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 手游战斗中的技能特效令人眼花缭乱：释放技能时粒子喷发、命中时爆炸光效、移动时残影拖尾……这些特效不是简单调用`PlayEffect()`，而是精确地绑定在动画时间轴的特定帧上。
 
-VGame项目用`TimelineTickEvent`实现了这套"物理帧驱动的Timeline特效处理"，本文深入分析这套机制。
+xgame项目用`TimelineTickEvent`实现了这套"物理帧驱动的Timeline特效处理"，本文深入分析这套机制。
 
 ## 一、物理帧 vs 渲染帧
 

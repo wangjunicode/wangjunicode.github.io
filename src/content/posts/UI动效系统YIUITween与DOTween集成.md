@@ -1,7 +1,7 @@
----
+﻿---
 title: UI 动效系统（YIUITween + DOTween）
 published: 2024-01-01
-description: "UI 动效系统（YIUITween + DOTween） - VGame项目技术文档"
+description: "UI 动效系统（YIUITween + DOTween） - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: UI系统
 draft: false
@@ -36,7 +36,7 @@ BasePanel（面板基类）
 ### 3.1 YIUITweenComponentSystem
 
 ```csharp
-// 位置：Hotfix/UIFunction/VGameUI/YIUITweenComponentSystem.cs
+// 位置：Hotfix/UIFunction/xgameUI/YIUITweenComponentSystem.cs
 public static class YIUITweenComponentSystem
 {
     // 面板打开时播放所有入场动效（并行执行，等所有完成）
@@ -244,7 +244,7 @@ public class DanmakuPanel : MonoBehaviour
 ## 6. 数字动画系统（NumberAnimationManager）
 
 ```csharp
-// Hotfix/UIFunction/VGameUI/NumberAnimationManager.cs
+// Hotfix/UIFunction/xgameUI/NumberAnimationManager.cs
 // 数字从旧值滚动到新值的动画（常用于分数/金币变化）
 public class NumberAnimationManager : MonoBehaviour
 {

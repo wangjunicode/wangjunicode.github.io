@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏战斗进度对决动画与后期处理模糊特效
 published: 2026-03-31
 description: 深入解析战斗僵持进度条对决动画的速度计算、MEC协程管理、后期处理模糊特效与UI面板的协同以及战前演出全屏模糊效果的完整实现。
@@ -142,7 +142,7 @@ public async ETTask PlayAniShow()
     tasks.Add(u_ComPanelAnimator.PlayAndWaitAnimation(UIAnimNameDefine.ShowHash));
     
     // 播放音效
-    VGameAudioManager.Instance.PlaySound(30094);
+    xgameAudioManager.Instance.PlaySound(30094);
     
     // 并行等待所有动画完成
     await ETTaskHelper.WaitAll(tasks);

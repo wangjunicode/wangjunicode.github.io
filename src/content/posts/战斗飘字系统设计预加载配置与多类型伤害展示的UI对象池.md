@@ -1,4 +1,4 @@
----
+﻿---
 title: 战斗飘字系统设计——预加载配置与多类型伤害展示的UI对象池
 published: 2026-03-31
 description: 深度解析战斗飘字系统的预加载策略设计，分析为何不同伤害类型各自有独立预制体并使用固定数量预热
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 战斗中每次攻击都会在被攻击单位头顶弹出一个数字——"-350"、"CRITICAL!"、"BLOCK"……这些飘字（JumpText/FloatingText）看似简单，但在激烈战斗中可能每秒出现数十个，如果处理不好会导致严重的性能问题。
 
-VGame项目的飘字系统通过**类型化预制体 + 预热数量配置**来解决这个问题，本文分析这套设计。
+xgame项目的飘字系统通过**类型化预制体 + 预热数量配置**来解决这个问题，本文分析这套设计。
 
 ## 一、伤害类型的视觉差异化
 
@@ -23,51 +23,51 @@ public class BattleJumpTextItemPath
 {
     // 普通伤害（黑字，小字体）
     public const string BattleJumpTextItem_DirectDamage = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_DirectDamage_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_DirectDamage_New.prefab";
     
     // 重击伤害（橙色，大字体）
     public const string BattleJumpTextItem_StrikeDamage = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_StrikeDamage_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_StrikeDamage_New.prefab";
     
     // 暴击伤害（红色，带闪光，最大字体）
     public const string BattleJumpTextItem_CriticalDamage = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_CriticalDamage_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_CriticalDamage_New.prefab";
     
     // 格挡伤害（蓝灰色，护盾图标）
     public const string BattleJumpTextItem_BlockDamage = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_BlockDamage_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_BlockDamage_New.prefab";
     
     // 完美格挡（金色，"PERFECT"文字效果）
     public const string BattleJumpTextItem_PerfectBlocked = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_PerfectBlocked_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_PerfectBlocked_New.prefab";
     
     // 闪避（绿色，"DODGE"文字效果）
     public const string BattleJumpTextItem_Dodged = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_Dodged_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_Dodged_New.prefab";
     
     // 必中伤害（紫色，锁链图标，无法格挡的伤害）
     public const string BattleJumpTextItem_SureHitDamage = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_SureHitDamage_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_SureHitDamage_New.prefab";
     
     // 获得Buff（绿色，向上飘动的图标）
     public const string BattleJumpTextItem_BuffGain = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_BuffGain_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_BuffGain_New.prefab";
     
     // 获得AP（行动点）
     public const string BattleJumpTextItem_NumericalGainAP = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_NumericalGainAP_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_NumericalGainAP_New.prefab";
     
     // 获得CRP（核心资源点）
     public const string BattleJumpTextItem_NumericalGainCRP = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_NumericalGainCRP_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_NumericalGainCRP_New.prefab";
     
     // 获得HP（回血）
     public const string BattleJumpTextItem_NumericalGainHP = 
-        "VGameUI/BattleJumpText/Prefabs/BattleJumpTextItem_NumericalGainHP_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/BattleJumpTextItem_NumericalGainHP_New.prefab";
     
     // 数值变化修正（小字，用于debuff等）
     public const string Modification = 
-        "VGameUI/BattleJumpText/Prefabs/Modification_New.prefab";
+        "xgameUI/BattleJumpText/Prefabs/Modification_New.prefab";
 }
 ```
 

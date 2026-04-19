@@ -1,7 +1,7 @@
----
+﻿---
 title: 08_WebSocket长连接管理
 published: 2024-01-01
-description: "08_WebSocket长连接管理 - VGame项目技术文档"
+description: "08_WebSocket长连接管理 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 网络与SDK
 draft: false

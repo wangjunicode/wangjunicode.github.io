@@ -1,7 +1,7 @@
----
+﻿---
 title: 02_Dolphin热更框架集成与工作流程
 published: 2024-01-01
-description: "02_Dolphin热更框架集成与工作流程 - VGame项目技术文档"
+description: "02_Dolphin热更框架集成与工作流程 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 热更新
 draft: false
@@ -197,7 +197,7 @@ void Update()
 ```csharp
 public void OnNoticeNewVersionInfo(NewVersionInfo info)
 {
-    PatchLog.Info($"[VGameDolphin] NewVersionInfo, updateType:{info.updateType}");
+    PatchLog.Info($"[xgameDolphin] NewVersionInfo, updateType:{info.updateType}");
 
     if (info.isCurrentNewest) // 当前已是最新
     {
@@ -268,7 +268,7 @@ public void OnUpdateProgressInfo(
 ```csharp
 public void OnNoticeChangeSourceVersion(string newVersionStr)
 {
-    PatchLog.Info($"[VGameDolphin] OnNoticeChangeSourceVersion: {newVersionStr}");
+    PatchLog.Info($"[xgameDolphin] OnNoticeChangeSourceVersion: {newVersionStr}");
     
     // 停止 Shader 预热（资源已就绪，无需继续预热）
     ShaderPreloader_OnStart.Instance?.PauseShaderWarmup();

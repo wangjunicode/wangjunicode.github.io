@@ -1,4 +1,4 @@
----
+﻿---
 title: 使用 ClosedXML 实现 Excel 配置表到 JSON 的自动化转换
 published: 2026-03-31
 description: 深入解析 Excel 配置表导出工具的实现原理，理解 ClosedXML 读取 xlsx 数据、Sheet 解析和 JSON 序列化的工程流程。
@@ -30,7 +30,7 @@ public class ExcelTool
     };
     
     // 菜单入口：在 Unity 菜单栏添加工具
-    [MenuItem("VGame/特效/TTB相关excel转Json")]
+    [MenuItem("xgame/特效/TTB相关excel转Json")]
     public static void ParseExcelToJsonOnlyTTB()
     {
         var dataPath = Application.dataPath;

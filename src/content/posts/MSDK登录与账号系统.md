@@ -1,7 +1,7 @@
----
+﻿---
 title: 06_MSDK登录与账号系统
 published: 2024-01-01
-description: "06_MSDK登录与账号系统 - VGame项目技术文档"
+description: "06_MSDK登录与账号系统 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 网络与SDK
 draft: false

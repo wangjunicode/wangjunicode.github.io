@@ -1,4 +1,4 @@
----
+﻿---
 title: 协程锁队列与等待机制：CoroutineLockQueue的完整实现解析
 published: 2026-04-07
 tags: [Unity, 异步编程, 协程锁, ECS, 并发安全]
@@ -11,7 +11,7 @@ encryptedKey: henhaoji123
 
 ## 前言
 
-在 ET/VGame 框架的异步体系里，`CoroutineLockComponent` 是解决"同一逻辑资源被多个协程并发访问"问题的核心组件。  
+在 ET/xgame 框架的异步体系里，`CoroutineLockComponent` 是解决"同一逻辑资源被多个协程并发访问"问题的核心组件。  
 上层开发者只需 `await CoroutineLockComponent.Instance.Wait(type, key)` 便能优雅地串行化一段异步代码，但这背后涉及三个协同工作的类：
 
 - `CoroutineLockQueue` —— 按 key 管理的等待队列

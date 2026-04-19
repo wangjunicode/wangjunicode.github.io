@@ -1,4 +1,4 @@
----
+﻿---
 title: 角色专属相机系统设计——每个英雄都有自己的Cinemachine相机组
 published: 2026-03-31
 description: 深度解析游戏中角色与相机的绑定机制，从CinemachineTargetGroup到CharacterCameraComponent的完整实现
@@ -14,7 +14,7 @@ encryptedKey: henhaoji123
 
 如果让所有角色共用一组相机参数，要么无法照顾每个角色的最佳表现，要么相机逻辑里充斥大量`if (character == "英雄A")`的特殊分支。
 
-VGame项目采用了**"每个角色有自己的虚拟相机组"**的设计，本文详细剖析这套机制。
+xgame项目采用了**"每个角色有自己的虚拟相机组"**的设计，本文详细剖析这套机制。
 
 ## 一、设计理念：相机跟着角色走
 

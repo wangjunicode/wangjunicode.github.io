@@ -1,4 +1,4 @@
----
+﻿---
 title: 战前准备视图组件——备战场景的GameObject生命周期与状态机驱动动画
 published: 2026-03-31
 description: 解析战前备战界面的视图组件设计，包括场景预制体DontDestroyOnLoad管理、Animator状态机驱动与相机近远裁剪面调整
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 PVP或副本战斗开始前，玩家通常需要看到一个"战前准备"界面：展示我方角色阵容、查看敌方信息、进行最后的策略调整……这个界面背后的技术实现比看起来复杂。
 
-VGame项目的`PreBattleViewComponentSystem`管理了战前备战场景的完整生命周期，本文深入分析这套设计。
+xgame项目的`PreBattleViewComponentSystem`管理了战前备战场景的完整生命周期，本文深入分析这套设计。
 
 ## 一、战前备战场景的特殊性
 

@@ -1,7 +1,7 @@
----
+﻿---
 title: 06 UniScript 可视化脚本驱动战斗逻辑
 published: 2024-01-01
-description: "06 UniScript 可视化脚本驱动战斗逻辑 - VGame项目技术文档"
+description: "06 UniScript 可视化脚本驱动战斗逻辑 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 战斗系统
 draft: false
@@ -256,7 +256,7 @@ public partial class FlowScriptNode : FSMNodeNested<SkillGraph>, IUpdatable
 
 ```csharp
 [Name("设置FSM参数")]
-[Category("VGame/FSM")]
+[Category("xgame/FSM")]
 [MemoryPackable]
 public partial class GS_SetFSMParam : AGlobalScriptBase
 {
@@ -272,7 +272,7 @@ public partial class GS_SetFSMParam : AGlobalScriptBase
 
 ```csharp
 [Name("获取FSM状态")]
-[Category("VGame/FSM")]
+[Category("xgame/FSM")]
 [MemoryPackable]
 public partial class GS_GetFSMState : AGlobalScriptBase
 {
@@ -286,7 +286,7 @@ public partial class GS_GetFSMState : AGlobalScriptBase
 
 ```csharp
 [Name("状态机前一个状态检测")]
-[Category("VGame/条件")]
+[Category("xgame/条件")]
 [MemoryPackable]
 public partial class CT_CheckFSMLastState : ConditionTask
 {
@@ -326,7 +326,7 @@ public partial class CLIP_UniHurt : ActionClip
 
 ```csharp
 [Name("比较数值")]
-[Category("VGame/条件")]
+[Category("xgame/条件")]
 [MemoryPackable]
 public partial class CT_CompareNumeric : ConditionTask
 {

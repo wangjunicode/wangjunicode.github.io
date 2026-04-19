@@ -1,4 +1,4 @@
----
+﻿---
 title: 游戏音频管理器的完整架构设计——从音效实例池到Wwise驱动
 published: 2026-03-31
 description: 深度解析手游音频管理器的架构设计，包括音频类型分层、实例对象池、Bank热加载与音量控制体系
@@ -27,7 +27,7 @@ Unity原生的`AudioSource`组件有几个根本性问题：
 
 ## 二、音频类型的语义分层
 
-在VGame项目的`VGameAudioManager.cs`中，定义了清晰的音频类型枚举：
+在xgame项目的`xgameAudioManager.cs`中，定义了清晰的音频类型枚举：
 
 ```csharp
 public enum SoundType
@@ -54,22 +54,22 @@ public enum VolumeType
 
 ## 三、音效实例对象池设计
 
-每次播放音效都创建新的音频对象是非常浪费的。`VGameSndInstanceManager`实现了音效实例的对象池：
+每次播放音效都创建新的音频对象是非常浪费的。`xgameSndInstanceManager`实现了音效实例的对象池：
 
 ```csharp
-public class VGameSndInstanceManager
+public class xgameSndInstanceManager
 {
-    private static VGameSndInstanceManager _instance = null;
+    private static xgameSndInstanceManager _instance = null;
     
     // 对象池队列
-    private Queue<VGameSndInstance> _poolList = new Queue<VGameSndInstance>();
+    private Queue<xgameSndInstance> _poolList = new Queue<xgameSndInstance>();
     
     // 预留ID集合（给战斗单元使用的持久声源）
     private HashSet<ulong> reserved = new HashSet<ulong>();
     
-    public VGameSndInstance BorrowSndInstance(ulong instanceid)
+    public xgameSndInstance BorrowSndInstance(ulong instanceid)
     {
-        VGameSndInstance ins = null;
+        xgameSndInstance ins = null;
         int len = _poolList.Count;
 
         // 避免连续复用：池中超过3个才复用，防止同一个实例被重复播放产生问题
@@ -80,14 +80,14 @@ public class VGameSndInstanceManager
 
         if (ins == null)
         {
-            ins = new VGameSndInstance();
+            ins = new xgameSndInstance();
         }
 
         ins.instanceId = instanceid;
         return ins;
     }
     
-    public void ReturnSndInstance(VGameSndInstance ins)
+    public void ReturnSndInstance(xgameSndInstance ins)
     {
         ins.Reset();
         _poolList.Enqueue(ins);
@@ -202,7 +202,7 @@ public static bool AudioLog = false;
 ## 九、实战经验：常见的音频系统坑
 
 **坑1：场景切换时音效残留**
-切换到大厅时，战斗场景里正在播放的音效对象没有清理，导致大厅里还能听到战斗音效。解决方案：场景卸载时调用`StopAll()`，同时对应到`VGameAudioManager.Enable = false`。
+切换到大厅时，战斗场景里正在播放的音效对象没有清理，导致大厅里还能听到战斗音效。解决方案：场景卸载时调用`StopAll()`，同时对应到`xgameAudioManager.Enable = false`。
 
 **坑2：BGM淡出期间切换场景**
 BGM正在做淡出（0.5s渐变到0），这时场景已经切走了，淡出的协程报空引用。解决方案：`_waitForClearBgm`标志位延迟场景切换，等BGM真正停止后再继续。
@@ -213,12 +213,12 @@ Bank加载是异步的，但业务代码以为是同步，在Bank未加载完成
 ## 十、架构总结
 
 ```
-VGameAudioManager（门面）
-    ├── VGameSndInstanceManager（实例对象池）
-    │     └── VGameSndInstance（单个音效实例）
-    ├── VGameAudioManagerNew（新模式音频处理）
-    ├── VGameAudioEventManager（Wwise事件桥接）
-    └── VGameSoundEngine（底层Wwise SDK封装）
+xgameAudioManager（门面）
+    ├── xgameSndInstanceManager（实例对象池）
+    │     └── xgameSndInstance（单个音效实例）
+    ├── xgameAudioManagerNew（新模式音频处理）
+    ├── xgameAudioEventManager（Wwise事件桥接）
+    └── xgameSoundEngine（底层Wwise SDK封装）
 ```
 
 对于新手来说，写一个"够用的"音频管理器不难，难的是处理所有的边界情况：暂停恢复、场景切换、内存回收、音量映射……这些边界情况才是系统稳定性的真正考验。

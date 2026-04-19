@@ -1,7 +1,7 @@
----
+﻿---
 title: 10 序列化系统 MemoryPack 集成
 published: 2024-01-01
-description: "10 序列化系统 MemoryPack 集成 - VGame项目技术文档"
+description: "10 序列化系统 MemoryPack 集成 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: ET框架
 draft: false

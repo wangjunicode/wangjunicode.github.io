@@ -1,7 +1,7 @@
----
+﻿---
 title: 03 FSM 有限状态机系统
 published: 2024-01-01
-description: "03 FSM 有限状态机系统 - VGame项目技术文档"
+description: "03 FSM 有限状态机系统 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 战斗系统
 draft: false
@@ -242,7 +242,7 @@ public partial class BreakDefenseStateAction : ActionTask { }
 ```csharp
 // 状态机事件检测节点，用于在 FSM 图的转移条件上检查事件
 [Name("状态机事件检测")]
-[Category("VGame/条件")]
+[Category("xgame/条件")]
 [MemoryPackable]
 public partial class CT_CheckFSMEvent : ConditionTask
 {
@@ -275,7 +275,7 @@ public partial class AT_SetStateTag : ActionTask
 ```csharp
 // 命令目标单位进入指定 FSM 状态
 [Name("进入状态")]
-[Category("VGame")]
+[Category("xgame")]
 [MemoryPackable]
 public partial class TS_EnterState : ATargetScriptBase
 {

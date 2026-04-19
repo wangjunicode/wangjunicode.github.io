@@ -1,4 +1,4 @@
----
+﻿---
 title: 引擎接口规范与运行时配置——ScriptInterfaces、EngineDefine 和 EngineRuntime 解析
 published: 2026-03-31
 description: 解析框架中的脚本接口规范体系、引擎常量定义类和运行时状态管理类，理解定点数时间、确定性随机数以及多平台条件编译的工程实践。
@@ -23,7 +23,7 @@ encryptedKey: henhaoji123
 ## 一、ScriptInterfaces——脚本系统的标记接口体系
 
 ```csharp
-namespace VGame.Framework
+namespace xgame.Framework
 {
     // 用于泛型脚本 handler 实例化
     public interface IGenericEvtScriptHandler { }
@@ -58,9 +58,9 @@ namespace VGame.Framework
 }
 ```
 
-### 1.1 命名空间 VGame.Framework
+### 1.1 命名空间 xgame.Framework
 
-这里使用的是 `VGame.Framework` 命名空间，而非 `ET`。这暗示这是项目在 ET 框架基础上的自定义扩展层（VGame 是项目代号）。
+这里使用的是 `xgame.Framework` 命名空间，而非 `ET`。这暗示这是项目在 ET 框架基础上的自定义扩展层（xgame 是项目代号）。
 
 这些接口都是用于**可视化脚本系统**（Visual Scripting）的标记接口，用于：
 - 行为树节点（Blackboard 是行为树中的共享数据）

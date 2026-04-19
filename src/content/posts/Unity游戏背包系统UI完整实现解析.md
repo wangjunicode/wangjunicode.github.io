@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏背包系统UI完整实现解析
 published: 2026-03-31
 description: 深度剖析背包界面的完整实现，包含Tab切换管理、排序筛选系统、物品详情联动、"最近获得"特殊标签及异步动画与数据流的协作机制。
@@ -93,7 +93,7 @@ protected override void Initialize()
     _currentSelectedButton = ButtonType.All;
     
     // ToggleGroup 回调：切换 Tab 时触发
-    u_ComPanel_BtnGroupVGameToggleGroup.OnSelectionChanged(OnToggleButtonClick);
+    u_ComPanel_BtnGroupxgameToggleGroup.OnSelectionChanged(OnToggleButtonClick);
     
     // 初始化筛选器组件
     var filterOptionsList = new List<FilterOptions>
@@ -153,7 +153,7 @@ private List<CItemConf> LoadBagItemsByTypeFromLocal(ButtonType buttonType) { ...
 ```csharp
 private void OnToggleButtonClick(int index)
 {
-    VGameAudioManager.Instance.PlaySound(Play_ui_system_common_tab_switch);  // 播放切换音效
+    xgameAudioManager.Instance.PlaySound(Play_ui_system_common_tab_switch);  // 播放切换音效
     
     ButtonType buttonType = (ButtonType)index;
     
@@ -258,7 +258,7 @@ private void OnItemSelected(Evt_BagItemSelected selected)
     LoadItemIconWithValidation(selected.ItemConf, selected.ItemId).Coroutine();  // 异步加载图标
     
     PlayShow2Animation().Coroutine();  // 播放详情面板出现动画
-    VGameAudioManager.Instance.PlaySound(Play_ui_system_common_select_small);  // 点击音效
+    xgameAudioManager.Instance.PlaySound(Play_ui_system_common_select_small);  // 点击音效
 }
 ```
 

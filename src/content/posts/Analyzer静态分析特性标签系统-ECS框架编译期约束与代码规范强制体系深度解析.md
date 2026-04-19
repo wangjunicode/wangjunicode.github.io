@@ -1,7 +1,7 @@
----
+﻿---
 title: Analyzer静态分析特性标签系统——ECS框架编译期约束与代码规范强制体系深度解析
 published: 2026-04-19
-description: '深度解析ET/VGame框架Core/Analyzer目录下七个静态分析特性（ChildOf、ComponentOf、EnableAccessEntityChild、EnableMethod、FriendOf、StaticField、UniqueId），揭示它们如何在编译期强制ECS访问规则、父子关系约束与唯一ID校验，构建零运行时开销的代码规范体系。'
+description: '深度解析ET/xgame框架Core/Analyzer目录下七个静态分析特性（ChildOf、ComponentOf、EnableAccessEntityChild、EnableMethod、FriendOf、StaticField、UniqueId），揭示它们如何在编译期强制ECS访问规则、父子关系约束与唯一ID校验，构建零运行时开销的代码规范体系。'
 image: ''
 tags: [Unity, ECS, C#, 静态分析, Roslyn, 代码架构]
 category: '游戏框架'
@@ -19,7 +19,7 @@ encryptedKey: henhaoji123
 - 热更新环境下静态字段如何安全初始化？
 
 如果仅依赖运行时校验，这些问题会在玩家设备上以崩溃或数据错乱的形式爆发。  
-ET/VGame 框架选择了更激进的方案：**Roslyn 静态分析器（Analyzer）+ 自定义 Attribute**，在编译阶段就把错误消灭。
+ET/xgame 框架选择了更激进的方案：**Roslyn 静态分析器（Analyzer）+ 自定义 Attribute**，在编译阶段就把错误消灭。
 
 `Core/Analyzer/` 目录下共有 7 个特性文件，本文逐一剖析它们的设计意图与工程价值。
 
@@ -423,7 +423,7 @@ ET.Analyzer/
 
 ## 十二、总结
 
-ET/VGame 框架的 `Analyzer` 特性标签系统体现了一种**架构即规范**的工程哲学：
+ET/xgame 框架的 `Analyzer` 特性标签系统体现了一种**架构即规范**的工程哲学：
 
 | 原则 | 实现方式 |
 |---|---|

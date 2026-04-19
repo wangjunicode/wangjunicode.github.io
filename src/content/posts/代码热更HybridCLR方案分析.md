@@ -1,7 +1,7 @@
----
+﻿---
 title: 06_代码热更HybridCLR方案分析
 published: 2024-01-01
-description: "06_代码热更HybridCLR方案分析 - VGame项目技术文档"
+description: "06_代码热更HybridCLR方案分析 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 热更新
 draft: false
@@ -277,7 +277,7 @@ private void StartGame(string token)
     typ = modelAssembly.GetType("ClientEntry");
     
 #if UNITY_EDITOR
-    param1b[0] = UnityEditor.EditorPrefs.GetString("VGame_GAMEDATA_MODE", "") == "DEV";
+    param1b[0] = UnityEditor.EditorPrefs.GetString("xgame_GAMEDATA_MODE", "") == "DEV";
 #else
     param1b[0] = false;
 #endif

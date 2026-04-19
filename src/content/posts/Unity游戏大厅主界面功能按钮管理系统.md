@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏大厅主界面功能按钮管理系统
 published: 2026-03-31
 description: 深度解析大厅主界面功能按钮（背包、商城、任务等）的数据驱动配置、对象池管理、红点绑定与回调设计，以及体力恢复计时器和昼夜切换的工程实现。
@@ -258,7 +258,7 @@ private async ETTask ShowCultivatePopIfNeeded()
     {
         // 播放弹出动画
         u_ComCultivationPopAnimator.SetTrigger(ShowCultivatePopAnimHash);
-        VGameAudioManager.Instance.PlaySound(Play_ui_system_common_get_pop_expansion);
+        xgameAudioManager.Instance.PlaySound(Play_ui_system_common_get_pop_expansion);
     }
 }
 ```

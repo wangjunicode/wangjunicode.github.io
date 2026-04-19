@@ -1,7 +1,7 @@
----
+﻿---
 title: 配置表系统设计与实现（LuBan + CfgManager）
 published: 2024-01-01
-description: "配置表系统设计与实现（LuBan + CfgManager） - VGame项目技术文档"
+description: "配置表系统设计与实现（LuBan + CfgManager） - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 配置与数据
 draft: false

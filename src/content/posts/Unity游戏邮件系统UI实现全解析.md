@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏邮件系统UI实现全解析
 published: 2026-03-31
 description: 详解游戏邮件系统的分类管理、异步网络交互、批量操作、收藏功能及状态同步的完整UI层实现方案。
@@ -61,13 +61,13 @@ public class MailListNotifyHandler : AAsyncEvent<Evt_MailListNotify>
 
         var message = evt.Message;
         int mailType = evt.Type;
-        var mailList = new List<VGame.YIUI.Mail.MailData>();
+        var mailList = new List<xgame.YIUI.Mail.MailData>();
         
         if (message?.MailList != null)
         {
             foreach (var mail in message.MailList)
             {
-                var mailData = new VGame.YIUI.Mail.MailData
+                var mailData = new xgame.YIUI.Mail.MailData
                 {
                     MailId = mail.MailId,
                     Type = mailType,
@@ -84,13 +84,13 @@ public class MailListNotifyHandler : AAsyncEvent<Evt_MailListNotify>
                 // 处理附件数据
                 if (mail.Attachment != null)
                 {
-                    var mailAttachment = new VGame.YIUI.Mail.MailAttachment { /* ... */ };
+                    var mailAttachment = new xgame.YIUI.Mail.MailAttachment { /* ... */ };
                     if (mail.Attachment.ItemList?.Count > 0)
                     {
-                        var awardNotify = new VGame.YIUI.Mail.MailAwardNotify();
+                        var awardNotify = new xgame.YIUI.Mail.MailAwardNotify();
                         foreach (var item in mail.Attachment.ItemList)
                         {
-                            awardNotify.MailItems.Add(new VGame.YIUI.Mail.MailAwardItem
+                            awardNotify.MailItems.Add(new xgame.YIUI.Mail.MailAwardItem
                             {
                                 Id = item.Id,
                                 Count = item.Count,

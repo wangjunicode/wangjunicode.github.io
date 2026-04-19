@@ -1,7 +1,7 @@
----
+﻿---
 title: 游戏框架TimerComponent定时器系统深度解析-单次重复与异步等待的完整调度设计
 published: 2026-04-17
-description: '深度剖析 ET/VGame 框架中 TimerComponent 单例定时器的完整实现：TimerClass 枚举、TimerAction 对象池、MultiMap 时间索引、OnceTimer/RepeatedTimer/WaitAsync 三类调度接口及 LogicTimerComponent 帧驱动变体的工程细节。'
+description: '深度剖析 ET/xgame 框架中 TimerComponent 单例定时器的完整实现：TimerClass 枚举、TimerAction 对象池、MultiMap 时间索引、OnceTimer/RepeatedTimer/WaitAsync 三类调度接口及 LogicTimerComponent 帧驱动变体的工程细节。'
 image: ''
 tags: [Unity, 游戏框架, 定时器, ETTask, 异步编程, 对象池]
 category: '技术分享'
@@ -13,7 +13,7 @@ encryptedKey: henhaoji123
 
 定时器是游戏框架的基础设施之一。无论是技能冷却、BUFF 倒计时、Tween 动画，还是网络心跳、定期存档，背后都离不开一个高效、低 GC 的调度系统。
 
-ET/VGame 框架提供了两套定时器实现：
+ET/xgame 框架提供了两套定时器实现：
 
 - **TimerComponent**：基于真实毫秒时间，挂载于 Singleton 并实现 ISingletonUpdate，每帧驱动。
 - **LogicTimerComponent**：基于帧号（FixedUpdate 帧计数），配合 TrueSync 定点数，专为帧同步战斗服务。
@@ -370,4 +370,4 @@ TimerComponent 体现了以下设计原则：
 
 ---
 
-*本文基于 VGame/ET 框架源码分析，适用于 Unity 客户端游戏框架深度学习。*
+*本文基于 xgame/ET 框架源码分析，适用于 Unity 客户端游戏框架深度学习。*

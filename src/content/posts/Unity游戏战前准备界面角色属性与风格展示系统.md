@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏战前准备界面角色属性与风格展示系统
 published: 2026-03-31
 description: 深入解析战前准备界面的多Tab切换、角色逻辑评分五档状态机展示、属性分类分组、风格/技能信息及角色关系连接线可视化的完整实现。
@@ -219,7 +219,7 @@ public void PropertyToggleValueChange(bool isOn)
         u_ComPnl_PropertyRectTransform.gameObject.SetActive(true);
         u_ComPnl_StyleRectTransform.gameObject.SetActive(false);
     }
-    VGameAudioManager.Instance.PlaySound(Play_ui_batttle_common_tab_switch_midle);
+    xgameAudioManager.Instance.PlaySound(Play_ui_batttle_common_tab_switch_midle);
 }
 ```
 

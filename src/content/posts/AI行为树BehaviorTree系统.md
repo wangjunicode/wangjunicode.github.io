@@ -1,7 +1,7 @@
----
+﻿---
 title: 09 AI 行为树（BehaviorTree）系统
 published: 2024-01-01
-description: "09 AI 行为树（BehaviorTree）系统 - VGame项目技术文档"
+description: "09 AI 行为树（BehaviorTree）系统 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 战斗系统
 draft: false
@@ -155,7 +155,7 @@ public static List<Type> s_blackboardTypes = new List<Type>()
 using ET;
 using UniScript;
 
-namespace VGame.Framework
+namespace xgame.Framework
 {
     public class BTComponent : Entity, IAwake, IFixedUpdate, IUpdate, IDestroy, IUniAgent
     {
@@ -200,7 +200,7 @@ public class TeamEntity : Entity, IAwake<int>, IDestroy, IUniAgent
 ```csharp
 // CT_CheckRange —— 检查目标是否在技能攻击范围内
 [Name("检查范围")]
-[Category("VGame/条件")]
+[Category("xgame/条件")]
 [MemoryPackable]
 public partial class CT_CheckRange : ConditionTask
 {
@@ -212,7 +212,7 @@ public partial class CT_CheckRange : ConditionTask
 
 // CT_CheckHP —— 检查目标血量百分比
 [Name("检查血量")]
-[Category("VGame/条件")]
+[Category("xgame/条件")]
 [MemoryPackable]
 public partial class CT_CheckHP : ConditionTask
 {
@@ -224,7 +224,7 @@ public partial class CT_CheckHP : ConditionTask
 
 // CT_CheckTeamHostState —— 检查队伍是否有出手权
 [Name("检查出手权")]
-[Category("VGame/条件")]
+[Category("xgame/条件")]
 [MemoryPackable]
 public partial class CT_CheckTeamHostState : ConditionTask
 {

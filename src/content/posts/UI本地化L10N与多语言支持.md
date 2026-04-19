@@ -1,7 +1,7 @@
----
+﻿---
 title: UI本地化（L10N）与多语言支持
 published: 2024-01-01
-description: "UI本地化（L10N）与多语言支持 - VGame项目技术文档"
+description: "UI本地化（L10N）与多语言支持 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: UI系统
 draft: false
@@ -27,7 +27,7 @@ encryptedKey: henhaoji123
 ### 2.1 YIUIL10N —— UI 本地化工具类
 
 ```csharp
-// 位置：Hotfix/UIFunction/VGameUI/YIUIL10N.cs
+// 位置：Hotfix/UIFunction/xgameUI/YIUIL10N.cs
 // 所有 UI 文本查询的统一入口
 public static class YIUIL10N
 {

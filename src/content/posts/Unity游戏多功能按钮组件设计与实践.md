@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏多功能按钮组件设计与实践
 published: 2026-03-31
 description: 详解继承Unity标准Button的多功能按钮组件实现，包含防连点检测、按钮音效自动播放、长按检测的扩展设计及工程经验。
@@ -105,7 +105,7 @@ if (playBtnAudio)
     {
         btnAudioId = 9999;
     }
-    VGameAudioManager.Instance.PlaySound(btnAudioId);
+    xgameAudioManager.Instance.PlaySound(btnAudioId);
 }
 ```
 

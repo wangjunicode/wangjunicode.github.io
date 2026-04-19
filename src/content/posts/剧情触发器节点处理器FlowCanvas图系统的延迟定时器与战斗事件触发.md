@@ -1,4 +1,4 @@
----
+﻿---
 title: 剧情触发器节点处理器——FlowCanvas图系统的延迟、定时器与战斗事件触发
 published: 2026-03-31
 description: 解析UniScript FlowCanvas框架中触发器节点处理器的设计，包括延迟节点、重复定时器与战斗关键点事件监听
@@ -10,7 +10,7 @@ encryptedKey: henhaoji123
 
 # 剧情触发器节点处理器——FlowCanvas图系统的延迟、定时器与战斗事件触发
 
-在VGame的剧情系统中，"什么时候触发剧情"由触发器图（TriggerGraph）控制。触发器图是一个由节点连接而成的图，每个节点代表一种触发条件或等待行为。
+在xgame的剧情系统中，"什么时候触发剧情"由触发器图（TriggerGraph）控制。触发器图是一个由节点连接而成的图，每个节点代表一种触发条件或等待行为。
 
 本文分析三种最核心的触发器节点处理器：延迟（`TG_DelayHandler`）、定时器（`TG_TimerHandler`）和战斗事件（`TG_BattlePointEventHandler`）。
 

@@ -1,7 +1,7 @@
----
+﻿---
 title: 反射驱动的字符串占位符替换引擎——StringReplacer与PlaceholderAttribute的工程设计解析
 published: 2026-04-19
-description: '深度剖析 VGame.Framework 中 StringReplacer 与 PlaceholderAttribute 的完整实现，揭示如何用反射自动注册固定占位符和通配符规则，构建零硬编码、高扩展的字符串模板替换引擎，并探讨其在游戏文本本地化、UI 数据绑定和配置模板场景中的工程实践。'
+description: '深度剖析 xgame.Framework 中 StringReplacer 与 PlaceholderAttribute 的完整实现，揭示如何用反射自动注册固定占位符和通配符规则，构建零硬编码、高扩展的字符串模板替换引擎，并探讨其在游戏文本本地化、UI 数据绑定和配置模板场景中的工程实践。'
 image: ''
 tags: [Unity, C#, 反射, 字符串处理, 模板引擎, 设计模式]
 category: '游戏框架'
@@ -20,7 +20,7 @@ encryptedKey: henhaoji123
 ```
 
 朴素做法是硬编码 `string.Replace`，但随着占位符种类爆炸式增长，维护成本极高。  
-VGame.Framework 的 `StringReplacer` + `PlaceholderAttribute` 给出了一个**反射驱动、零硬编码**的优雅方案。
+xgame.Framework 的 `StringReplacer` + `PlaceholderAttribute` 给出了一个**反射驱动、零硬编码**的优雅方案。
 
 ---
 
@@ -369,7 +369,7 @@ public string GetDeadline(string p) => EventManager.GetDeadline().ToString("MM-d
 | 本方案（反射+Attribute）| 低（只需加方法）| 中 | 中 | 占位符种类多且动态 |
 | Liquid/Handlebars 模板 | 极低 | 高 | 慢 | 复杂逻辑模板 |
 
-VGame.Framework 的方案在**扩展性**和**性能**之间取得了平衡：新增占位符只需在规则类里加一个方法，无需修改引擎代码，符合开闭原则。
+xgame.Framework 的方案在**扩展性**和**性能**之间取得了平衡：新增占位符只需在规则类里加一个方法，无需修改引擎代码，符合开闭原则。
 
 ---
 

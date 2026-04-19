@@ -1,4 +1,4 @@
----
+﻿---
 title: 属性变更检查器模式——用Scope和Checker批量处理养成数据更新
 published: 2026-03-31
 description: 深入解析养成系统中角色属性变更的检查器模式，用IDisposable Scope实现原子性的批量属性更新与事件通知
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 养成游戏中，服务器会频繁推送角色属性更新通知：角色的位置变了、压力值变了、队长状态变了……如果每个变化都单独处理，会导致大量零散的事件发布，UI频繁刷新，性能差且代码难以维护。
 
-VGame项目用**Checker + Scope**的模式解决这个问题：所有属性变更先收集到Checker里，批量处理完后，用一次Notify统一发出所有变更事件。
+xgame项目用**Checker + Scope**的模式解决这个问题：所有属性变更先收集到Checker里，批量处理完后，用一次Notify统一发出所有变更事件。
 
 ## 一、核心设计：Checker负责单项属性的变更检测
 

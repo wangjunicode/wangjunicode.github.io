@@ -1,7 +1,7 @@
----
+﻿---
 title: 游戏框架内置中文拼音库NPinyin的设计与搜索优化实践
 published: 2026-04-05
-description: 深度解析 VGame 框架中内嵌的 NPinyin 拼音转换库，涵盖汉字 Unicode 编码到拼音的映射查找、六种拼音风格的格式化处理、PinyinDict 声母韵母拼音字典设计，以及专为游戏 UI 搜索场景优化的 PinyinSearchUtils 多模式合并搜索字符串方案。
+description: 深度解析 xgame 框架中内嵌的 NPinyin 拼音转换库，涵盖汉字 Unicode 编码到拼音的映射查找、六种拼音风格的格式化处理、PinyinDict 声母韵母拼音字典设计，以及专为游戏 UI 搜索场景优化的 PinyinSearchUtils 多模式合并搜索字符串方案。
 tags: [Unity, 中文搜索, 拼音, 工具库, 游戏框架]
 category: Unity框架源码
 draft: false
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 在手机游戏的背包搜索、好友查找、角色选择等功能中，玩家既可能输入汉字，也可能输入拼音全拼，还可能只输入拼音首字母缩写（如输入"zs"匹配"张三"）。要同时支持这三种输入模式，需要一套可靠的**汉字转拼音**工具。
 
-VGame 框架内置了 NPinyin 拼音库，并在其上封装了专为 UI 搜索优化的 `PinyinSearchUtils`。本文将从源码角度深入分析这套工具的设计思路与实现细节。
+xgame 框架内置了 NPinyin 拼音库，并在其上封装了专为 UI 搜索优化的 `PinyinSearchUtils`。本文将从源码角度深入分析这套工具的设计思路与实现细节。
 
 ---
 
@@ -498,7 +498,7 @@ searchStr += " " + pinyinFuzzy;
 
 ## 总结
 
-VGame 框架内置的 NPinyin 实现了一套完整的中文拼音转换工具链：
+xgame 框架内置的 NPinyin 实现了一套完整的中文拼音转换工具链：
 
 | 组件 | 功能 |
 |---|---|

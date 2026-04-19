@@ -1,7 +1,7 @@
----
+﻿---
 title: 动画系统设计：AnimTag帧标注与Animancer驱动
 published: 2024-01-01
-description: "动画系统设计：AnimTag帧标注与Animancer驱动 - VGame项目技术文档"
+description: "动画系统设计：AnimTag帧标注与Animancer驱动 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 渲染管线
 draft: false

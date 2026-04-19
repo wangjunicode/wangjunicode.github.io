@@ -1,4 +1,4 @@
----
+﻿---
 title: Unity游戏战斗结算界面奖励动画与解锁展示
 published: 2026-03-31
 description: 完整解析战斗结算界面的胜负判定、奖励列表动态生成、错开延迟动画序列、解锁内容展示和状态机胜负切换的实现方案。
@@ -38,7 +38,7 @@ public void Update()
     
     // 失败时播放失败音效
     if (isLose)
-        VGameAudioManager.Instance.PlaySound(30122);
+        xgameAudioManager.Instance.PlaySound(30122);
 }
 ```
 
@@ -187,13 +187,13 @@ protected override async ETTask OnEventCloseAction()
 // 在 OnOpenTween 里播放"界面出现音效"
 protected override async ETTask OnOpenTween()
 {
-    VGameAudioManager.Instance.PlaySound(Play_ui_battle_account_interface_single);  // 30064
+    xgameAudioManager.Instance.PlaySound(Play_ui_battle_account_interface_single);  // 30064
     await u_ComBattleSettlementOutcomePanelAnimator.PlayAndWaitAnimation(UIAnimNameDefine.ShowHash);
 }
 
 // 在 Update 里播放"失败音效"
 if (isLose)
-    VGameAudioManager.Instance.PlaySound(30122);
+    xgameAudioManager.Instance.PlaySound(30122);
 ```
 
 **音效 ID 的命名规范**：

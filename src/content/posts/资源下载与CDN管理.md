@@ -1,7 +1,7 @@
----
+﻿---
 title: 09_资源下载与CDN管理
 published: 2024-01-01
-description: "09_资源下载与CDN管理 - VGame项目技术文档"
+description: "09_资源下载与CDN管理 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 网络与SDK
 draft: false
@@ -141,7 +141,7 @@ public class VersionManager
     // 获取游戏逻辑版本（直接用Unity的Application.version）
     public string GetGameLogicVersion()
     {
-        PatchLog.Info("[VGameDolphin] GetGameLogicVersion=" + Application.version);
+        PatchLog.Info("[xgameDolphin] GetGameLogicVersion=" + Application.version);
         return Application.version;
     }
 }

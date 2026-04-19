@@ -19,7 +19,7 @@ encryptedKey: henhaoji123
 
 第一性原理的核心问题只有一个：**"如果从零开始，我会怎么设计？"**
 
-带着这个问题，我们来拆解 VGame 的 `Entity.cs`。
+带着这个问题，我们来拆解 xgame 的 `Entity.cs`。
 
 ---
 
@@ -27,7 +27,7 @@ encryptedKey: henhaoji123
 
 Unity 的答案是：`GameObject + Component`
 
-ET/VGame 的答案是：**Entity 树 + System 驱动**
+ET/xgame 的答案是：**Entity 树 + System 驱动**
 
 两者的根本差异：
 
@@ -205,7 +205,7 @@ public Entity Parent
 }
 ```
 
-**VGame 把 Entity 的"挂载关系"分成两类**：
+**xgame 把 Entity 的"挂载关系"分成两类**：
 
 | 类型 | 语义 | 存储 |
 |------|------|------|
@@ -245,7 +245,7 @@ public bool IsDisposed => this.InstanceId == 0;
 ```
 Assets/
   Scripts/
-    Core/          ← 直接复用 VGame Core（Entity/EventSystem/ETTask/Pool）
+    Core/          ← 直接复用 xgame Core（Entity/EventSystem/ETTask/Pool）
     Game/
       Entities/    ← 你的业务 Entity
       Systems/     ← 你的 System（AwakeSystem/UpdateSystem）

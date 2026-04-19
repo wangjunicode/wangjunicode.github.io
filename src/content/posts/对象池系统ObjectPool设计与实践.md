@@ -1,7 +1,7 @@
----
+﻿---
 title: 06 对象池系统 ObjectPool 设计与实践
 published: 2024-01-01
-description: "06 对象池系统 ObjectPool 设计与实践 - VGame项目技术文档"
+description: "06 对象池系统 ObjectPool 设计与实践 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: ET框架
 draft: false
@@ -23,9 +23,9 @@ encryptedKey: henhaoji123
 | 对象池 | 命名空间 | 适用对象 | 特点 |
 |---|---|---|---|
 | `ET.ObjectPool` | ET（ECS框架层） | Entity 及其内部容器 | 单例模式，无类型约束，支持 `Fetch<T>` / `Recycle` |
-| `VGame.Framework.ObjectPool<T>` | VGame.Framework（业务层） | 任意引用类型 | 泛型强类型，支持自定义回调，线程安全（lock） |
+| `xgame.Framework.ObjectPool<T>` | xgame.Framework（业务层） | 任意引用类型 | 泛型强类型，支持自定义回调，线程安全（lock） |
 
-本项目还在 `VGame.Framework` 层为常用容器封装了静态工厂池：`ListPool<T>`、`HashSetPool<T>`、`DictionaryPool<T,K>`、`StackPool<T>`、`QueuePool<T>`。
+本项目还在 `xgame.Framework` 层为常用容器封装了静态工厂池：`ListPool<T>`、`HashSetPool<T>`、`DictionaryPool<T,K>`、`StackPool<T>`、`QueuePool<T>`。
 
 ---
 
@@ -49,7 +49,7 @@ Recycle(object)
 **特点**：简单、无限制，不做容量控制，不做回调。  
 **用途**：Entity、Dictionary、List、HashSet 等 ECS 内部使用的容器对象。
 
-### 2.2 VGame.Framework.ObjectPool<T>（业务层对象池）
+### 2.2 xgame.Framework.ObjectPool<T>（业务层对象池）
 
 ```
 ObjectPool<T>
@@ -113,7 +113,7 @@ public class ObjectPool : Singleton<ObjectPool>
 }
 ```
 
-### 3.2 VGame.Framework.ObjectPool<T> —— 功能完整的泛型池
+### 3.2 xgame.Framework.ObjectPool<T> —— 功能完整的泛型池
 
 ```csharp
 // X:\UnityProj\Assets\Scripts\Core\Pool\ObjectPool.cs
@@ -324,7 +324,7 @@ public class ListComponent<T> : List<T>, IDisposable
 ### 6.1 两级对象池分层设计
 
 - **ET.ObjectPool（框架层）**：无限制，灵活，支持 Entity 等特殊对象的池化
-- **VGame.Framework.ObjectPool<T>（业务层）**：类型安全，有回调支持，适合业务逻辑中频繁使用的容器
+- **xgame.Framework.ObjectPool<T>（业务层）**：类型安全，有回调支持，适合业务逻辑中频繁使用的容器
 
 两套池互不干扰，框架层的简单需求不必为回调机制付出额外开销。
 
@@ -364,7 +364,7 @@ if (m_Stack.Count > 0 && ReferenceEquals(m_Stack.Peek(), element))
 | 对比项 | 原版 ET | 本项目 |
 |---|---|---|
 | ET.ObjectPool | 相同 | 相同 |
-| 泛型对象池 | 无（主要用 ET.ObjectPool） | 新增 `VGame.Framework.ObjectPool<T>` |
+| 泛型对象池 | 无（主要用 ET.ObjectPool） | 新增 `xgame.Framework.ObjectPool<T>` |
 | 静态容器池 | 无 | 新增 ListPool / HashSetPool / DictionaryPool 等 |
 | PooledObject | 无 | 新增，支持 using 自动归还 |
 | 线程安全 | 无（单线程） | ObjectPool<T> 内部加 lock |
@@ -414,7 +414,7 @@ public class PlayerMoveSystem : AwakeSystem<PlayerMoveComponent>
 ### Q4：如何监控对象池的使用情况？
 
 ```csharp
-// VGame.Framework.ObjectPool<T> 提供调试信息
+// xgame.Framework.ObjectPool<T> 提供调试信息
 var pool = ListPool<int>.s_ListPool;  // 或你自己的池
 Log.Info(pool.GetDebugInfo());
 // 输出：ListPool:System.Collections.Generic.List`1[System.Int32]

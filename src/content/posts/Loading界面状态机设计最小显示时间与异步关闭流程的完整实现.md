@@ -1,4 +1,4 @@
----
+﻿---
 title: Loading界面状态机设计——最小显示时间与异步关闭流程的完整实现
 published: 2026-03-31
 description: 深入解析UI Loading界面管理系统，包括ELoadingState状态机、最小循环等待时间与级别防抢占的精细控制
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 游戏的Loading界面看起来简单，但一个真正健壮的Loading系统需要处理很多边界情况：加载太快时Loading一闪而过（用户体验差），加载超时时界面卡住，异步关闭时有其他操作请求等。
 
-VGame项目的`UILoadingComponentSystem`实现了一套精细的Loading状态机，解决了上述所有问题。
+xgame项目的`UILoadingComponentSystem`实现了一套精细的Loading状态机，解决了上述所有问题。
 
 ## 一、ELoadingState五阶段状态机
 

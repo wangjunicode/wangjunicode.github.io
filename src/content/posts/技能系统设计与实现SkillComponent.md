@@ -1,7 +1,7 @@
----
+﻿---
 title: 技能系统设计与实现（SkillComponent）
 published: 2024-01-01
-description: "技能系统设计与实现（SkillComponent） - VGame项目技术文档"
+description: "技能系统设计与实现（SkillComponent） - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: 战斗系统
 draft: false
@@ -205,7 +205,7 @@ UniScript（FlowCanvas 定制版）允许扩展自定义节点：
 
 ```csharp
 // 自定义 ActionTask 节点示例：播放 Timeline
-[Category("VGame/Timeline")]
+[Category("xgame/Timeline")]
 [Name("Play Timeline")]
 public class PlayTimeline : ActionTask
 {

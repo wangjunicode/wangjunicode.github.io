@@ -1,4 +1,4 @@
----
+﻿---
 title: 战斗数值实时调试系统——用ImGUI构建专业级战斗状态监视器
 published: 2026-03-31
 description: 详解在Unity战斗游戏中实现一套实时数值调试HUD，包括布局设计、日志筛选、数值快照与帧文件写入
@@ -14,7 +14,7 @@ encryptedKey: henhaoji123
 
 打日志？日志太多，翻半天。加断点？战斗实时运行，断了就没法测。写Inspector面板？每次打开Editor很慢，Inspector数据也不够实时。
 
-VGame项目的`BattleNumericScreenDisplay`给出了一个优雅的解决方案：一个直接叠加在游戏画面上的实时战斗状态调试HUD，用Unity的`OnGUI`实现，性能开销只在显示时计算。
+xgame项目的`BattleNumericScreenDisplay`给出了一个优雅的解决方案：一个直接叠加在游戏画面上的实时战斗状态调试HUD，用Unity的`OnGUI`实现，性能开销只在显示时计算。
 
 ## 一、系统的整体布局设计
 

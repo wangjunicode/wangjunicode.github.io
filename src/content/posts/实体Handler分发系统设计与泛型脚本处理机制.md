@@ -1,7 +1,7 @@
----
+﻿---
 title: 实体Handler分发系统设计与泛型脚本处理机制
 published: 2026-04-05
-description: 深度解析 VGame 框架中的 EntityDispatcherComponent、AHandler、IHasHandler、HandlerHelper 与 EventMap 设计，探讨基于 Type 索引的处理器分发、泛型 Handler 自动展开、脚本事件类型注册以及热更新 Load 重建等核心机制。
+description: 深度解析 xgame 框架中的 EntityDispatcherComponent、AHandler、IHasHandler、HandlerHelper 与 EventMap 设计，探讨基于 Type 索引的处理器分发、泛型 Handler 自动展开、脚本事件类型注册以及热更新 Load 重建等核心机制。
 tags: [Unity, ECS, Handler, 架构, 框架设计]
 category: Unity框架源码
 draft: false
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 在复杂的游戏框架中，不同类型的实体往往需要不同的"处理器"来驱动其逻辑——战斗单元有攻击处理器，技能数据有技能执行处理器，可视化脚本事件有事件响应处理器。如果每处都手写 `if (entity is XXX)` 来分支，代码会迅速退化为难以维护的意大利面条。
 
-VGame 框架通过一套**以 Type 为键、以 AHandler 为值**的分发系统，彻底解决了这一问题。本文将深入剖析 `EntityDispatcherComponent`、`AHandler`、`IHasHandler`、`HandlerHelper` 和 `EventMap` 五个核心类的协作原理。
+xgame 框架通过一套**以 Type 为键、以 AHandler 为值**的分发系统，彻底解决了这一问题。本文将深入剖析 `EntityDispatcherComponent`、`AHandler`、`IHasHandler`、`HandlerHelper` 和 `EventMap` 五个核心类的协作原理。
 
 ---
 
@@ -401,7 +401,7 @@ if (!ReflectUtil.AreTypeArgumentsValid(sDefinition, t)) continue;
 
 ## 总结
 
-VGame 框架的 Handler 分发系统通过以下设计实现了高扩展性与高性能的统一：
+xgame 框架的 Handler 分发系统通过以下设计实现了高扩展性与高性能的统一：
 
 | 设计要点 | 实现方案 |
 |---|---|

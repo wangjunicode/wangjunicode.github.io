@@ -1,7 +1,7 @@
----
+﻿---
 title: 02 Entity 实体系统详解
 published: 2024-01-01
-description: "02 Entity 实体系统详解 - VGame项目技术文档"
+description: "02 Entity 实体系统详解 - xgame项目技术文档"
 tags: ['Unity', '游戏开发', '技术文档']
 category: ET框架
 draft: false

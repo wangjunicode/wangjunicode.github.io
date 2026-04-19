@@ -1,4 +1,4 @@
----
+﻿---
 title: PVP网络消息处理器设计——从服务器推送到战斗初始化的完整数据流
 published: 2026-03-31
 description: 解析PVP战斗开始通知处理器的设计，包括DungeonComponent初始化、爆破点数据、帧同步服务器连接参数的处理流程
@@ -12,7 +12,7 @@ encryptedKey: henhaoji123
 
 PVP对战开始时，服务器会推送一条`ZoneFightPvpGameBeginNotify`消息，包含战斗的所有必要信息：帧同步服务器地址、双方玩家数据、副本配置……客户端收到这条消息后，需要在10几行代码内完成大量的初始化工作。
 
-本文分析VGame项目的`ZoneFightPvpGameBeginNotifyHandler`，深入了解这套网络→业务的数据流转设计。
+本文分析xgame项目的`ZoneFightPvpGameBeginNotifyHandler`，深入了解这套网络→业务的数据流转设计。
 
 ## 一、MessageHandler模式
 

@@ -1,4 +1,4 @@
----
+﻿---
 title: 碰撞接口与通用对象池——ICollider 和 ObjectPool 的设计精要
 published: 2026-03-31
 description: 解析确定性物理引擎的碰撞接口 ICollider 的设计，以及通用对象池 ObjectPool<T> 的线程安全实现和专用静态池（ListPool、HashSetPool 等）的便捷封装模式。
@@ -26,7 +26,7 @@ encryptedKey: henhaoji123
 ```csharp
 using TrueSync;
 
-namespace VGame
+namespace xgame
 {
     public interface ICollider
     {

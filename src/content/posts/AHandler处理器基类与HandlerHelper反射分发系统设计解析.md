@@ -1,7 +1,7 @@
----
+﻿---
 title: AHandler处理器基类与HandlerHelper反射分发系统设计解析
 published: 2026-04-17
-description: '深度解析 VGame 框架中 AHandler 泛型处理器基类、HandlerAttribute 标注机制、HandlerHelper 静态工具类的反射注册与分发逻辑，以及 EntityDispatcherComponent 在运行时与编辑器时的双路由策略设计。'
+description: '深度解析 xgame 框架中 AHandler 泛型处理器基类、HandlerAttribute 标注机制、HandlerHelper 静态工具类的反射注册与分发逻辑，以及 EntityDispatcherComponent 在运行时与编辑器时的双路由策略设计。'
 image: ''
 tags: [Unity, 游戏框架, 反射, 设计模式, ECS, 处理器模式]
 category: '技术分享'
@@ -11,7 +11,7 @@ encryptedKey: henhaoji123
 
 ## 前言
 
-在 ECS 架构中，数据（Entity/Component）与逻辑（System/Handler）的分离是核心原则。VGame 框架引入了 **AHandler 处理器模式**，为任意实体类型提供可扩展、可热更的逻辑挂载点，并通过 HandlerHelper 工具类在运行时和编辑器时分别提供不同的查找策略。
+在 ECS 架构中，数据（Entity/Component）与逻辑（System/Handler）的分离是核心原则。xgame 框架引入了 **AHandler 处理器模式**，为任意实体类型提供可扩展、可热更的逻辑挂载点，并通过 HandlerHelper 工具类在运行时和编辑器时分别提供不同的查找策略。
 
 本文从源码出发，剖析这套处理器分发系统的设计精髓。
 
@@ -20,7 +20,7 @@ encryptedKey: henhaoji123
 ## 一、AHandler 基类设计
 
 ```csharp
-namespace VGame.Framework
+namespace xgame.Framework
 {
     public class HandlerAttribute : BaseAttribute { }
 
@@ -156,15 +156,15 @@ private static Type ResolveTargetType(Type handlerType, Assembly assembly, strin
     var scriptType = assembly.GetType(fullName);
     if (scriptType != null) return scriptType;
 
-    // 再在 VGame 根命名空间查找
-    fullName = $"VGame.{entityTypeName}";
+    // 再在 xgame 根命名空间查找
+    fullName = $"xgame.{entityTypeName}";
     return assembly.GetType(fullName);
 }
 ```
 
 两种策略覆盖了大多数处理器命名场景：
 1. `AHandler<FlowTaskBase>` → 目标类型 = `FlowTaskBase`
-2. `SkillActionHandler` → 查找 `VGame.Framework.SkillAction` 或 `VGame.SkillAction`
+2. `SkillActionHandler` → 查找 `xgame.Framework.SkillAction` 或 `xgame.SkillAction`
 
 ---
 
@@ -272,10 +272,10 @@ AHandler 系统体现了以下设计原则：
 
 ## 八、结语
 
-AHandler 与 HandlerHelper 构成了 VGame 框架处理器分发系统的核心。通过反射自动注册、双路由策略、命名约定与泛型约束的结合，实现了低耦合、可扩展、跨环境（运行时/编辑器）的处理器分发能力。
+AHandler 与 HandlerHelper 构成了 xgame 框架处理器分发系统的核心。通过反射自动注册、双路由策略、命名约定与泛型约束的结合，实现了低耦合、可扩展、跨环境（运行时/编辑器）的处理器分发能力。
 
 理解这套机制，有助于在复杂的游戏业务逻辑中合理选择 AHandler（独占分发）vs EventSystem（广播订阅）vs IInvoke（精准调用），构建清晰、可维护的架构。
 
 ---
 
-*本文基于 VGame/ET 框架源码分析，适用于 Unity 客户端游戏框架深度学习。*
+*本文基于 xgame/ET 框架源码分析，适用于 Unity 客户端游戏框架深度学习。*
