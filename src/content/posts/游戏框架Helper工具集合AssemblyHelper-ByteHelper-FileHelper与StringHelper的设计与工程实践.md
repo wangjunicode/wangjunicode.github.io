@@ -1,9 +1,11 @@
 ---
 title: 游戏框架Helper工具集合：AssemblyHelper、ByteHelper、FileHelper与StringHelper的设计与工程实践
-date: 2026-04-20
+published: 2026-04-20
+description: 深入解析ET框架Core/Helper目录下四个核心工具类：AssemblyHelper、ByteHelper、FileHelper与StringHelper，从设计理念到工程实践全面拆解。
 tags: [Unity, 游戏框架, CSharp, 工具库, Helper]
-category: 技术
+category: 游戏框架源码解析
 encryptedKey: henhaoji123
+draft: false
 ---
 
 ## 引言

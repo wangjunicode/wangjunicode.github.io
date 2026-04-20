@@ -1,9 +1,11 @@
 ---
 title: 有序字典与HashSet池化组件：OrderedDictionary与HashSetComponent的设计解析
-date: 2026-04-20
+published: 2026-04-20
+description: 深入解析ET框架中OrderedDictionary与HashSetComponent的设计原理，前者保证插入顺序兼顾快速查找，后者通过对象池消除HashSet频繁创建带来的GC压力，全面掌握游戏框架定制容器的工程价值。
 tags: [Unity, 游戏框架, CSharp, 数据结构, 对象池]
-category: 技术
+category: 游戏框架源码解析
 encryptedKey: henhaoji123
+draft: false
 ---
 
 ## 引言
