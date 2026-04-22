@@ -1,4 +1,4 @@
----
+﻿---
 title: ET框架组件系统接口全景：ILoad、IStart、ITransfer、IReset与DisposeObject的生命周期设计
 encryptedKey: henhaoji123
 tags:
@@ -10,7 +10,7 @@ tags:
 categories:
   - 游戏开发
   - 框架源码
-date: 2026-04-22
+published: 2026-04-22
 description: 深度解析 ET 框架中 ILoadSystem、IStartSystem、ITransfer、IReset、ISerializeToEntity 接口以及 DisposeObject 基类的源码设计，揭示 ECS 组件完整生命周期背后的架构意图。
 ---
 

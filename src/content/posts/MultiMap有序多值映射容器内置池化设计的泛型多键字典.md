@@ -1,4 +1,4 @@
----
+﻿---
 title: MultiMap 有序多值映射容器：内置池化设计的泛型多键字典
 encryptedKey: henhaoji123
 tags:
@@ -10,7 +10,7 @@ tags:
 categories:
   - 游戏开发
   - 框架源码
-date: 2026-04-22
+published: 2026-04-22
 description: 深度解析 ET 框架中 MultiMap 的源码实现，探讨有序多值映射容器如何通过内置对象池消除 GC 分配，以及一键多多值的数据结构如何在事件系统、技能索引等场景中发挥核心作用。
 ---
 
